@@ -1,0 +1,60 @@
+First field run. App v0.2-probe. E46 316i 2002 N42, 16-pin OBD-II.
+Cable reached the phone and answered; no DS2 frame parsed.
+Note: this build logged only byte COUNTS for the sweep, not the bytes themselves,
+which is the gap v0.3 closes.
+
+18:06:22.225  BMW DS2 Probe 0.2-probe
+18:06:22.235  Looking for the cable: VID 0x0333 / PID 0x0137
+
+18:06:22.240  USB rescan: 0 device(s)
+18:06:22.241    note: the BMW Scanner VID 0333 is not among them.
+18:12:40.149  USB rescan: 1 device(s)
+18:12:40.153    /dev/bus/usb/001/002  0333:0137
+
+18:12:40.165  ################ FULL RUN ################
+18:12:40.165  started 2026-10-18 18:12:40
+
+18:12:40.165  === USB descriptors ===
+18:12:40.166  device /dev/bus/usb/001/002  VID=0333 PID=0137
+18:12:40.166    manufacturer=PASOFT  product=BMW Scanner V14x
+18:12:40.167    serial=PA5BG64Y
+18:12:40.168    class=0 subclass=0 protocol=0
+18:12:40.168    interfaces=1
+18:12:40.168    iface#0 class=255 endpoints=2
+18:12:40.169        ep 0x81 IN  bulk maxPacket=64
+18:12:40.169        ep 0x02 OUT bulk maxPacket=64
+18:12:40.169  === end descriptors ===
+
+18:12:40.185  === FTDI EEPROM dump (words 0x00..0x3F) ===
+18:12:40.411    00: 4000 0333 0137 0000 2D80 0008 0000 0E98
+18:12:40.418    08: 22A6 12C8 AAAA 0006 030E 0050 0041 0053
+18:12:40.419    10: 004F 0046 0054 0322 0042 004D 0057 0020
+18:12:40.420    18: 0053 0063 0061 006E 006E 0065 0072 0020
+18:12:40.421    20: 0056 0031 0034 0078 0312 0050 0041 0035
+18:12:40.435    28: 0042 0047 0036 0034 0059 0000 0000 0000
+18:12:40.435    30: 0000 0000 0000 0000 0000 0000 0000 0000
+18:12:40.435    38: 0000 0000 0000 0000 0000 0000 0000 6206
+18:12:40.436    EEPROM VID=0x0333 PID=0x0137
+18:12:40.436  === end EEPROM dump ===
+
+18:12:40.438  === AUTO-SWEEP ===
+18:12:40.438  interfaces on this device: 1
+18:12:40.438  probing 8 candidate addresses per configuration
+
+18:12:43.959  chA   9600  EVEN  echo=true   valid=0  bytes back=37
+18:12:47.328  chA   9600  EVEN  echo=false  valid=0  bytes back=38
+18:12:50.724  chA   9600  NONE  echo=true   valid=0  bytes back=38
+18:12:53.514  chA   9600  NONE  echo=false  valid=0  bytes back=38
+18:12:56.904  chA  10400  EVEN  echo=true   valid=0  bytes back=38
+18:13:00.262  chA  10400  EVEN  echo=false  valid=0  bytes back=38
+18:13:03.657  chA  10400  NONE  echo=true   valid=0  bytes back=41
+18:13:05.868  chA  10400  NONE  echo=false  valid=0  bytes back=42
+
+18:13:05.871  === AUTO-SWEEP RESULT ===
+18:13:05.871  No valid frame anywhere, but bytes did come back - best was
+18:13:05.872    channel A, 10400 baud, NONE parity, echo=false, 42 bytes
+18:13:05.873  That is the physical layer working with the framing still wrong.
+18:13:05.873  Connect with those settings and send bytes by hand to see the raw reply.
+18:13:05.874  === end auto-sweep ===
+
+18:13:05.875  ################ FULL RUN COMPLETE ################

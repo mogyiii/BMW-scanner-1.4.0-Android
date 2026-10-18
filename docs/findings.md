@@ -31,13 +31,78 @@ configuration EEPROM was re-flashed with a custom VID/PID. This is sufficient to
 third-party OBD software recognises the cable: the protocol is not necessarily unusual, but nobody's
 probe table contains `0333:0137`.
 
-**Inference, not yet confirmed.** The `MI_00` / `MI_01` composite-interface ids suggest a
-dual-channel part (FT2232C-class) rather than a single-channel FT232BM. The app's *Descriptors*
-button settles this: `interfaceCount > 1` means dual-channel.
+**This inference was wrong.** The `MI_00` / `MI_01` composite-interface ids in the INF led me to
+expect a dual-channel FT2232-class part, and to suppose that "Channel A" and "Channel B" might be
+wired to two different diagnostic lines in the OBD socket. The first field run
+(`field-logs/2026-10-18-run1.log`) settled it: the hardware exposes **one** interface with a single
+bulk pair, so it is a single-channel FT232BM-class part. The INF simply declares ids the vendor's
+driver package could bind, not ids this cable presents. Channel B does not exist and has been
+dropped from the sweep.
 
-**Open question.** Whether the cable is a "dumb" FTDI + K-line level shifter (so the software writes
-DS2 frames straight to the serial port), or contains a microcontroller imposing its own framing.
-This is the one question that decides the project, and it is answered empirically — see
+## What the first field run established
+
+Source: `field-logs/2026-10-18-run1.log`, app v0.2-probe, on the car, 2026-10-18.
+
+**Observed — the cable works over OTG.** The phone enumerates and powers it:
+
+```
+device /dev/bus/usb/001/002  VID=0333 PID=0137
+  manufacturer=PASOFT  product=BMW Scanner V14x
+  serial=PA5BG64Y
+  interfaces=1
+  iface#0 class=255 endpoints=2
+      ep 0x81 IN  bulk maxPacket=64
+      ep 0x02 OUT bulk maxPacket=64
+```
+
+Vendor-class, one interface, one bulk pair, 64-byte packets — a single-channel FT232BM-class part.
+
+**Observed — the whole 64-word EEPROM reads back cleanly**, in the standard FTDI layout:
+
+```
+00: 4000 0333 0137 0000 2D80 0008 0000 0E98
+08: 22A6 12C8 AAAA 0006 030E 0050 0041 0053
+10: 004F 0046 0054 0322 0042 004D 0057 0020
+18: 0053 0063 0061 006E 006E 0065 0072 0020
+20: 0056 0031 0034 0078 0312 0050 0041 0035
+28: 0042 0047 0036 0034 0059 0000 0000 0000
+30: 0000 0000 0000 0000 0000 0000 0000 0000
+38: 0000 0000 0000 0000 0000 0000 0000 6206
+```
+
+Decoded: word 1 = VID `0x0333`, word 2 = PID `0x0137`, confirming the re-flash. Words 7/8/9 are the
+string descriptors (offset, length): `0x0E98` → `"PASOFT"`, `0x22A6` → `"BMW Scanner V14x"`,
+`0x12C8` → `"PA5BG64Y"`. Word `0x3F` = `0x6206` is the EEPROM checksum.
+
+Words `0x2D`–`0x3E` are all zero. **There is no usage counter or protection blob hiding in the
+EEPROM** — at least not in the 64 words a 93C46 holds, which is all of it.
+
+**Observed — bytes come back, but no DS2 frame parses.** All 8 configurations returned `valid=0`
+with 37–42 bytes per 8-address pass (~4.7 bytes per 4-byte request).
+
+**Inference, and the reason for v0.3.** A *clean* echo would have parsed as valid. With echo
+cancellation off, an exact echo of our `[addr][04][00][cs]` request is re-read as a response whose
+length byte is plausible, whose address matches, and whose checksum is correct by construction — so
+`isPresent` would have returned true and the sweep would have reported 8 valid frames per pass. It
+reported zero. **Therefore the returned bytes are not a clean echo of what we sent.**
+
+What they *are* cannot be settled from the v0.2 log, because that build recorded only byte counts,
+not the bytes. Three explanations remain open:
+
+1. a corrupted echo — wrong line settings mangling our own transmission on the way back;
+2. a real module reply arriving on top of, or instead of, the echo;
+3. **the cable is not a transparent bridge after all** — a microcontroller answering our
+   unrecognised bytes with a short status or error response of its own. Note that the byte count
+   barely moves between 9600 and 10400 baud, which is what you would expect if whatever answers
+   does not care about the K-line baud rate at all.
+
+v0.3 adds a line-characterisation step that sends fixed patterns (`55 55 55 55`, `AA AA`, `00`,
+`FF`) and prints the reply byte for byte. That separates the three cases directly.
+
+## Still open
+
+Whether the cable is a "dumb" FTDI + K-line level shifter, or contains a microcontroller imposing
+its own framing. This is the one question that decides the project. See
 `docs/testing-on-the-car.md`.
 
 ## The Windows software
