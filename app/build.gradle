@@ -1,0 +1,42 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'hu.bmwscanner'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "hu.bmwscanner"
+        minSdk 21
+        // Must match the newest Android we install on. Android 16 refuses - or on HyperOS, simply
+        // blocks - an APK whose targetSdk is well below the running platform, with the
+        // "built for an older version of Android" dialog.
+        targetSdk 36
+        versionCode 2
+        versionName "0.2-probe"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+}

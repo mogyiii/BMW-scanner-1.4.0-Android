@@ -1,0 +1,701 @@
+package hu.bmwscanner
+
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Color
+import android.graphics.Typeface
+import android.hardware.usb.UsbConstants
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
+import android.os.Build
+import android.os.Bundle
+import android.text.InputType
+import android.text.method.ScrollingMovementMethod
+import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Spinner
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import hu.bmwscanner.ds2.Ds2
+import hu.bmwscanner.ds2.Ds2Link
+import hu.bmwscanner.usb.FtdiDevice
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+/**
+ * Bring-up and protocol-probing front end for the BMW Scanner 1.4.0 cable.
+ *
+ * This build deliberately does not pretend to understand the car yet. Its job is to answer the one
+ * question that decides the whole project: does the cable behave as a plain FTDI serial port onto
+ * the DS2 K-line, or does it expect some proprietary framing of its own? Everything here is aimed
+ * at producing a log we can read afterwards.
+ */
+class MainActivity : AppCompatActivity() {
+
+    private companion object {
+        const val ACTION_USB_PERMISSION = "hu.bmwscanner.USB_PERMISSION"
+        val PARITIES = listOf(
+            "Even (8E1) - DS2 default" to FtdiDevice.Parity.EVEN,
+            "None (8N1)" to FtdiDevice.Parity.NONE,
+            "Odd (8O1)" to FtdiDevice.Parity.ODD,
+        )
+    }
+
+    private val io = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private lateinit var usbManager: UsbManager
+
+    private var ftdi: FtdiDevice? = null
+    private var link: Ds2Link? = null
+    private var devices: List<UsbDevice> = emptyList()
+
+    /** Set by the Stop button; long-running scans poll it. */
+    @Volatile
+    private var stopRequested = false
+
+    private lateinit var deviceSpinner: Spinner
+    private lateinit var channelSpinner: Spinner
+    private lateinit var paritySpinner: Spinner
+    private lateinit var baudInput: EditText
+    private lateinit var echoBox: CheckBox
+    private lateinit var hexInput: EditText
+    private lateinit var logView: TextView
+    private lateinit var logScroll: ScrollView
+
+    private val logBuffer = StringBuilder()
+
+    private val permissionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != ACTION_USB_PERMISSION) return
+            val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+            @Suppress("DEPRECATION")
+            val device = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
+            log(
+                if (granted) "USB permission granted for ${device?.deviceName}"
+                else "USB permission DENIED for ${device?.deviceName}",
+            )
+            if (granted) refreshDevices()
+        }
+    }
+
+    // ------------------------------------------------------------------ lifecycle
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+
+        val root = buildUi()
+        setContentView(root)
+        applyWindowInsets(root)
+
+        // A sweep takes about a minute and nobody should have to keep poking the screen awake
+        // while sitting in a car waiting for it.
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // From targetSdk 34 a runtime-registered receiver must declare its export state, and ours
+        // only ever hears our own PendingIntent.
+        ContextCompat.registerReceiver(
+            this,
+            permissionReceiver,
+            IntentFilter(ACTION_USB_PERMISSION),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+
+        log("BMW DS2 Probe ${BuildConfigVersion.NAME}")
+        log("Looking for the cable: VID 0x%04X / PID 0x%04X".format(
+            FtdiDevice.BMW_SCANNER_VID, FtdiDevice.BMW_SCANNER_PID))
+        log("")
+        refreshDevices()
+    }
+
+    override fun onDestroy() {
+        runCatching { unregisterReceiver(permissionReceiver) }
+        disconnect()
+        io.cancel()
+        super.onDestroy()
+    }
+
+    // ------------------------------------------------------------------ ui
+
+    private fun buildUi(): ViewGroup {
+        val pad = (resources.displayMetrics.density * 8).toInt()
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, pad)
+        }
+
+        fun row(vararg children: android.view.View) = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            children.forEach {
+                addView(it, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            }
+            root.addView(this, wide())
+        }
+
+        fun button(text: String, onClick: () -> Unit) = Button(this).apply {
+            this.text = text
+            textSize = 12f
+            setOnClickListener { onClick() }
+        }
+
+        // The one button that matters in the car. Everything below it is for afterwards.
+        root.addView(
+            Button(this).apply {
+                text = "▶  FULL RUN"
+                textSize = 18f
+                setTypeface(typeface, Typeface.BOLD)
+                setOnClickListener { fullRun() }
+            },
+            wide(),
+        )
+
+        deviceSpinner = Spinner(this)
+        root.addView(deviceSpinner, wide())
+
+        channelSpinner = Spinner(this).apply {
+            adapter = simpleAdapter(listOf("Channel A", "Channel B"))
+        }
+        paritySpinner = Spinner(this).apply {
+            adapter = simpleAdapter(PARITIES.map { it.first })
+        }
+        baudInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(Ds2.BAUD.toString())
+            hint = "baud"
+        }
+
+        row(button("Permission") { requestPermission() },
+            button("Connect") { connect() },
+            button("Disconnect") { disconnect() })
+
+        row(channelSpinner, paritySpinner, baudInput)
+
+        echoBox = CheckBox(this).apply {
+            text = "K-line echoes our own bytes (cancel it)"
+            isChecked = true
+            setOnCheckedChangeListener { _, v -> link?.echoExpected = v }
+        }
+        root.addView(echoBox, wide())
+
+        hexInput = EditText(this).apply {
+            hint = "hex bytes, e.g.  00 04 00  or for DS2: addr then payload"
+            setText("00 00")
+            setSingleLine(true)
+            typeface = Typeface.MONOSPACE
+        }
+        root.addView(hexInput, wide())
+
+        row(button("Send raw") { sendRaw() },
+            button("Send as DS2") { sendDs2() })
+
+        row(button("AUTO-SWEEP") { autoSweep() },
+            button("Stop") { stopRequested = true; log("stop requested") })
+
+        row(button("Scan bus") { scanBus() },
+            button("Dump EEPROM") { dumpEeprom() },
+            button("Descriptors") { io.launch { describeDevices() } })
+
+        row(button("Rescan USB") { refreshDevices() },
+            button("Save log") { saveLog() },
+            button("Share log") { shareLog() },
+            button("Clear") { logBuffer.setLength(0); renderLog() })
+
+        logView = TextView(this).apply {
+            typeface = Typeface.MONOSPACE
+            textSize = 11f
+            setTextIsSelectable(true)
+            movementMethod = ScrollingMovementMethod()
+            setBackgroundColor(Color.argb(24, 128, 128, 128))
+            setPadding(pad, pad, pad, pad)
+        }
+        logScroll = ScrollView(this).apply { addView(logView) }
+        root.addView(
+            logScroll,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+        )
+
+        return root
+    }
+
+    /**
+     * targetSdk 35 and up draw edge to edge, so the layout would otherwise slide under the status
+     * bar and the navigation gesture area. Keep the system-bar insets as padding on the root.
+     */
+    private fun applyWindowInsets(root: android.view.View) {
+        val base = (resources.displayMetrics.density * 8).toInt()
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(base + bars.left, base + bars.top, base + bars.right, base + bars.bottom)
+            insets
+        }
+    }
+
+    private fun wide() = LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+    )
+
+    private fun simpleAdapter(items: List<String>) =
+        ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, items)
+
+    // ------------------------------------------------------------------ logging
+
+    private fun log(line: String) {
+        val stamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date())
+        synchronized(logBuffer) {
+            if (line.isEmpty()) logBuffer.append('\n')
+            else line.trimEnd('\n').split('\n').forEach { logBuffer.append(stamp).append("  ").append(it).append('\n') }
+        }
+        runOnUiThread { renderLog() }
+    }
+
+    private fun renderLog() {
+        logView.text = synchronized(logBuffer) { logBuffer.toString() }
+        logScroll.post { logScroll.fullScroll(ScrollView.FOCUS_DOWN) }
+    }
+
+    // ------------------------------------------------------------------ usb plumbing
+
+    private fun refreshDevices() {
+        devices = FtdiDevice.candidates(usbManager)
+        val labels = devices.map { d ->
+            val tag = when {
+                d.vendorId == FtdiDevice.BMW_SCANNER_VID && d.productId == FtdiDevice.BMW_SCANNER_PID ->
+                    "  <-- BMW Scanner"
+                d.vendorId == FtdiDevice.FTDI_VID -> "  <-- FTDI"
+                else -> ""
+            }
+            val perm = if (usbManager.hasPermission(d)) "" else "  [no permission]"
+            "%04X:%04X  %s%s%s".format(
+                d.vendorId, d.productId, d.productName ?: d.deviceName, tag, perm,
+            )
+        }
+        deviceSpinner.adapter = simpleAdapter(
+            labels.ifEmpty { listOf("(no USB devices - is OTG working?)") },
+        )
+        log("USB rescan: ${devices.size} device(s)")
+        devices.forEach { log("  " + it.deviceName + "  ${"%04X:%04X".format(it.vendorId, it.productId)}") }
+        if (devices.none { it.vendorId == FtdiDevice.BMW_SCANNER_VID }) {
+            log("  note: the BMW Scanner VID 0333 is not among them.")
+        }
+    }
+
+    private fun selectedDevice(): UsbDevice? =
+        devices.getOrNull(deviceSpinner.selectedItemPosition)
+
+    private fun requestPermission() {
+        val device = selectedDevice() ?: run { log("no device selected"); return }
+        if (usbManager.hasPermission(device)) { log("already have permission"); return }
+        requestPermissionFor(device)
+    }
+
+    private fun requestPermissionFor(device: UsbDevice) {
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        val pi = PendingIntent.getBroadcast(
+            this, 0, Intent(ACTION_USB_PERMISSION).setPackage(packageName), flags,
+        )
+        usbManager.requestPermission(device, pi)
+        log("permission requested for ${device.deviceName}")
+    }
+
+    private fun connect() {
+        val device = selectedDevice() ?: run { log("no device selected"); return }
+        if (!usbManager.hasPermission(device)) { log("no USB permission yet - press Permission"); return }
+
+        disconnect()
+
+        val channel = channelSpinner.selectedItemPosition
+        val parity = PARITIES[paritySpinner.selectedItemPosition].second
+        val baud = baudInput.text.toString().trim().toIntOrNull() ?: Ds2.BAUD
+
+        io.launch {
+            try {
+                val dev = FtdiDevice.open(usbManager, device, channel)
+                dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                ftdi = dev
+                link = Ds2Link(dev, echoExpected = echoBox.isChecked)
+                log("connected: channel ${('A' + channel)}, $baud baud, ${parity.name} parity, " +
+                    "latency 1 ms, max packet ${dev.maxPacketSize}")
+                val (v, i) = FtdiDevice.encodeBaudDivisor(baud)
+                log("  baud divisor wValue=0x%04X wIndexHigh=0x%02X".format(v, i))
+            } catch (e: Throwable) {
+                log("connect FAILED: ${e.javaClass.simpleName}: ${e.message}")
+            }
+        }
+    }
+
+    private fun disconnect() {
+        ftdi?.let {
+            runCatching { it.close() }
+            log("disconnected")
+        }
+        ftdi = null
+        link = null
+    }
+
+    // ------------------------------------------------------------------ actions
+
+    private fun withLink(what: String, body: (Ds2Link) -> Unit) {
+        val l = link ?: run { log("$what: not connected"); return }
+        io.launch {
+            try {
+                body(l)
+            } catch (e: Throwable) {
+                log("$what FAILED: ${e.javaClass.simpleName}: ${e.message}")
+            }
+        }
+    }
+
+    private fun sendRaw() {
+        val bytes = try {
+            Ds2.parseHex(hexInput.text.toString())
+        } catch (e: Exception) {
+            log("bad hex: ${e.message}"); return
+        }
+        if (bytes.isEmpty()) { log("nothing to send"); return }
+        withLink("send raw") { l ->
+            log("--- raw send (no length/checksum added) ---")
+            log(l.sendRaw(bytes, timeoutMs = 1200).describe())
+        }
+    }
+
+    private fun sendDs2() {
+        val bytes = try {
+            Ds2.parseHex(hexInput.text.toString())
+        } catch (e: Exception) {
+            log("bad hex: ${e.message}"); return
+        }
+        if (bytes.isEmpty()) { log("need at least an address byte"); return }
+        val addr = bytes[0].toInt() and 0xFF
+        val payload = bytes.copyOfRange(1, bytes.size)
+        withLink("send ds2") { l ->
+            log("--- DS2 to 0x%02X, payload %s ---".format(addr, Ds2.hex(payload).ifEmpty { "(empty)" }))
+            log(l.transact(addr, payload, timeoutMs = 1200).describe())
+        }
+    }
+
+    /**
+     * Everything the first session needs, in one press.
+     *
+     * The cable lives in the car, so there is no separate desk test and no second attempt: whoever
+     * is holding the phone gets one go at this, sitting in a driver's seat, probably in the dark.
+     * So this does the lot by itself - finds the cable, dumps the descriptors and the EEPROM, runs
+     * the full configuration sweep, and saves the log at the end whatever happens - and it never
+     * asks a question it could answer for itself.
+     */
+    private fun fullRun() {
+        stopRequested = false
+        refreshDevices()
+
+        val device = devices.firstOrNull {
+            it.vendorId == FtdiDevice.BMW_SCANNER_VID && it.productId == FtdiDevice.BMW_SCANNER_PID
+        } ?: devices.firstOrNull { it.vendorId == FtdiDevice.FTDI_VID }
+          ?: devices.firstOrNull()
+
+        if (device == null) {
+            log("")
+            log("################ FULL RUN - STOPPED ################")
+            log("No USB device is visible at all, so the cable is not reaching the phone.")
+            log("Check, in this order:")
+            log("  1. the OTG adapter is a real OTG one (it must pull the USB ID pin low)")
+            log("  2. the cable is seated in the OBD socket")
+            log("  3. ignition is in position 2")
+            log("Then press FULL RUN again.")
+            saveLogNow()
+            return
+        }
+
+        if (!usbManager.hasPermission(device)) {
+            log("Asking Android for permission to use the cable.")
+            log("Tap OK (and tick 'always' if offered), then press FULL RUN again.")
+            requestPermissionFor(device)
+            return
+        }
+
+        disconnect()
+
+        io.launch {
+            try {
+                log("")
+                log("################ FULL RUN ################")
+                log("started ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
+                log("")
+
+                // Step 1 - what is this thing.
+                describeDevices()
+
+                // Step 2 - its EEPROM, which is where the re-flashed VID/PID and the strings live.
+                log("")
+                var dev: FtdiDevice? = null
+                try {
+                    dev = FtdiDevice.open(usbManager, device, 0)
+                    dev.configure(Ds2.BAUD, FtdiDevice.Parity.EVEN, latencyMs = 1)
+                    dumpEepromInto(dev)
+                } catch (e: Throwable) {
+                    log("EEPROM step failed: ${e.javaClass.simpleName}: ${e.message}")
+                    log("(not fatal - the sweep can still run)")
+                } finally {
+                    runCatching { dev?.close() }
+                }
+
+                // Step 3 - the question the whole project hangs on.
+                log("")
+                runSweep(device)
+            } catch (e: Throwable) {
+                log("FULL RUN aborted: ${e.javaClass.simpleName}: ${e.message}")
+            } finally {
+                log("")
+                log("################ FULL RUN COMPLETE ################")
+                saveLogNow()
+                log("Now press SHARE LOG and send it over.")
+            }
+        }
+    }
+
+    /**
+     * Tries every plausible line configuration against a short list of candidate ECU addresses and
+     * reports which one produced valid DS2 frames.
+     *
+     * This exists because four things about this cable are unknown at once - which channel the
+     * K-line sits on, whether the bus wants even or no parity, whether the DME is on the 9600 baud
+     * DS2 bus or the 10400 baud KWP-era one, and whether the hardware echoes transmitted bytes.
+     * Toggling 16 combinations by hand while sitting in the car is how mistakes get made, so the
+     * phone does it. Takes roughly a minute.
+     */
+    private fun autoSweep() {
+        val device = selectedDevice() ?: run { log("no device selected"); return }
+        if (!usbManager.hasPermission(device)) { log("no USB permission yet - press Permission"); return }
+
+        stopRequested = false
+        disconnect()
+        io.launch { runSweep(device) }
+    }
+
+    private fun runSweep(device: UsbDevice) {
+        run {
+            data class Outcome(
+                val channel: Int, val baud: Int, val parity: FtdiDevice.Parity,
+                val echo: Boolean, val valid: Int, val bytesBack: Int,
+            )
+
+            val probeAddresses = Ds2.KnownEcu.keys.toList()
+            val results = ArrayList<Outcome>()
+
+            log("=== AUTO-SWEEP ===")
+            log("interfaces on this device: ${device.interfaceCount}")
+            log("probing ${probeAddresses.size} candidate addresses per configuration")
+            log("")
+
+            outer@ for (channel in 0 until device.interfaceCount) {
+                for (baud in listOf(9600, 10400)) {
+                    for (parity in listOf(FtdiDevice.Parity.EVEN, FtdiDevice.Parity.NONE)) {
+                        if (stopRequested) break@outer
+
+                        var dev: FtdiDevice? = null
+                        try {
+                            dev = FtdiDevice.open(usbManager, device, channel)
+                            dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                        } catch (e: Throwable) {
+                            log("ch${'A' + channel} $baud ${parity.name}: cannot open - ${e.message}")
+                            runCatching { dev?.close() }
+                            continue
+                        }
+
+                        val l = Ds2Link(dev, echoExpected = true)
+                        for (echo in listOf(true, false)) {
+                            if (stopRequested) { runCatching { dev.close() }; break@outer }
+                            l.echoExpected = echo
+
+                            var valid = 0
+                            var bytes = 0
+                            for (addr in probeAddresses) {
+                                if (stopRequested) break
+                                val r = l.identify(addr, timeoutMs = 200)
+                                bytes += r.raw.size
+                                if (Ds2.isPresent(addr, r)) {
+                                    valid++
+                                    log("  HIT ch${'A' + channel} $baud ${parity.name} echo=$echo " +
+                                        "addr=0x%02X -> %s".format(addr, Ds2.hex(r.response!!)))
+                                }
+                            }
+                            results.add(Outcome(channel, baud, parity, echo, valid, bytes))
+                            log("ch${'A' + channel}  %5d  %-4s  echo=%-5s  valid=%d  bytes back=%d".format(
+                                baud, parity.name, echo.toString(), valid, bytes))
+                        }
+                        runCatching { dev.close() }
+                    }
+                }
+            }
+
+            log("")
+            log("=== AUTO-SWEEP RESULT ===")
+            val best = results.maxByOrNull { it.valid * 10_000 + it.bytesBack }
+            when {
+                best == null -> log("nothing ran")
+                best.valid > 0 -> {
+                    log("WORKING CONFIGURATION FOUND:")
+                    log("  channel ${('A' + best.channel)}, ${best.baud} baud, " +
+                        "${best.parity.name} parity, echo cancellation ${if (best.echo) "ON" else "OFF"}")
+                    log("  ${best.valid} module(s) answered")
+                    log("Set those above, press Connect, then Scan bus for the full module list.")
+                }
+                best.bytesBack > 0 -> {
+                    log("No valid frame anywhere, but bytes did come back - best was")
+                    log("  channel ${('A' + best.channel)}, ${best.baud} baud, " +
+                        "${best.parity.name} parity, echo=${best.echo}, ${best.bytesBack} bytes")
+                    log("That is the physical layer working with the framing still wrong.")
+                    log("Connect with those settings and send bytes by hand to see the raw reply.")
+                }
+                else -> {
+                    log("Total silence in every configuration.")
+                    log("Check first: ignition in position 2, cable seated in the OBD socket.")
+                    log("If it is still silent, the cable is not a transparent serial bridge and")
+                    log("we move to plan B - see docs/testing-on-the-car.md.")
+                }
+            }
+            log("=== end auto-sweep ===")
+        }
+    }
+
+    private fun scanBus() {
+        stopRequested = false
+        withLink("scan") { l ->
+            log("=== bus scan: identification request to every address 0x00..0xFF ===")
+            log("this takes a while; silent addresses are normal. Stop button aborts.")
+            var answered = 0
+            val hits = l.scanBus(shouldStop = { stopRequested }) { addr, r ->
+                if (r.raw.isNotEmpty() && !(l.echoExpected && r.raw.size <= 4 && r.response == null)) {
+                    answered++
+                    log("0x%02X -> %s".format(addr, Ds2.hex(r.raw)))
+                }
+            }
+            log("=== scan done: ${hits.size} valid frame(s), $answered address(es) made noise ===")
+            hits.forEach { (addr, r) ->
+                val guess = Ds2.KnownEcu[addr] ?: "unknown address"
+                log("0x%02X  %s".format(addr, guess))
+                log(r.describe())
+            }
+            if (hits.isEmpty()) {
+                log("No module answered. Before concluding the cable needs its own protocol, try:")
+                log("  1. ignition in position 2 (KL.15 on) - most modules sleep otherwise")
+                log("  2. the other parity setting (8N1 instead of 8E1)")
+                log("  3. toggling the echo checkbox")
+                log("  4. Channel B instead of Channel A")
+            }
+        }
+    }
+
+    private fun dumpEeprom() {
+        val dev = ftdi ?: run { log("EEPROM: not connected"); return }
+        io.launch { dumpEepromInto(dev) }
+    }
+
+    private fun dumpEepromInto(dev: FtdiDevice) {
+        run {
+            log("=== FTDI EEPROM dump (words 0x00..0x3F) ===")
+            val words = dev.dumpEeprom(64)
+            for (base in words.indices step 8) {
+                val line = (base until minOf(base + 8, words.size)).joinToString(" ") { i ->
+                    if (words[i] < 0) "----" else "%04X".format(words[i])
+                }
+                log("  %02X: %s".format(base, line))
+            }
+            // Word 1 / 2 hold the flashed VID / PID on the classic FTDI layout.
+            if (words.size > 2 && words[1] >= 0 && words[2] >= 0) {
+                log("  EEPROM VID=0x%04X PID=0x%04X".format(words[1], words[2]))
+            }
+            if (words.all { it < 0 }) {
+                log("  chip refused every EEPROM read (not fatal - serial IO can still work)")
+            }
+            log("=== end EEPROM dump ===")
+        }
+    }
+
+    private fun describeDevices() {
+        log("=== USB descriptors ===")
+        for (d in devices) {
+            log("device ${d.deviceName}  VID=%04X PID=%04X".format(d.vendorId, d.productId))
+            log("  manufacturer=${d.manufacturerName}  product=${d.productName}")
+            log("  serial=" + runCatching {
+                if (usbManager.hasPermission(d)) d.serialNumber else "(needs permission)"
+            }.getOrElse { "(unreadable)" })
+            log("  class=${d.deviceClass} subclass=${d.deviceSubclass} protocol=${d.deviceProtocol}")
+            log("  interfaces=${d.interfaceCount}" +
+                if (d.interfaceCount > 1) "  -> dual-channel part (FT2232-like)" else "")
+            for (i in 0 until d.interfaceCount) {
+                val f = d.getInterface(i)
+                log("  iface#${f.id} class=${f.interfaceClass} endpoints=${f.endpointCount}")
+                for (j in 0 until f.endpointCount) {
+                    val ep = f.getEndpoint(j)
+                    val dir = if (ep.direction == UsbConstants.USB_DIR_IN) "IN " else "OUT"
+                    val type = when (ep.type) {
+                        UsbConstants.USB_ENDPOINT_XFER_BULK -> "bulk"
+                        UsbConstants.USB_ENDPOINT_XFER_INT -> "intr"
+                        UsbConstants.USB_ENDPOINT_XFER_ISOC -> "isoc"
+                        else -> "ctrl"
+                    }
+                    log("      ep 0x%02X %s %s maxPacket=%d".format(
+                        ep.address, dir, type, ep.maxPacketSize))
+                }
+            }
+        }
+        log("=== end descriptors ===")
+    }
+
+    // ------------------------------------------------------------------ log export
+
+    private fun logText() = synchronized(logBuffer) { logBuffer.toString() }
+
+    private fun saveLog() {
+        io.launch { saveLogNow() }
+    }
+
+    private fun saveLogNow() {
+        try {
+            val dir = getExternalFilesDir(null) ?: filesDir
+            val name = "ds2probe-" +
+                SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date()) + ".log"
+            val f = File(dir, name)
+            f.writeText(logText())
+            log("log saved: ${f.absolutePath}")
+        } catch (e: Throwable) {
+            log("save FAILED: ${e.message}")
+        }
+    }
+
+    private fun shareLog() {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "BMW DS2 probe log")
+            putExtra(Intent.EXTRA_TEXT, logText())
+        }
+        startActivity(Intent.createChooser(send, "Share log"))
+    }
+}
+
+/** Kept separate so the version string does not depend on the generated BuildConfig class. */
+private object BuildConfigVersion {
+    const val NAME = "0.2-probe"
+}

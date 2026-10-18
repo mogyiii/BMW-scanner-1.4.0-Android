@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- BMW Scanner 1.4.0 cable: VID 0x0333 (819) / PID 0x0137 (311).
+         A re-programmed FTDI EEPROM - see docs/findings.md. -->
+    <usb-device vendor-id="819" product-id="311" />
+    <!-- Stock FTDI vendor id, in case a differently flashed cable turns up. -->
+    <usb-device vendor-id="1027" />
+</resources>
