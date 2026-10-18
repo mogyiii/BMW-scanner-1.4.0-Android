@@ -333,6 +333,33 @@ capture), DS2 framing and checksums, resynchronising frame recovery, and the who
 harness - 14 unit tests green, runs on the target phone. Given a cable whose transceiver works,
 this is ready to talk to the car.
 
+## What the cable's own indicators say
+
+Observed by the owner, with the cable on the phone and no car attached, during `ledWalk`:
+
+| Signal driven | Orange LED |
+|---|---|
+| CBUS0–3, each held high in turn, then all high (steps 1–6) | no visible change |
+| Continuous transmission, 4 s (step 7) | **fast blinking throughout** |
+| DTR / RTS asserted and released (steps 8–11) | one brief flash |
+
+Separately: a **green LED lights whenever the cable is plugged into the car**, and not otherwise.
+
+Three things follow.
+
+**The orange LED is a transmit-activity indicator.** It tracks step 7 exactly. So our bytes are
+physically reaching the cable's circuitry — the USB and FTDI layers are doing their job, and
+nothing is being swallowed on the way in.
+
+**The LEDs are not on CBUS.** Steps 1–6 produced nothing visible, which is independent
+corroboration of the CBUS hunt's flat negative: those pins are in IOMODE for some other purpose and
+they do not gate the bus.
+
+**The green LED confirms the power story.** The cable's automotive side is powered from the OBD
+socket, not from USB — which is why every off-car measurement has been silent, and why neither the
+vendor software's "Hardware faulty" nor our native replay of its test means anything until both are
+repeated with the cable in the car.
+
 ## Still open
 
 Whether the cable is a "dumb" FTDI + K-line level shifter, or contains a microcontroller imposing
