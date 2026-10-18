@@ -267,6 +267,72 @@ socket at all.
 resynchronisation, the whole diagnostic harness - all verified. If the hardware fault is found and
 fixed, the software is ready to talk to the car.
 
+## Conclusion: the cable's K-line stage is not driving the bus
+
+Source: `field-logs/2026-10-18-run5-cbus-and-spacing.log`.
+
+Two facts arrived from the owner that narrow this decisively: **other readers work on this car**,
+so the socket and the diagnostic bus are known good, and **the cable is new and undamaged**.
+
+### CBUS was a real lead, and a real negative
+
+The EEPROM puts CBUS0–CBUS3 in IOMODE (bytes `0x14`/`0x15` = `0xAA`, and `0xA` is the FT232R's
+code for software-driven GPIO). A plain USB-serial adapter never needs that, so a transceiver
+enable was the obvious guess. All 16 output states were tried at both bauds and parities: no valid
+frame, and byte counts that barely moved.
+
+That negative is trustworthy because the stimulus was verified — 16 of 16 values read back exactly
+as written. The pins are controllable and they do not gate the bus.
+
+### Every transmitted byte produces the same two-byte artifact
+
+Spacing the bytes out — prompted by the vendor ini's own `Delay=20` / `Delay2=40` — separates what
+back-to-back bursts had been smearing together:
+
+```
+TX 00 04 00 04  ->  RX C4 88  C4 58  C4 28  C4 98
+TX 80 04 00 84  ->  RX C4 88  C4 58  C4 A8  C4 98
+```
+
+Each transmitted byte yields exactly two received bytes, `C4` and one more. And two completely
+different frames produce nearly identical replies: **the response barely depends on the data.**
+
+A working K-line echo carries our bytes back. This carries a fixed shape, triggered once per
+transmission.
+
+### The best physical explanation
+
+Everything measured fits a receive path that is **capacitively coupled rather than DC connected**:
+
+- edges pass, steady levels do not — hence the frame-rate envelope at 115200 with the `0101`
+  pattern inside each byte gone;
+- each edge yields a spike, so one byte with several transitions produces two detected "start
+  bits" — hence `C4 xx` per byte;
+- the shape is set by the coupling, not the data — hence near-identical replies to different frames;
+- nothing is ever decodable, at any rate, which is why 32 baud/parity combinations all failed;
+- no module ever answers, because nothing properly formed ever reaches the bus.
+
+Combined with a known-good car and a physically intact cable, the conclusion is that **this cable's
+K-line transceiver stage is not working.** It is a perfectly good FTDI USB-serial device whose
+automotive front end does not drive or sense the bus correctly.
+
+This cannot be fixed in software, and no protocol setting was ever going to help.
+
+### What would confirm it
+
+- Running the cable with its original Windows software. If it fails there too, the cable is simply
+  faulty and none of this was ever about our code. That is the cleanest single test, with the
+  caveat that the executable is the packed binary described above.
+- Opening the cable, or measuring the K-line pin against the OBD socket with a meter.
+
+### State of the software
+
+Finished and verified. USB enumeration, the FTDI driver (control transfers, baud divisors checked
+against libftdi's published values, line settings, latency, modem control, CBUS GPIO, bitbang
+capture), DS2 framing and checksums, resynchronising frame recovery, and the whole diagnostic
+harness - 14 unit tests green, runs on the target phone. Given a cable whose transceiver works,
+this is ready to talk to the car.
+
 ## Still open
 
 Whether the cable is a "dumb" FTDI + K-line level shifter, or contains a microcontroller imposing

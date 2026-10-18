@@ -145,6 +145,9 @@ class MainActivity : AppCompatActivity() {
                 "linestate" -> { stopRequested = false; io.launch { probeLineState(device!!) } }
                 "pulse" -> { stopRequested = false; io.launch { pulseResponse(device!!) } }
                 "handshake" -> { stopRequested = false; io.launch { handshakeHunt(device!!) } }
+                "cbus" -> { stopRequested = false; io.launch { cbusHunt(device!!) } }
+                "cbusverify" -> { stopRequested = false; io.launch { cbusVerify(device!!) } }
+                "slowsend" -> { stopRequested = false; io.launch { slowSend(device!!, baud, parity) } }
                 "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
                 "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
                 "scan" -> { stopRequested = false; io.launch { fullScan(device!!, baud, parity) } }
@@ -641,6 +644,187 @@ class MainActivity : AppCompatActivity() {
             if (r.lineStatus and 0x08 != 0) bits.append("/framing")
         }
         return bits.toString()
+    }
+
+    /**
+     * Checks that our own CBUS writes actually take effect, by setting each value and reading the
+     * pins back.
+     *
+     * The CBUS hunt returned a flat negative, and a flat negative is only evidence if the stimulus
+     * was real. The bitbang capture already taught this lesson once: without confirming that the
+     * pin we meant to drive actually moved, "no response" means nothing.
+     */
+    private fun cbusVerify(device: UsbDevice) {
+        log("=== CBUS SELF-CHECK ===")
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            dev.dumpEeprom(16).let { w ->
+                if (w.size > 11 && w[10] >= 0 && w[11] >= 0) {
+                    val b14 = w[10] and 0xFF
+                    val b15 = (w[10] shr 8) and 0xFF
+                    val b16 = w[11] and 0xFF
+                    log("  EEPROM CBUS config:")
+                    log("    CBUS0 = ${FtdiDevice.cbusFunction(b14 and 0x0F)}")
+                    log("    CBUS1 = ${FtdiDevice.cbusFunction((b14 shr 4) and 0x0F)}")
+                    log("    CBUS2 = ${FtdiDevice.cbusFunction(b15 and 0x0F)}")
+                    log("    CBUS3 = ${FtdiDevice.cbusFunction((b15 shr 4) and 0x0F)}")
+                    log("    CBUS4 = ${FtdiDevice.cbusFunction(b16 and 0x0F)}")
+                }
+            }
+
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.EVEN, latencyMs = 1)
+            log("  driving each value and reading the pins back:")
+            var followed = 0
+            for (v in 0..15) {
+                dev.setCbus(directions = 0x0F, values = v)
+                Thread.sleep(25)
+                val back = dev.readCbus()
+                val ok = back == v
+                if (ok) followed++
+                log("    set %s  read %s  %s".format(
+                    (3 downTo 0).joinToString("") { if (v shr it and 1 == 1) "1" else "0" },
+                    if (back == null) "----" else (3 downTo 0).joinToString("") {
+                        if (back shr it and 1 == 1) "1" else "0"
+                    },
+                    if (ok) "ok" else "MISMATCH",
+                ))
+            }
+            log("  $followed of 16 values read back as written")
+            if (followed < 12) {
+                log("  CBUS writes are NOT taking effect, so the CBUS hunt proved nothing.")
+            } else {
+                log("  CBUS control works, so the hunt's flat negative is a real result:")
+                log("  these pins do not gate the bus on this cable.")
+            }
+        } catch (e: Throwable) {
+            log("  self-check failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end CBUS self-check ===")
+    }
+
+    /**
+     * Sends a DS2 frame one byte at a time with a gap between bytes.
+     *
+     * The vendor's own `bmwscan.ini` carries `Delay=20` and `Delay2=40` under `[Communication]`,
+     * and every transmission in this project has been a single back-to-back burst. If the line
+     * recovers as slowly as the baud sweep suggests, consecutive bytes smear into one another,
+     * while bytes spaced tens of milliseconds apart would each get a clean line to start from.
+     */
+    private fun slowSend(device: UsbDevice, baud: Int, parity: FtdiDevice.Parity) {
+        log("=== SPACED BYTE SEND ===")
+        log("One byte at a time, as the vendor ini's Delay/Delay2 values imply.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            for (gapMs in listOf(5L, 20L, 40L, 80L)) {
+                for (addr in listOf(0x00, 0x12, 0x60, 0x80)) {
+                    if (stopRequested) { log("stopped"); return }
+                    dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                    dev.purge()
+
+                    val frame = Ds2.frame(addr, byteArrayOf(0x00))
+                    val collected = ArrayList<Byte>()
+                    for (b in frame) {
+                        dev.write(byteArrayOf(b))
+                        Thread.sleep(gapMs)
+                        collected.addAll(dev.readUntilQuiet(quietMs = 5, overallTimeoutMs = 30).toList())
+                    }
+                    collected.addAll(dev.readUntilQuiet(quietMs = 60, overallTimeoutMs = 400).toList())
+
+                    val raw = collected.toByteArray()
+                    val found = Ds2.findFrame(raw, 0, addr)
+                    log("  gap=%2dms addr=0x%02X TX %s  RX %s %s".format(
+                        gapMs, addr, Ds2.hex(frame),
+                        if (raw.isEmpty()) "(silence)" else Ds2.hex(raw),
+                        if (found != null && !found.frame.contentEquals(frame)) "<<<<<< FRAME" else "",
+                    ))
+                }
+            }
+        } catch (e: Throwable) {
+            log("  spaced send failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end spaced byte send ===")
+    }
+
+    /**
+     * Drives every combination of the four CBUS pins and sends a DS2 identification request in
+     * each, looking for the state in which the bus actually answers.
+     *
+     * This cable's EEPROM puts CBUS0-CBUS3 in IOMODE, which only makes sense if the host software
+     * is supposed to drive them - and on a K-line adapter the likely job is enabling the
+     * transceiver. Every measurement in this project so far was taken without touching them, so if
+     * one of them is the bus driver's enable, all of it was taken with the driver switched off.
+     * That would explain a line we can disturb but never talk on, and a car that is known to answer
+     * other tools.
+     */
+    private fun cbusHunt(device: UsbDevice) {
+        log("=== CBUS HUNT ===")
+        log("EEPROM says CBUS0-3 are IOMODE, i.e. meant to be driven by software.")
+        log("Trying all 16 output combinations with an identification request in each.")
+        log("")
+
+        val probes = listOf(0x00, 0x12, 0x16, 0x44, 0x56, 0x60, 0x80, 0xA0)
+        var anyValid = false
+
+        for (baud in listOf(9600, 10400)) {
+            for (parity in listOf(FtdiDevice.Parity.EVEN, FtdiDevice.Parity.NONE)) {
+                for (values in 0..15) {
+                    if (stopRequested) { log("stopped"); return }
+                    var dev: FtdiDevice? = null
+                    try {
+                        dev = FtdiDevice.open(usbManager, device, 0)
+                        dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                        // Reset clears the bit mode, so CBUS has to be driven after configure.
+                        dev.setCbus(directions = 0x0F, values = values)
+                        Thread.sleep(40)
+
+                        val l = Ds2Link(dev)
+                        var valid = 0
+                        var sample = ""
+                        var totalBytes = 0
+                        for (addr in probes) {
+                            val r = l.identify(addr, timeoutMs = 200)
+                            totalBytes += r.raw.size
+                            if (Ds2.isPresent(addr, r)) {
+                                valid++
+                                anyValid = true
+                                sample = "0x%02X -> %s".format(addr, Ds2.hex(r.response!!))
+                            } else if (sample.isEmpty() && r.raw.isNotEmpty()) {
+                                sample = "0x%02X -> %s".format(addr, Ds2.hex(r.raw))
+                            }
+                        }
+                        log("  %5d %-4s CBUS=%s  valid=%d bytes=%-3d %s".format(
+                            baud, parity.name,
+                            (3 downTo 0).joinToString("") { if (values shr it and 1 == 1) "1" else "0" },
+                            valid, totalBytes,
+                            if (valid > 0) "<<<<<< $sample" else sample.ifEmpty { "(silence)" },
+                        ))
+                    } catch (e: Throwable) {
+                        log("  $baud ${parity.name} CBUS=$values: ${e.message}")
+                    } finally {
+                        runCatching { dev?.close() }
+                    }
+                }
+            }
+        }
+
+        log("")
+        if (anyValid) {
+            log("A CBUS state produced a valid frame. That state is the cable's enable; set it")
+            log("before every transaction from now on.")
+        } else {
+            log("No CBUS state produced a valid frame. Compare the byte counts: a state that")
+            log("changes them is still doing something, even without a reply.")
+        }
+        log("=== end CBUS hunt ===")
     }
 
     /**
@@ -1321,5 +1505,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.7-probe"
+    const val NAME = "0.8-probe"
 }

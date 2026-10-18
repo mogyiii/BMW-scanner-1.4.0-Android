@@ -197,6 +197,26 @@ class FtdiDevice private constructor(
         return out.toByteArray()
     }
 
+    // ---------------------------------------------------------------- CBUS GPIO
+
+    /**
+     * Drives the FT232R's CBUS pins as GPIO while the UART keeps running.
+     *
+     * This cable's EEPROM configures CBUS0 through CBUS3 as IOMODE - bytes 0x14/0x15 read 0xAA,
+     * and 0xA is the FT232R's code for CBUS bit-bang. A plain USB-serial adapter has no reason to
+     * do that: those pins are only in IOMODE if the host software is expected to drive them. On a
+     * K-line adapter the obvious candidates are the transceiver's enable or a direction control,
+     * which would mean nothing we have measured so far was taken with the bus driver switched on.
+     *
+     * @param directions bit per pin, CBUS0 in bit 0; 1 makes that pin an output
+     * @param values bit per pin, the level to drive on pins that are outputs
+     */
+    fun setCbus(directions: Int, values: Int) =
+        setBitMode(((directions and 0x0F) shl 4) or (values and 0x0F), BITMODE_CBUS)
+
+    /** In CBUS mode the pin read returns the four CBUS levels in the low nibble. */
+    fun readCbus(): Int? = readPins()?.and(0x0F)
+
     // ---------------------------------------------------------------- bitbang capture
 
     fun setBitMode(pinMask: Int, mode: Int) =
@@ -344,6 +364,25 @@ class FtdiDevice private constructor(
         const val BITMODE_RESET = 0x00
         const val BITMODE_ASYNC_BITBANG = 0x01
         const val BITMODE_SYNC_BITBANG = 0x04
+        const val BITMODE_CBUS = 0x20
+
+        /** FT232R CBUS pin function codes, as stored in EEPROM bytes 0x14-0x16. */
+        fun cbusFunction(code: Int): String = when (code) {
+            0x00 -> "TXDEN"
+            0x01 -> "PWREN#"
+            0x02 -> "RXLED#"
+            0x03 -> "TXLED#"
+            0x04 -> "TX&RXLED#"
+            0x05 -> "SLEEP#"
+            0x06 -> "CLK48"
+            0x07 -> "CLK24"
+            0x08 -> "CLK12"
+            0x09 -> "CLK6"
+            0x0A -> "IOMODE (software-driven GPIO)"
+            0x0B -> "BitBangWR#"
+            0x0C -> "BitBangRD#"
+            else -> "unknown(0x%X)".format(code)
+        }
         private const val SIO_READ_EEPROM = 0x90
 
         /** bcdDevice values identifying the FTDI generation. */
