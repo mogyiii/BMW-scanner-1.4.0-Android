@@ -1,0 +1,56 @@
+Control measurement. App v0.5/v0.6-probe. Cable plugged into the phone over OTG,
+NOT connected to the car. Driven remotely over wireless adb.
+
+Purpose: establish what the cable does on its own, so the car readings have a
+baseline to be compared against.
+
+--- baud hunt, 16 rates x 2 parities, TX 55 55 55 55 each -------------------
+
+18:58:46  === BAUD HUNT ===
+18:58:46      1200 NONE  RX (silence)
+18:58:47      1200 EVEN  RX (silence)
+18:58:47      2400 NONE  RX (silence)
+18:58:48      2400 EVEN  RX (silence)
+18:58:48      4800 NONE  RX (silence)
+18:58:49      4800 EVEN  RX (silence)
+18:58:49      9600 NONE  RX (silence)
+18:58:50      9600 EVEN  RX (silence)
+18:58:50     10400 NONE  RX (silence)
+18:58:51     10400 EVEN  RX (silence)
+18:58:51     14400 NONE  RX (silence)
+18:58:52     14400 EVEN  RX (silence)
+18:58:52     19200 NONE  RX (silence)
+18:58:53     19200 EVEN  RX (silence)
+18:58:54     28800 NONE  RX (silence)
+18:58:54     28800 EVEN  RX (silence)
+18:58:55     38400 NONE  RX (silence)
+18:58:55     38400 EVEN  RX (silence)
+18:58:56     57600 NONE  RX (silence)
+18:58:56     57600 EVEN  RX (silence)
+18:58:57     62500 NONE  RX (silence)
+18:58:57     62500 EVEN  RX (silence)
+18:58:58     76800 NONE  RX (silence)
+18:58:58     76800 EVEN  RX (silence)
+18:58:59     83333 NONE  RX (silence)
+18:58:59     83333 EVEN  RX (silence)
+18:59:00    115200 NONE  RX (silence)
+18:59:00    115200 EVEN  RX (silence)
+18:59:01    125000 NONE  RX (silence)
+18:59:01    125000 EVEN  RX (silence)
+18:59:02    230400 NONE  RX (silence)
+18:59:02    230400 EVEN  RX (silence)
+
+--- line state --------------------------------------------------------------
+
+19:01:49  === LINE STATE ===
+19:01:49    chip: bcdDevice=0x0600  ->  FT232R / FT245R
+19:01:49    resting pin levels (bit1 = RXD), 200 samples while we stay silent:
+19:01:49      0xFF  11111111  200/200  (100%)
+19:01:49    pin levels sampled while transmitting:
+19:01:50      0xFF  11111111  173/200  (86%)
+19:01:50      0xFE  11111110  27/200  (13%)
+19:01:50    (bit0 = TXD, seen going low as we transmit; RXD never followed)
+19:01:50    passive listen - no transmission at all:
+19:01:53       9600 baud, 3 s: nothing
+19:01:56      10400 baud, 3 s: nothing
+19:01:56  === end line state ===

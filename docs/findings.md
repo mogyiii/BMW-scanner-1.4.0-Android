@@ -156,6 +156,47 @@ makes the hardware itself the next thing to inspect.
 
 This runs on a desk. The car is not involved in any of it.
 
+## The desk control run
+
+Source: `field-logs/2026-10-18-run3-desk-control.log`. Cable on the phone over OTG, **not connected
+to the car**, driven remotely over wireless adb.
+
+This is the measurement that should have been taken first. It establishes what the cable does on
+its own, which is what the car readings need to be compared against.
+
+**Observed — total silence at all 32 baud/parity combinations.** `55 55 55 55` out, nothing back,
+from 1200 to 230400 baud.
+
+**Observed — the chip is an FT232R.** `bcdDevice=0x0600`. Not the FT232BM the INF's vintage
+suggested. The baud divisor encoding is the same on both, and it was already verified against
+libftdi's published values, so this changes nothing about the maths - but it does make the EEPROM
+readable in FT232R terms, where byte `0x0B` is the signal-inversion register. In this cable's
+EEPROM that byte is `0x00`: **no inversion is configured.**
+
+**Observed — at rest the pins read `0xFF` in 200 of 200 samples.** While transmitting, bit 0 (TXD)
+is caught low in 13% of samples, as expected, and **bit 1 (RXD) never follows**.
+
+**Observed — passive listening hears nothing** at 9600 or 10400 over three seconds each.
+
+### What this eliminates
+
+| Hypothesis | Verdict |
+|---|---|
+| The cable contains a microcontroller talking at a fixed rate of its own | **Dead.** It would have answered here too. |
+| The receive line picks up crosstalk from our own transmit line | **Dead.** Same bytes were transmitted here with RXD never moving. |
+| The transceiver inverts the returned signal | **Dead.** The FT232R inversion register is zero. |
+
+So the cable invents nothing. Everything seen at the car came from the car's K-line, and the garbled
+bytes are a consequence of our own transmission reaching a real bus and coming back distorted.
+
+### What it does not settle
+
+Steady-high RXD off the car proves less than it looks like: the chip's own pull-up holds an
+unconnected input high too. The reading only becomes evidence when compared against the same
+measurement taken at the car. The remaining question is whether the K-line pin is attached to a
+working bus at all, and the four measurements that answer it - resting level, level while
+transmitting, passive listen, and the baud hunt - now all run at the car as part of FULL RUN.
+
 ## Still open
 
 Whether the cable is a "dumb" FTDI + K-line level shifter, or contains a microcontroller imposing

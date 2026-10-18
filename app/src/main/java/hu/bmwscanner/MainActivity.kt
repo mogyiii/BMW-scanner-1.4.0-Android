@@ -137,6 +137,7 @@ class MainActivity : AppCompatActivity() {
                 "clear" -> { logBuffer.setLength(0); renderLog() }
                 "save" -> io.launch { saveLogNow() }
                 "baudhunt" -> { stopRequested = false; io.launch { baudHunt(device!!) } }
+                "linestate" -> { stopRequested = false; io.launch { probeLineState(device!!) } }
                 "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
                 "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
                 "scan" -> { stopRequested = false; io.launch { fullScan(device!!, baud, parity) } }
@@ -558,7 +559,11 @@ class MainActivity : AppCompatActivity() {
                     runCatching { dev?.close() }
                 }
 
-                // Step 3 - is there any bit rate at which the line behaves like a UART at all.
+                // Step 3 - is the receive line even attached to a working bus.
+                log("")
+                probeLineState(device)
+
+                // Step 4 - is there any bit rate at which the line behaves like a UART at all.
                 log("")
                 baudHunt(device)
 
@@ -619,6 +624,94 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Reports the resting logic level of the receive line, and whether anything is talking on it
+     * when we stay silent.
+     *
+     * This separates two faults that look identical from byte values alone. A K-line that is
+     * connected and idle sits steadily high, because the bus is pulled up and every node is
+     * open-drain. An input wired to nothing drifts and flickers. The desk test proved the cable
+     * invents nothing on its own, so if the level is unstable at the car, the receive line is not
+     * attached to a working bus - and no amount of protocol tuning would ever have helped.
+     *
+     * The passive listen is the other half: if real modules are chattering on the bus we should
+     * hear them without transmitting at all, and if we hear nothing while silent but garbage when
+     * we talk, whatever comes back is a consequence of our own transmission.
+     */
+    private fun probeLineState(device: UsbDevice) {
+        log("=== LINE STATE ===")
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            dev.rawDescriptors()?.let { d ->
+                if (d.size >= 14) {
+                    val bcd = (d[12].toInt() and 0xFF) or ((d[13].toInt() and 0xFF) shl 8)
+                    log("  chip: bcdDevice=0x%04X  ->  %s".format(bcd, FtdiDevice.chipName(bcd)))
+                }
+            }
+
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.EVEN, latencyMs = 1)
+
+            log("  resting pin levels (bit1 = RXD), 200 samples while we stay silent:")
+            reportPins(dev.samplePins(200))
+
+            log("  pin levels sampled while transmitting:")
+            Thread {
+                repeat(40) {
+                    runCatching { dev.write(byteArrayOf(0x55, 0x55, 0x55, 0x55), 200) }
+                }
+            }.start()
+            Thread.sleep(30)
+            reportPins(dev.samplePins(200))
+            Thread.sleep(400)
+            dev.purge()
+
+            log("")
+            log("  passive listen - no transmission at all:")
+            for (baud in listOf(9600, 10400)) {
+                dev.configure(baudRate = baud, parity = FtdiDevice.Parity.EVEN, latencyMs = 1)
+                dev.purge()
+                val heard = dev.readUntilQuiet(quietMs = 2000, overallTimeoutMs = 3000)
+                log("    %5d baud, 3 s: %s".format(
+                    baud,
+                    if (heard.isEmpty()) "nothing - the bus is quiet while we are"
+                    else "${heard.size} byte(s): ${Ds2.hex(heard.copyOfRange(0, minOf(32, heard.size)))}",
+                ))
+            }
+        } catch (e: Throwable) {
+            log("  line state probe failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end line state ===")
+    }
+
+    private fun reportPins(dist: List<Pair<Int, Int>>) {
+        if (dist.isEmpty()) {
+            log("    chip refused the pin read")
+            return
+        }
+        val total = dist.sumOf { it.second }
+        for ((value, count) in dist.take(6)) {
+            log("    0x%02X  %s  %d/%d  (%d%%)".format(
+                value,
+                (7 downTo 0).joinToString("") { if (value shr it and 1 == 1) "1" else "0" },
+                count, total, count * 100 / total,
+            ))
+        }
+        val rxdHigh = dist.filter { it.first and 0x02 != 0 }.sumOf { it.second }
+        val pct = rxdHigh * 100 / total
+        // Steady high on its own proves little: the chip's own pull-up holds an unconnected input
+        // high too. The reading is a comparison, and the off-car control is 100% high at rest with
+        // RXD never following our transmission.
+        log("    RXD high in $pct% of samples - " + when {
+            pct >= 98 -> "steady high (nothing is pulling it down)"
+            pct <= 2 -> "steady low - a stuck or shorted line"
+            else -> "UNSTABLE - what an unconnected, undriven input looks like"
+        })
+    }
+
+    /**
      * Sweeps a wide range of baud rates looking for one where our own transmission comes back
      * unchanged.
      *
@@ -644,6 +737,7 @@ class MainActivity : AppCompatActivity() {
             38400, 57600, 62500, 76800, 83333, 115200, 125000, 230400,
         )
         var cleanFound = false
+        var allSilent = true
 
         for (baud in bauds) {
             for (parity in listOf(FtdiDevice.Parity.NONE, FtdiDevice.Parity.EVEN)) {
@@ -657,6 +751,7 @@ class MainActivity : AppCompatActivity() {
                     val rx = dev.readUntilQuiet(quietMs = 60, overallTimeoutMs = 500)
                     val clean = rx.contentEquals(pattern)
                     if (clean) cleanFound = true
+                    if (rx.isNotEmpty()) allSilent = false
                     log("  %6d %-4s  RX %-26s %s".format(
                         baud, parity.name,
                         if (rx.isEmpty()) "(silence)" else Ds2.hex(rx),
@@ -671,13 +766,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         log("")
-        if (cleanFound) {
-            log("A clean echo means the serial path works at that rate - use it as the")
-            log("cable's real bit rate and retry DS2 framing there.")
-        } else {
-            log("No rate produced a clean echo. Whatever is feeding the receive line is")
-            log("not a UART at any standard speed, which points away from a plain")
-            log("FTDI-plus-transceiver cable.")
+        when {
+            cleanFound -> {
+                log("A clean echo means the serial path works at that rate - use it as the")
+                log("cable's real bit rate and retry DS2 framing there.")
+            }
+            allSilent -> {
+                log("Silence at every rate. The cable invents nothing on its own, which is")
+                log("correct behaviour with nothing to receive. Off the car this is the")
+                log("expected result and proves there is no internal echo or crosstalk.")
+                log("On the car it would instead mean the receive line is dead.")
+            }
+            else -> {
+                log("Bytes came back but never matched what we sent, at any rate. Whatever")
+                log("drives the receive line is not a UART at a standard speed.")
+            }
         }
         log("=== end baud hunt ===")
     }
@@ -1009,5 +1112,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.5-probe"
+    const val NAME = "0.6-probe"
 }

@@ -183,6 +183,40 @@ class FtdiDevice private constructor(
         return out.toByteArray()
     }
 
+    // ---------------------------------------------------------------- line probing
+
+    /**
+     * Reads the current logic level of the chip's pins without disturbing the UART.
+     *
+     * Bit 1 is RXD. On a healthy K-line this sits steadily high when the bus is idle, because the
+     * bus is pulled up and every node is open-drain. A level that flickers instead is the signature
+     * of an input that is not connected to anything - which is a completely different fault from a
+     * bus that is connected but being decoded wrongly, and the two are otherwise hard to tell apart
+     * from byte values alone.
+     */
+    fun readPins(): Int? {
+        val buf = ByteArray(1)
+        val n = connection.controlTransfer(REQ_TYPE_IN, SIO_READ_PINS, 0, portIndex, buf, 1, 500)
+        if (n != 1) return null
+        return buf[0].toInt() and 0xFF
+    }
+
+    /**
+     * Samples [samples] pin readings and returns how often each distinct value was seen,
+     * most frequent first.
+     */
+    fun samplePins(samples: Int = 200): List<Pair<Int, Int>> {
+        val counts = HashMap<Int, Int>()
+        repeat(samples) {
+            val v = readPins() ?: return@repeat
+            counts[v] = (counts[v] ?: 0) + 1
+        }
+        return counts.entries.sortedByDescending { it.value }.map { it.key to it.value }
+    }
+
+    /** Raw USB device descriptor, from which the FTDI chip generation can be read. */
+    fun rawDescriptors(): ByteArray? = connection.rawDescriptors
+
     // ---------------------------------------------------------------- EEPROM
 
     /**
@@ -234,7 +268,21 @@ class FtdiDevice private constructor(
         private const val SIO_SET_BAUD_RATE = 0x03
         private const val SIO_SET_DATA = 0x04
         private const val SIO_SET_LATENCY_TIMER = 0x09
+        private const val SIO_READ_PINS = 0x0C
         private const val SIO_READ_EEPROM = 0x90
+
+        /** bcdDevice values identifying the FTDI generation. */
+        fun chipName(bcdDevice: Int): String = when (bcdDevice) {
+            0x0200 -> "FT8U232AM / FT8U245AM"
+            0x0400 -> "FT232BM / FT245BM"
+            0x0500 -> "FT2232C/D"
+            0x0600 -> "FT232R / FT245R"
+            0x0700 -> "FT2232H"
+            0x0800 -> "FT4232H"
+            0x0900 -> "FT232H"
+            0x1000 -> "FT-X series"
+            else -> "unrecognised"
+        }
 
         private const val SIO_RESET_SIO = 0
         private const val SIO_RESET_PURGE_RX = 1
