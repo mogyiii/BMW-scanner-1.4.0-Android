@@ -53,6 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val ACTION_USB_PERMISSION = "hu.bmwscanner.USB_PERMISSION"
+        const val ACTION_COMMAND = "hu.bmwscanner.CMD"
         val PARITIES = listOf(
             "Even (8E1) - DS2 default" to FtdiDevice.Parity.EVEN,
             "None (8N1)" to FtdiDevice.Parity.NONE,
@@ -95,6 +96,90 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Lets the whole app be driven from `adb shell am broadcast`.
+     *
+     * HyperOS refuses `adb shell input tap` (INJECT_EVENTS), and the phone has one USB port, so
+     * while the cable is plugged in there is no way to touch the screen from here. With wireless
+     * adb plus this receiver the cable can stay connected and still be driven from the desk, which
+     * turns a three-minute round trip in a car park into a few seconds.
+     *
+     *   adb shell am broadcast -a hu.bmwscanner.CMD --es do full
+     *   adb shell am broadcast -a hu.bmwscanner.CMD --es do baudhunt
+     *   adb shell am broadcast -a hu.bmwscanner.CMD --es do chars
+     *   adb shell am broadcast -a hu.bmwscanner.CMD --es do send --es hex "80 04 00 84" --ei baud 9600
+     */
+    private val commandReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != ACTION_COMMAND) return
+            val what = intent.getStringExtra("do") ?: return
+            val baud = intent.getIntExtra("baud", Ds2.BAUD)
+            val parity = when (intent.getStringExtra("parity")?.uppercase()) {
+                "EVEN" -> FtdiDevice.Parity.EVEN
+                "ODD" -> FtdiDevice.Parity.ODD
+                else -> FtdiDevice.Parity.NONE
+            }
+            log(">>> remote command: $what")
+
+            val device = cableDevice()
+            if (device == null && what != "save" && what != "clear") {
+                log("    no cable present"); return
+            }
+            if (device != null && !usbManager.hasPermission(device)) {
+                log("    no USB permission - requesting; re-send the command after granting")
+                requestPermissionFor(device)
+                return
+            }
+
+            when (what) {
+                "full" -> fullRun()
+                "stop" -> { stopRequested = true; log("    stop flag set") }
+                "clear" -> { logBuffer.setLength(0); renderLog() }
+                "save" -> io.launch { saveLogNow() }
+                "baudhunt" -> { stopRequested = false; io.launch { baudHunt(device!!) } }
+                "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
+                "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
+                "scan" -> { stopRequested = false; io.launch { fullScan(device!!, baud, parity) } }
+                "send" -> {
+                    val hex = intent.getStringExtra("hex") ?: run { log("    need --es hex"); return }
+                    stopRequested = false
+                    io.launch { sendOnce(device!!, baud, parity, hex) }
+                }
+                else -> log("    unknown command")
+            }
+        }
+    }
+
+    /** The BMW cable if present, else any FTDI-looking device, else null. */
+    private fun cableDevice(): UsbDevice? {
+        devices = FtdiDevice.candidates(usbManager)
+        return devices.firstOrNull {
+            it.vendorId == FtdiDevice.BMW_SCANNER_VID && it.productId == FtdiDevice.BMW_SCANNER_PID
+        } ?: devices.firstOrNull { it.vendorId == FtdiDevice.FTDI_VID }
+    }
+
+    /** One-shot: open, send the given hex, print everything that comes back, close. */
+    private fun sendOnce(device: UsbDevice, baud: Int, parity: FtdiDevice.Parity, hex: String) {
+        var dev: FtdiDevice? = null
+        try {
+            val tx = Ds2.parseHex(hex)
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+            dev.purge()
+            dev.write(tx)
+            val rx = dev.readUntilQuiet(quietMs = 80, overallTimeoutMs = 900)
+            log("  $baud ${parity.name}  TX ${Ds2.hex(tx)}")
+            log("  RX ${if (rx.isEmpty()) "(silence)" else Ds2.hex(rx)}" +
+                if (rx.contentEquals(tx)) "   =TX exactly" else "")
+            val ls = dev.lastLineStatus
+            if (ls and 0x0E != 0) log("  LINE=0x%02X".format(ls))
+        } catch (e: Throwable) {
+            log("  send failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+    }
+
     // ------------------------------------------------------------------ lifecycle
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -118,6 +203,16 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
 
+        // Exported on purpose: this is the adb-driven development channel described on
+        // commandReceiver. It only starts diagnostics against a cable the user has already granted
+        // permission for, and this is a debug build.
+        ContextCompat.registerReceiver(
+            this,
+            commandReceiver,
+            IntentFilter(ACTION_COMMAND),
+            ContextCompat.RECEIVER_EXPORTED,
+        )
+
         log("BMW DS2 Probe ${BuildConfigVersion.NAME}")
         log("Looking for the cable: VID 0x%04X / PID 0x%04X".format(
             FtdiDevice.BMW_SCANNER_VID, FtdiDevice.BMW_SCANNER_PID))
@@ -127,6 +222,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         runCatching { unregisterReceiver(permissionReceiver) }
+        runCatching { unregisterReceiver(commandReceiver) }
         disconnect()
         io.cancel()
         super.onDestroy()
@@ -462,7 +558,11 @@ class MainActivity : AppCompatActivity() {
                     runCatching { dev?.close() }
                 }
 
-                // Step 3 - what does the wire actually do with bytes we control.
+                // Step 3 - is there any bit rate at which the line behaves like a UART at all.
+                log("")
+                baudHunt(device)
+
+                // Step 4 - what does the wire do with bytes we control.
                 log("")
                 characteriseLine(device)
 
@@ -516,6 +616,70 @@ class MainActivity : AppCompatActivity() {
             if (r.lineStatus and 0x08 != 0) bits.append("/framing")
         }
         return bits.toString()
+    }
+
+    /**
+     * Sweeps a wide range of baud rates looking for one where our own transmission comes back
+     * unchanged.
+     *
+     * Field run 2 showed every reply starting with a byte that depends on the *baud setting* and
+     * not on the data we sent - 0xC4 at 9600, 0xF4/0xFC at 10400 - with parity and framing errors
+     * throughout, and the second byte tracking the low bit of the address. That is our own
+     * transmission coming back sampled at the wrong bit rate, not a module replying.
+     *
+     * If the cable turns out to contain a microcontroller that talks at some fixed rate of its own,
+     * then at that rate - and only at that rate - the echo will decode cleanly. That makes this a
+     * direct test of the question the project has been stuck on, and it needs no car.
+     */
+    private fun baudHunt(device: UsbDevice) {
+        log("=== BAUD HUNT ===")
+        log("Looking for a rate at which our own bytes come back unchanged.")
+        log("A clean echo pins the cable's real bit rate; garbage everywhere means")
+        log("whatever answers is not a UART running at any of these speeds.")
+        log("")
+
+        val pattern = byteArrayOf(0x55, 0x55, 0x55, 0x55)
+        val bauds = listOf(
+            1200, 2400, 4800, 9600, 10400, 14400, 19200, 28800,
+            38400, 57600, 62500, 76800, 83333, 115200, 125000, 230400,
+        )
+        var cleanFound = false
+
+        for (baud in bauds) {
+            for (parity in listOf(FtdiDevice.Parity.NONE, FtdiDevice.Parity.EVEN)) {
+                if (stopRequested) { log("stopped"); return }
+                var dev: FtdiDevice? = null
+                try {
+                    dev = FtdiDevice.open(usbManager, device, 0)
+                    dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                    dev.purge()
+                    dev.write(pattern)
+                    val rx = dev.readUntilQuiet(quietMs = 60, overallTimeoutMs = 500)
+                    val clean = rx.contentEquals(pattern)
+                    if (clean) cleanFound = true
+                    log("  %6d %-4s  RX %-26s %s".format(
+                        baud, parity.name,
+                        if (rx.isEmpty()) "(silence)" else Ds2.hex(rx),
+                        if (clean) "<<<<<< CLEAN ECHO" else "",
+                    ))
+                } catch (e: Throwable) {
+                    log("  %6d %-4s  error: %s".format(baud, parity.name, e.message))
+                } finally {
+                    runCatching { dev?.close() }
+                }
+            }
+        }
+
+        log("")
+        if (cleanFound) {
+            log("A clean echo means the serial path works at that rate - use it as the")
+            log("cable's real bit rate and retry DS2 framing there.")
+        } else {
+            log("No rate produced a clean echo. Whatever is feeding the receive line is")
+            log("not a UART at any standard speed, which points away from a plain")
+            log("FTDI-plus-transceiver cable.")
+        }
+        log("=== end baud hunt ===")
     }
 
     /**
@@ -845,5 +1009,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.4-probe"
+    const val NAME = "0.5-probe"
 }

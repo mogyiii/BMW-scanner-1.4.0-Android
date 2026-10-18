@@ -99,6 +99,63 @@ not the bytes. Three explanations remain open:
 v0.3 adds a line-characterisation step that sends fixed patterns (`55 55 55 55`, `AA AA`, `00`,
 `FF`) and prints the reply byte for byte. That separates the three cases directly.
 
+## What the second field run established
+
+Source: `field-logs/2026-10-18-run2.log`, app v0.4-probe, on the car with ignition in position 2.
+
+This run printed the actual bytes, and they rule out the ordinary explanations.
+
+**Observed — the first byte of every reply depends on the baud *setting*, not on the data sent.**
+
+```
+ 9600 EVEN TX 55 55 55 55    RX C4 E0
+ 9600 EVEN TX AA AA          RX C4 B8 9A AC 81    LINE=0x64
+ 9600 EVEN TX 00             RX C4 E8
+ 9600 EVEN TX FF             RX C4 F8 F8
+ 9600 EVEN TX 80 04 00 84    RX C4 78 78 72       LINE=0x64
+10400 EVEN TX 55 55 55 55    RX F4 71 B3 37 F7    LINE=0x64
+10400 EVEN TX 00             RX FC 11
+10400 NONE TX FF             RX F4 01 FF
+```
+
+Every 9600 reply begins `C4`; every 10400 reply begins `F4` or `FC`. A module's answer would vary
+with the request. A constant that tracks our own clock does not come from the car.
+
+**Observed — parity and framing errors throughout.** `LINE=0x64` is bit 2 set (parity error),
+`LINE=0x68` is bits 2 and 3 (parity *and* framing). The receiver is not cleanly decoding whatever
+is on the wire.
+
+**Observed — the reply tracks our data, bit-shifted.** In the 256-address scan at 10400 NONE the
+second byte alternates with the low bit of the address:
+
+```
+0x01 -> F4 81      0x02 -> F4 01      0x03 -> F4 81      0x04 -> FC 01
+0x05 -> F4 81      0x06 -> F4 01      0x07 -> F4 81      0x08 -> FC 01
+```
+
+Bit 7 of the second received byte follows bit 0 of the address we transmitted. The information we
+sent is coming back, but sampled at the wrong bit boundaries.
+
+**Observed — not one valid frame in 256 addresses**, in any configuration, with the resynchronising
+search that v0.4 added. So this is not a misalignment the parser can recover from; the bytes
+themselves are wrong, not merely offset.
+
+**Inference.** We are receiving our own transmission decoded at the wrong bit rate, or something
+that is not a UART running at the rate we selected. Three sub-cases remain, and they are
+distinguishable without a car:
+
+1. the cable contains a microcontroller that talks at a fixed rate of its own;
+2. the receive line is floating and picking up crosstalk from our own transmit line;
+3. the transceiver inverts or otherwise mangles the returned signal.
+
+**The test.** v0.5 adds a baud hunt: send `55 55 55 55` at sixteen rates from 1200 to 230400 and
+look for one where the bytes come back unchanged. If the cable is a UART at *some* speed, exactly
+one rate will produce a clean echo and that is the cable's real bit rate. If nothing is clean
+anywhere, the receive path is not carrying a UART signal at all, which points at case 2 or 3 and
+makes the hardware itself the next thing to inspect.
+
+This runs on a desk. The car is not involved in any of it.
+
 ## Still open
 
 Whether the cable is a "dumb" FTDI + K-line level shifter, or contains a microcontroller imposing
