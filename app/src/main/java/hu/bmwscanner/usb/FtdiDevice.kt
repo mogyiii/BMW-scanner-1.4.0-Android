@@ -90,6 +90,20 @@ class FtdiDevice private constructor(
         control(SIO_SET_DATA, value, portIndex)
     }
 
+    /**
+     * Drives the DTR and RTS handshake outputs.
+     *
+     * These are not handshake lines on a K-line adapter. Interface cables routinely wire one of
+     * them to the transceiver's enable or to a K/L line selector, and nothing in the USB or EEPROM
+     * descriptors reveals which. Until now this code never touched them, so they have been sitting
+     * wherever a chip reset left them - which, if the transceiver needs one asserted, would leave
+     * the bus driver switched off and produce exactly the half-working line we have been chasing.
+     */
+    fun setModemControl(dtr: Boolean?, rts: Boolean?) {
+        if (dtr != null) control(SIO_MODEM_CTRL, if (dtr) 0x0101 else 0x0100, portIndex)
+        if (rts != null) control(SIO_MODEM_CTRL, if (rts) 0x0202 else 0x0200, portIndex)
+    }
+
     fun setLatencyTimer(ms: Int) =
         control(SIO_SET_LATENCY_TIMER, ms.coerceIn(1, 255), portIndex)
 
@@ -183,6 +197,61 @@ class FtdiDevice private constructor(
         return out.toByteArray()
     }
 
+    // ---------------------------------------------------------------- bitbang capture
+
+    fun setBitMode(pinMask: Int, mode: Int) =
+        control(SIO_SET_BITMODE, ((mode and 0xFF) shl 8) or (pinMask and 0xFF), portIndex)
+
+    /**
+     * Drives TXD from [outLevels] and samples every pin at the same clock, one sample per byte
+     * written. Returns the captured samples.
+     *
+     * Synchronous bitbang is the only way to see what the line actually *does*. In normal UART mode
+     * transmit and receive share one baud setting, so a signal whose edges are being smeared can
+     * only ever be observed through a decoder that is itself confused by the smearing. Here we
+     * drive a known square pulse and watch the response on the same timebase, which turns a
+     * question about protocol settings into a measurement of rise time.
+     *
+     * Bit 0 of each byte is TXD (driven), bit 1 is RXD (sampled).
+     */
+    fun syncBitbangCapture(
+        outLevels: ByteArray,
+        sampleBaud: Int,
+        driverMask: Int = 0x01,
+    ): ByteArray {
+        setBaudRate(sampleBaud)
+        purge()
+        setBitMode(driverMask, BITMODE_SYNC_BITBANG)
+        try {
+            // Synchronous bitbang produces one sample for every byte written, so the read has to
+            // keep pace with the write. Writing the whole waveform first stalls once the chip's
+            // modest FIFO fills, which shows up as a bulk-OUT failure part way through.
+            val got = ByteArray(outLevels.size)
+            var written = 0
+            var read = 0
+            val deadline = System.currentTimeMillis() + 6000
+            val chunk = 48
+
+            while (written < outLevels.size && System.currentTimeMillis() < deadline) {
+                val n = minOf(chunk, outLevels.size - written)
+                write(outLevels.copyOfRange(written, written + n), timeoutMs = 1000)
+                written += n
+                val back = readBytes(minOf(n, got.size - read), 400)
+                back.copyInto(got, read)
+                read += back.size
+            }
+            while (read < got.size && System.currentTimeMillis() < deadline) {
+                val back = readBytes(got.size - read, 200)
+                if (back.isEmpty()) break
+                back.copyInto(got, read)
+                read += back.size
+            }
+            return got.copyOf(read)
+        } finally {
+            runCatching { setBitMode(0x00, BITMODE_RESET) }
+        }
+    }
+
     // ---------------------------------------------------------------- line probing
 
     /**
@@ -264,11 +333,17 @@ class FtdiDevice private constructor(
         private val REQ_TYPE_IN = UsbConstants.USB_TYPE_VENDOR or UsbConstants.USB_DIR_IN   // 0xC0
 
         private const val SIO_RESET = 0x00
+        private const val SIO_MODEM_CTRL = 0x01
         private const val SIO_SET_FLOW_CTRL = 0x02
         private const val SIO_SET_BAUD_RATE = 0x03
         private const val SIO_SET_DATA = 0x04
         private const val SIO_SET_LATENCY_TIMER = 0x09
+        private const val SIO_SET_BITMODE = 0x0B
         private const val SIO_READ_PINS = 0x0C
+
+        const val BITMODE_RESET = 0x00
+        const val BITMODE_ASYNC_BITBANG = 0x01
+        const val BITMODE_SYNC_BITBANG = 0x04
         private const val SIO_READ_EEPROM = 0x90
 
         /** bcdDevice values identifying the FTDI generation. */

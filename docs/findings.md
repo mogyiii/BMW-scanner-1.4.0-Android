@@ -197,6 +197,76 @@ measurement taken at the car. The remaining question is whether the K-line pin i
 working bus at all, and the four measurements that answer it - resting level, level while
 transmitting, passive listen, and the baud hunt - now all run at the car as part of FULL RUN.
 
+## The remote car session — where this currently stands
+
+Source: `field-logs/2026-10-18-run4-car-remote.log`. On the car, ignition in position 2, driven
+entirely over wireless adb from the desk.
+
+### DTR gates the path
+
+Asserting DTR silences the line completely, in all eight baud/parity combinations; deasserting it
+brings the bytes back. So DTR is wired to something real in this cable - an enable, most likely.
+Every measurement before this one was taken without ever setting DTR or RTS, which was an untested
+assumption worth removing. RTS also changes the character of the reply, though less cleanly.
+
+Correct state: **DTR deasserted**. It changes nothing about the conclusions below; the line was
+already in that state by default.
+
+### The bus is reached, but the signal is not usable
+
+Comparing against the desk control settles the electrical question:
+
+| | desk, no car | on the car |
+|---|---|---|
+| RXD at rest | `0xFF` 200/200 | `0xFF` 200/200 |
+| RXD while transmitting | never low | low in 19 of 200 samples |
+
+On the car our own transmission comes back; on the desk it does not. The transceiver is powered and
+the loop closes. But no bit rate between 1200 and 230400 returns a decodable copy of what we sent,
+and **passive listening never hears anything at all** - no module has ever spoken unprompted.
+
+The shape of the failure is consistent across the whole baud sweep. At 19200 and 28800 the first
+three received bytes are identical for both parities, so the same waveform is arriving and only the
+decoder changes. At 115200 and 125000 the reply repeats at the transmitted *frame* rate with the
+`0101` pattern inside each byte gone completely:
+
+```
+115200 EVEN  RX E0 E0 00 E0 E0 E0 00 00 00 00
+125000 EVEN  RX C0 C0 00 C0 C0 C0 00 00 00 00 00
+```
+
+Sub-bit detail is being filtered out. Edges survive, levels do not. On a healthy K-line, pulled up
+hard by the ECUs, this would not happen.
+
+### The bitbang result, unexplained
+
+Driving TXD, RTS and DTR directly in synchronous bitbang - single pulses and square waves, at two
+sample clocks an order of magnitude apart - produced **no RXD response at all**, while UART-mode
+transmission on the same pin demonstrably does. One RTS square-wave hit at the slow clock did not
+reproduce at the fast one and is treated as noise.
+
+This is a null result that is not fully explained. Possibly the transceiver's enable depends on chip
+state that bitbang mode disturbs. It is recorded rather than interpreted, and no conclusion below
+rests on it.
+
+### What this means
+
+The cable works as a USB serial device and reaches something in the car. What it does not do is
+carry a clean bidirectional serial signal to a module, and no module has ever answered. The
+remaining candidate causes are physical and cannot be separated from software:
+
+1. the cable's K-line pin is not on this car's diagnostic bus;
+2. a fault inside the cable - transceiver, or a bad joint;
+3. a fault in the car's OBD socket wiring.
+
+Software probing has gone as far as it usefully can. The next evidence has to come from the
+hardware: which pins the connector actually populates, and whether another tool can talk to this
+socket at all.
+
+**The Android side is finished and working.** USB enumeration, the FTDI driver, framing, checksums,
+resynchronisation, the whole diagnostic harness - all verified. If the hardware fault is found and
+fixed, the software is ready to talk to the car.
+
 ## Still open
 
 Whether the cable is a "dumb" FTDI + K-line level shifter, or contains a microcontroller imposing

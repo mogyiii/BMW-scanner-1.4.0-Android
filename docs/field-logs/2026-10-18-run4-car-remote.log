@@ -1,0 +1,96 @@
+Fourth session. App v0.6+, on the car, ignition position 2, driven entirely
+over wireless adb from the desk. Condensed from several cleared log windows.
+
+=== DTR / RTS HUNT ==========================================================
+Identification request to 4 candidate addresses in each state.
+
+   9600 EVEN DTR=false RTS=false  valid=0  0x00 -> C4 28 F3 FE
+   9600 EVEN DTR=false RTS=true   valid=0  0x00 -> C4 E8 1F F9
+   9600 EVEN DTR=true  RTS=false  valid=0  (silence)
+   9600 EVEN DTR=true  RTS=true   valid=0  (silence)
+   9600 NONE DTR=false RTS=false  valid=0  0x00 -> 4B EF 4F AC 2B E6 05 41 03 46 EE 6C 2F F7
+   9600 NONE DTR=false RTS=true   valid=0  0x00 -> C4 61 8D F2
+   9600 NONE DTR=true  RTS=false  valid=0  (silence)
+   9600 NONE DTR=true  RTS=true   valid=0  (silence)
+  10400 EVEN DTR=false RTS=false  valid=0  0x00 -> 7B 7F B7 1C FB D6 BD 51 13 36 5E 7C 7F F7
+  10400 EVEN DTR=false RTS=true   valid=0  0x00 -> FC D1 58 F1
+  10400 EVEN DTR=true  RTS=false  valid=0  (silence)
+  10400 EVEN DTR=true  RTS=true   valid=0  (silence)
+  10400 NONE DTR=false RTS=false  valid=0  0x00 -> 7B 7F 37 79 BC 11 BD F0 68 40 2D 5E BF 73 88
+  10400 NONE DTR=false RTS=true   valid=0  0x00 -> F4 81 6B 66
+  10400 NONE DTR=true  RTS=false  valid=0  (silence)
+  10400 NONE DTR=true  RTS=true   valid=0  (silence)
+
+DTR asserted silences the path completely, in all eight cases.
+
+=== LINE STATE ==============================================================
+
+  chip: bcdDevice=0x0600  ->  FT232R / FT245R
+  resting pin levels, 200 samples while silent:
+    0xFF  11111111  200/200  (100%)
+  pin levels while transmitting:
+    0xFF  11111111  161/200  (80%)
+    0xFE  11111110   20/200  (10%)     bit0 = TXD low
+    0xFD  11111101   11/200  ( 5%)     bit1 = RXD low
+    0xFC  11111100    8/200  ( 4%)     both low
+  passive listen, no transmission:
+     9600 baud, 3 s: nothing
+    10400 baud, 3 s: nothing
+
+Compare the desk control, where RXD never left high while transmitting.
+On the car it does, so the transceiver is powered and the loop closes.
+
+=== BAUD HUNT, DTR=false RTS=false, TX 55 55 55 55 ==========================
+
+   1200 NONE  RX EA
+   1200 EVEN  RX FF
+   2400 NONE  RX 16 FC FF
+   2400 EVEN  RX 3A 1B
+   4800 NONE  RX 63 54 C3 FE
+   4800 EVEN  RX A3 6F C3 FA
+   9600 NONE  RX C4 21 0B EC 07
+   9600 EVEN  RX C4 48 8A AE FB
+  10400 NONE  RX F4 01 D9 8C 30 EE
+  10400 EVEN  RX F4 71 FA 36 B6
+  14400 NONE  RX D3 57 54 81 36 E7 FC
+  14400 EVEN  RX 53 08 3E E3 79 FF
+  19200 NONE  RX 65 3D 02 5B 0C F1 BA
+  19200 EVEN  RX 65 3D 02 0B 57 E6 FD
+  28800 NONE  RX 12 92 8C 00 00 EE 9E 24 F8
+  28800 EVEN  RX 12 92 8C 80 81 02 72 C2 FF
+  38400 NONE  RX (silence)
+  38400 EVEN  RX 66 9E E6 18 00 80 F8 1E F8
+  57600 NONE  RX (silence)
+  57600 EVEN  RX 1C E0 1C FC E0 70 00 FC F0 E0 F0 FC
+  62500 NONE  RX (silence)
+  62500 EVEN  RX 3C C0 3C FC C0 E0 00 C0 00 FC
+  76800 NONE  RX 78 3C E0 78 3C FE 80 80 00 80 78 FC
+  76800 EVEN  RX 78 1E F8 78 1E 80 80 00 F8 F8 F8
+  83333 NONE  RX F8 78 80 F8 78 FC 00 00 00 00 00
+  83333 EVEN  RX F8 3C E0 F8 3C FF 00 00 00 F8 F8 FC F0
+ 115200 NONE  RX (silence)
+ 115200 EVEN  RX E0 E0 00 E0 E0 E0 00 00 00 00
+ 125000 NONE  RX (silence)
+ 125000 EVEN  RX C0 C0 00 C0 C0 C0 00 00 00 00 00
+ 230400 NONE  RX 00 00 00 00 00 00 00 00 00 00 00 00
+ 230400 EVEN  RX 00 00 00 00 00 00 00 00 00 00 00 00
+
+No rate returns our own bytes. Note 19200 and 28800: the first three received
+bytes are identical for both parities, so the same waveform is arriving and
+only the decoder changes. Note 115200/125000: the reply repeats at the TX
+*frame* rate with the 0101 pattern inside each byte gone entirely.
+
+=== BITBANG PULSE RESPONSE ==================================================
+Synchronous bitbang, driving each candidate pin in turn and sampling RXD on
+the same clock. Run at two sample clocks, 4800 and 115200.
+
+  TXD  pulse/64, pulse/160, square/8, square/32 : RXD did NOT follow
+  RTS  pulse/64, pulse/160, square/32           : RXD did NOT follow
+  RTS  square/8 at the slow clock only          : RXD low in 27 samples
+  DTR  all shapes                               : RXD did NOT follow
+
+The single RTS hit did not reproduce at the faster clock and is treated as
+noise. This is a null result that is NOT fully explained: in UART mode the
+line demonstrably responds, and in bitbang mode it does not. Possibly the
+transceiver's enable depends on chip state that bitbang mode changes. Noted
+rather than interpreted.

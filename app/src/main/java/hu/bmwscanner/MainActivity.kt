@@ -136,15 +136,24 @@ class MainActivity : AppCompatActivity() {
                 "stop" -> { stopRequested = true; log("    stop flag set") }
                 "clear" -> { logBuffer.setLength(0); renderLog() }
                 "save" -> io.launch { saveLogNow() }
-                "baudhunt" -> { stopRequested = false; io.launch { baudHunt(device!!) } }
+                "baudhunt" -> {
+                    val d = if (intent.hasExtra("dtr")) intent.getBooleanExtra("dtr", false) else null
+                    val r = if (intent.hasExtra("rts")) intent.getBooleanExtra("rts", false) else null
+                    stopRequested = false
+                    io.launch { baudHunt(device!!, d, r) }
+                }
                 "linestate" -> { stopRequested = false; io.launch { probeLineState(device!!) } }
+                "pulse" -> { stopRequested = false; io.launch { pulseResponse(device!!) } }
+                "handshake" -> { stopRequested = false; io.launch { handshakeHunt(device!!) } }
                 "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
                 "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
                 "scan" -> { stopRequested = false; io.launch { fullScan(device!!, baud, parity) } }
                 "send" -> {
                     val hex = intent.getStringExtra("hex") ?: run { log("    need --es hex"); return }
+                    val dtr = if (intent.hasExtra("dtr")) intent.getBooleanExtra("dtr", false) else null
+                    val rts = if (intent.hasExtra("rts")) intent.getBooleanExtra("rts", false) else null
                     stopRequested = false
-                    io.launch { sendOnce(device!!, baud, parity, hex) }
+                    io.launch { sendOnce(device!!, baud, parity, hex, dtr, rts) }
                 }
                 else -> log("    unknown command")
             }
@@ -160,16 +169,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** One-shot: open, send the given hex, print everything that comes back, close. */
-    private fun sendOnce(device: UsbDevice, baud: Int, parity: FtdiDevice.Parity, hex: String) {
+    private fun sendOnce(
+        device: UsbDevice,
+        baud: Int,
+        parity: FtdiDevice.Parity,
+        hex: String,
+        dtr: Boolean? = null,
+        rts: Boolean? = null,
+    ) {
         var dev: FtdiDevice? = null
         try {
             val tx = Ds2.parseHex(hex)
             dev = FtdiDevice.open(usbManager, device, 0)
             dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+            if (dtr != null || rts != null) {
+                dev.setModemControl(dtr, rts)
+                Thread.sleep(60)
+            }
             dev.purge()
             dev.write(tx)
             val rx = dev.readUntilQuiet(quietMs = 80, overallTimeoutMs = 900)
-            log("  $baud ${parity.name}  TX ${Ds2.hex(tx)}")
+            log("  $baud ${parity.name} DTR=$dtr RTS=$rts  TX ${Ds2.hex(tx)}")
             log("  RX ${if (rx.isEmpty()) "(silence)" else Ds2.hex(rx)}" +
                 if (rx.contentEquals(tx)) "   =TX exactly" else "")
             val ls = dev.lastLineStatus
@@ -624,6 +644,191 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Tries every combination of the DTR and RTS outputs while sending a DS2 identification
+     * request, at both candidate bit rates.
+     *
+     * On a K-line adapter these are not handshake lines. Cables commonly wire one of them to the
+     * transceiver's enable, or to a selector between the K and L lines, and neither the USB
+     * descriptors nor the EEPROM say which. This code has never set them, so they have been
+     * wherever a chip reset left them for every measurement so far - which, if the transceiver
+     * needs one asserted, is enough on its own to explain a line that we can pull down but that
+     * never carries a usable signal.
+     */
+    private fun handshakeHunt(device: UsbDevice) {
+        log("=== DTR / RTS HUNT ===")
+        log("The cable may use one of these as a transceiver enable. Nothing so far has set them.")
+        log("")
+
+        val probes = listOf(0x00 to "DME-ish", 0x12 to "EGS-ish", 0x60 to "cluster-ish", 0x80 to "IHKA-ish")
+
+        for (baud in listOf(9600, 10400)) {
+            for (parity in listOf(FtdiDevice.Parity.EVEN, FtdiDevice.Parity.NONE)) {
+                for (dtr in listOf(false, true)) {
+                    for (rts in listOf(false, true)) {
+                        if (stopRequested) { log("stopped"); return }
+                        var dev: FtdiDevice? = null
+                        try {
+                            dev = FtdiDevice.open(usbManager, device, 0)
+                            dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                            dev.setModemControl(dtr, rts)
+                            Thread.sleep(60)
+
+                            val l = Ds2Link(dev)
+                            var best = ""
+                            var valid = 0
+                            for ((addr, _) in probes) {
+                                val r = l.identify(addr, timeoutMs = 250)
+                                if (Ds2.isPresent(addr, r)) {
+                                    valid++
+                                    best = "0x%02X -> %s".format(addr, Ds2.hex(r.response!!))
+                                } else if (best.isEmpty() && r.raw.isNotEmpty()) {
+                                    best = "0x%02X -> %s".format(addr, Ds2.hex(r.raw))
+                                }
+                            }
+                            log("  %5d %-4s DTR=%-5s RTS=%-5s  valid=%d  %s".format(
+                                baud, parity.name, dtr.toString(), rts.toString(), valid,
+                                if (valid > 0) "<<<<<< $best" else best.ifEmpty { "(silence)" },
+                            ))
+                        } catch (e: Throwable) {
+                            log("  $baud ${parity.name} DTR=$dtr RTS=$rts: ${e.message}")
+                        } finally {
+                            runCatching { dev?.close() }
+                        }
+                    }
+                }
+            }
+        }
+        log("=== end DTR/RTS hunt ===")
+    }
+
+    /**
+     * Drives square pulses of several widths onto the K-line and prints what comes back, sample by
+     * sample, on the same timebase.
+     *
+     * Everything so far has been a decoder's opinion of the line. The baud hunt showed narrow
+     * pulses vanishing while wide ones survive - 38400 with no parity goes silent while 38400 with
+     * even parity, which has a two-bit low at the end of each frame, comes back - which is what a
+     * slow edge looks like through a UART. This measures the edge directly instead of inferring it.
+     *
+     * A healthy K-line is pulled up hard by the bus and snaps back within a microsecond or two. A
+     * line with no bus pull-up on it crawls back, and the crawl is visible here as a run of samples
+     * where TXD has already been released but RXD is still low.
+     */
+    private fun pulseResponse(device: UsbDevice) {
+        log("=== PULSE RESPONSE ===")
+        log("Driving TXD low for a known number of samples and watching RXD recover.")
+        log("  row 1 = TXD, what we drive.   row 2 = RXD, what the line does.")
+        log("  '-' is high, '_' is low.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            // The bitbang clock is a multiple of the baud setting, and which multiple depends on
+            // the chip and the driver path, so it is measured here rather than assumed: the
+            // capture is timed and the sample period derived from it. Pulse widths are then
+            // reported in microseconds, which is the only form in which "too short to matter" or
+            // "far longer than a bit" actually means anything.
+            // Fast enough that the shortest shapes below are comparable to a 9600-baud bit. At a
+            // slower sample clock every pulse here is effectively DC, which a coupled path blocks,
+            // and the test would answer a question nobody asked.
+            val sampleBaud = 115200
+
+            // Which pin actually drives the bus is an assumption, not a fact: DTR demonstrably
+            // gates something in this cable, so TXD being the K-line driver needs checking rather
+            // than taking on faith. Drive each candidate in turn and see which one RXD follows.
+            val drivers = listOf(
+                0x01 to "TXD",
+                0x04 to "RTS",
+                0x10 to "DTR",
+            )
+
+            // A single long pulse and a continuous square wave answer different questions. If the
+            // path between the chip and the bus is AC coupled - a series capacitor somewhere - then
+            // edges get through and steady levels do not, so a square wave appears on RXD while a
+            // lone pulse vanishes. That distinction matters: it would explain both the garbled echo
+            // and why every bit rate decodes to nonsense, and no protocol setting could fix it.
+            val shapes = listOf(
+                "pulse/64" to 64,
+                "pulse/160" to 160,
+                "square/8" to -8,
+                "square/32" to -32,
+            )
+
+            for ((driverBit, driverName) in drivers) {
+                for ((shapeName, shapeArg) in shapes) {
+                    if (stopRequested) break
+                val lead = 32
+                val tail = 64
+                // Hold every other output high; pull only the pin under test low.
+                val idle = 0x01 or 0x04 or 0x10
+                val low = idle and driverBit.inv()
+                val body = if (shapeArg > 0) shapeArg else 192
+                val wave = ByteArray(lead + body + tail) { i ->
+                    when {
+                        i < lead || i >= lead + body -> idle.toByte()
+                        shapeArg > 0 -> low.toByte()
+                        ((i - lead) / (-shapeArg / 2)) % 2 == 0 -> low.toByte()
+                        else -> idle.toByte()
+                    }
+                }
+                val lowWidth = if (shapeArg > 0) shapeArg else body
+
+                val startedAt = System.nanoTime()
+                val got = dev.syncBitbangCapture(wave, sampleBaud, driverMask = 0x01 or 0x04 or 0x10)
+                val elapsedUs = (System.nanoTime() - startedAt) / 1000.0
+                val usPerSample = if (got.isNotEmpty()) elapsedUs / got.size else 0.0
+                if (got.isEmpty()) {
+                    log("  $driverName $shapeName: capture returned nothing")
+                    continue
+                }
+
+                val drv = StringBuilder()
+                val rxd = StringBuilder()
+                for (i in got.indices) {
+                    drv.append(if (got[i].toInt() and driverBit != 0) '-' else '_')
+                    rxd.append(if (got[i].toInt() and 0x02 != 0) '-' else '_')
+                }
+
+                val capturedDrvLow = got.count { it.toInt() and driverBit == 0 }
+                val lowSamples = got.count { it.toInt() and 0x02 == 0 }
+
+                log("  --- $driverName, $shapeName ---")
+                log("  drv ${drv.take(130)}")
+                log("  RXD ${rxd.take(130)}")
+
+                // Without our own pulse visible in the capture, nothing can be concluded about the
+                // line: a silent RXD row would mean a broken capture, not a quiet bus.
+                if (capturedDrvLow == 0) {
+                    log("  CAPTURE NOT TRUSTWORTHY: the $driverName pulse we drove is absent from")
+                    log("  the samples, so RXD says nothing here.")
+                } else {
+                    val releaseAt = lead + lowWidth
+                    var recovered = -1
+                    for (i in releaseAt until got.size) {
+                        if (got[i].toInt() and 0x02 != 0) { recovered = i; break }
+                    }
+                    log("  $driverName low in $capturedDrvLow samples, RXD low in $lowSamples; " +
+                        when {
+                            lowSamples == 0 -> "RXD did NOT follow"
+                            recovered < 0 -> "RXD followed and never recovered in the capture"
+                            else -> "RXD FOLLOWED, recovering ${recovered - releaseAt} samples after release"
+                        })
+                }
+                    log("")
+                }
+            }
+        } catch (e: Throwable) {
+            log("  pulse response failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end pulse response ===")
+    }
+
+    /**
      * Reports the resting logic level of the receive line, and whether anything is talking on it
      * when we stay silent.
      *
@@ -724,7 +929,7 @@ class MainActivity : AppCompatActivity() {
      * then at that rate - and only at that rate - the echo will decode cleanly. That makes this a
      * direct test of the question the project has been stuck on, and it needs no car.
      */
-    private fun baudHunt(device: UsbDevice) {
+    private fun baudHunt(device: UsbDevice, dtr: Boolean? = null, rts: Boolean? = null) {
         log("=== BAUD HUNT ===")
         log("Looking for a rate at which our own bytes come back unchanged.")
         log("A clean echo pins the cable's real bit rate; garbage everywhere means")
@@ -746,6 +951,10 @@ class MainActivity : AppCompatActivity() {
                 try {
                     dev = FtdiDevice.open(usbManager, device, 0)
                     dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                    if (dtr != null || rts != null) {
+                        dev.setModemControl(dtr, rts)
+                        Thread.sleep(40)
+                    }
                     dev.purge()
                     dev.write(pattern)
                     val rx = dev.readUntilQuiet(quietMs = 60, overallTimeoutMs = 500)
@@ -1112,5 +1321,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.6-probe"
+    const val NAME = "0.7-probe"
 }
