@@ -97,6 +97,51 @@ object Ds2 {
     fun hex(data: ByteArray): String =
         data.joinToString(" ") { "%02X".format(it.toInt() and 0xFF) }
 
+    /** First index at which [needle] occurs in [haystack] at or after [from], or -1. */
+    fun indexOf(haystack: ByteArray, needle: ByteArray, from: Int = 0): Int {
+        if (needle.isEmpty() || needle.size > haystack.size) return -1
+        outer@ for (i in from..(haystack.size - needle.size)) {
+            for (j in needle.indices) if (haystack[i + j] != needle[j]) continue@outer
+            return i
+        }
+        return -1
+    }
+
+    /** A checksum-valid DS2 frame located somewhere inside a larger capture. */
+    data class Located(val offset: Int, val frame: ByteArray)
+
+    /**
+     * Scans [data] from [from] for a checksum-valid DS2 frame starting at *any* offset.
+     *
+     * The earlier implementation assumed a reply began at byte zero of whatever came back. That is
+     * naive on a K-line: the transceiver commonly emits a spurious byte - a framing error from the
+     * line settling - at the start of a transmission, and a single leading junk byte is enough to
+     * push every subsequent field one place along and make a perfectly good frame unparseable. So
+     * resynchronise instead of assuming alignment.
+     *
+     * When [preferAddress] is given, a frame from that address wins over an equally valid one from
+     * somewhere else, since that is the module we actually asked.
+     */
+    fun findFrame(data: ByteArray, from: Int = 0, preferAddress: Int? = null): Located? {
+        var fallback: Located? = null
+        var i = from.coerceAtLeast(0)
+        while (i <= data.size - 3) {
+            val len = data[i + 1].toInt() and 0xFF
+            if (len in 3..(data.size - i)) {
+                val frame = data.copyOfRange(i, i + len)
+                val want = frame[frame.size - 1].toInt() and 0xFF
+                if (checksum(frame, 0, frame.size - 1) == want) {
+                    val located = Located(i, frame)
+                    val addr = frame[0].toInt() and 0xFF
+                    if (preferAddress == null || addr == preferAddress) return located
+                    if (fallback == null) fallback = located
+                }
+            }
+            i++
+        }
+        return fallback
+    }
+
     /** Parses "12 04 00" / "120400" / "0x12,0x04" into bytes. Throws on a stray token. */
     fun parseHex(text: String): ByteArray {
         val cleaned = text.replace("0x", " ", ignoreCase = true)
@@ -132,6 +177,10 @@ data class Ds2Result(
     val note: String,
     /** FTDI line-status byte seen during the read; non-zero means a parity/framing problem. */
     val lineStatus: Int,
+    /** Offset in [raw] where our own transmission came back, or -1 if it never did. */
+    val echoOffset: Int = -1,
+    /** Offset in [raw] where the reply frame was found, or -1. */
+    val frameOffset: Int = -1,
 ) {
     val address: Int? get() = response?.takeIf { it.size >= 2 }?.get(0)?.toInt()?.and(0xFF)
 
@@ -143,12 +192,18 @@ data class Ds2Result(
         append("TX  ").append(Ds2.hex(request)).append('\n')
         append("RX  ").append(if (raw.isEmpty()) "(nothing)" else Ds2.hex(raw)).append('\n')
         if (response != null) {
-            append("    frame: ").append(Ds2.hex(response))
-            append("  cs=").append(if (checksumOk) "ok" else "BAD")
-            append('\n')
+            append("    frame @${frameOffset}: ").append(Ds2.hex(response)).append('\n')
             payload?.let { append("    payload: ").append(Ds2.hex(it)).append('\n') }
         }
-        if (!echoOk) append("    echo mismatch\n")
+        append("    echo: ")
+        append(
+            when {
+                echoOffset == 0 -> "at offset 0, as expected"
+                echoOffset > 0 -> "at offset $echoOffset - $echoOffset stray byte(s) came first"
+                else -> "never came back"
+            },
+        )
+        append('\n')
         if (lineStatus and 0x0E != 0) {
             append("    line status 0x%02X -".format(lineStatus))
             if (lineStatus and 0x02 != 0) append(" overrun")
@@ -163,15 +218,12 @@ data class Ds2Result(
 /**
  * DS2 transport on top of [FtdiDevice].
  *
- * @param echoExpected the K-line is a single bidirectional wire, so most interface hardware feeds
- *   the transmitted bytes straight back into the receiver. Whether this cable does is not yet
- *   known, so the behaviour is a toggle rather than an assumption: when enabled the link consumes
- *   and verifies its own request before looking for a reply.
+ * The K-line is a single bidirectional wire, so interface hardware generally feeds transmitted
+ * bytes straight back into the receiver. This used to be a toggle the caller had to guess at; it is
+ * now detected per transaction by looking for the request inside the captured reply, which is both
+ * more reliable and one less thing to sweep over.
  */
-class Ds2Link(
-    private val ftdi: FtdiDevice,
-    var echoExpected: Boolean = true,
-) {
+class Ds2Link(private val ftdi: FtdiDevice) {
 
     /** Sends [payload] to [address] and tries to read one framed response. */
     fun transact(address: Int, payload: ByteArray, timeoutMs: Int = 1000): Ds2Result {
@@ -179,71 +231,75 @@ class Ds2Link(
         return sendRaw(request, timeoutMs)
     }
 
-    /** Sends an already-framed (or deliberately malformed) request. Used by the hex terminal. */
+    /**
+     * Sends an already-framed (or deliberately malformed) request and analyses everything that
+     * comes back.
+     *
+     * Strategy: capture the whole reply window first, then interpret it - rather than reading two
+     * header bytes and trusting them to be the start of a frame. A K-line transceiver readily
+     * contributes a spurious byte of its own, and one stray leading byte is enough to make a
+     * perfectly good reply unreadable if you assume alignment. Capturing first also means the raw
+     * bytes are preserved for the log even when nothing parses, which is the whole point while the
+     * protocol is still being mapped.
+     */
     fun sendRaw(request: ByteArray, timeoutMs: Int = 1000): Ds2Result {
         ftdi.purge()
         ftdi.write(request)
 
-        val collected = ArrayList<Byte>()
-        var echoOk = true
-        var note = ""
+        val raw = ftdi.readUntilQuiet(
+            quietMs = 40,
+            overallTimeoutMs = timeoutMs.coerceAtLeast(120),
+        )
 
-        if (echoExpected) {
-            val echo = ftdi.readBytes(request.size, timeoutMs)
-            collected.addAll(echo.toList())
-            if (!echo.contentEquals(request)) {
-                echoOk = false
-                note = if (echo.isEmpty()) {
-                    "no echo seen - try turning echo cancellation off"
-                } else {
-                    "echo differs from request (bus contention, or echo cancellation is wrong here)"
-                }
+        val expectedAddress = if (request.isNotEmpty()) request[0].toInt() and 0xFF else null
+
+        // Where, if anywhere, did our own transmission come back?
+        val echoAt = Ds2.indexOf(raw, request)
+        val echoOk = echoAt >= 0
+
+        // Look for a reply after the echo first; a module cannot answer before we finish asking.
+        var located = if (echoAt >= 0) {
+            Ds2.findFrame(raw, echoAt + request.size, expectedAddress)
+        } else {
+            null
+        }
+        var searchedWholeBuffer = false
+        if (located == null) {
+            located = Ds2.findFrame(raw, 0, expectedAddress)
+            searchedWholeBuffer = true
+            // A "frame" that is just our own request echoed is not a reply.
+            if (located != null && located.frame.contentEquals(request)) {
+                located = Ds2.findFrame(raw, located.offset + located.frame.size, expectedAddress)
             }
         }
 
-        // Header first: address + length tell us exactly how much more to wait for.
-        val header = ftdi.readBytes(2, timeoutMs)
-        collected.addAll(header.toList())
-
-        var response: ByteArray? = null
-        var checksumOk = false
-
-        if (header.size == 2) {
-            val len = header[1].toInt() and 0xFF
-            if (len in 3..0xFF) {
-                val rest = ftdi.readBytes(len - 2, timeoutMs)
-                collected.addAll(rest.toList())
-                if (rest.size == len - 2) {
-                    val frame = header + rest
-                    response = frame
-                    checksumOk = Ds2.checksum(frame, 0, frame.size - 1) ==
-                        (frame[frame.size - 1].toInt() and 0xFF)
-                    if (!checksumOk && note.isEmpty()) note = "checksum mismatch"
-                } else if (note.isEmpty()) {
-                    note = "truncated: length byte says $len, got ${2 + rest.size}"
+        val note = buildString {
+            when {
+                raw.isEmpty() -> append("silence")
+                located == null && echoAt == 0 && raw.size == request.size ->
+                    append("exact echo only, no reply")
+                located == null && echoOk ->
+                    append("echo found at offset $echoAt, no valid frame after it")
+                located == null ->
+                    append("no echo and no valid frame in ${raw.size} byte(s)")
+                else -> {
+                    append("frame at offset ${located.offset}")
+                    if (echoAt > 0) append("; echo was offset by $echoAt byte(s)")
+                    if (searchedWholeBuffer && echoAt < 0) append("; no echo seen")
                 }
-            } else if (note.isEmpty()) {
-                note = "implausible length byte 0x%02X".format(len)
             }
-        } else if (note.isEmpty()) {
-            note = if (header.isEmpty()) "silence" else "only ${header.size} byte(s) back"
-        }
-
-        // Sweep up anything still arriving so it cannot pollute the next exchange.
-        val trailing = ftdi.readUntilQuiet(quietMs = 30, overallTimeoutMs = 120)
-        collected.addAll(trailing.toList())
-        if (trailing.isNotEmpty() && response != null) {
-            note = (if (note.isEmpty()) "" else "$note; ") + "${trailing.size} extra byte(s) after frame"
         }
 
         return Ds2Result(
             request = request,
-            raw = collected.toByteArray(),
-            response = response,
+            raw = raw,
+            response = located?.frame,
             echoOk = echoOk,
-            checksumOk = checksumOk,
+            checksumOk = located != null,
             note = note,
             lineStatus = ftdi.lastLineStatus,
+            echoOffset = echoAt,
+            frameOffset = located?.offset ?: -1,
         )
     }
 

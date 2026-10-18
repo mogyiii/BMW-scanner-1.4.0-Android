@@ -75,7 +75,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var channelSpinner: Spinner
     private lateinit var paritySpinner: Spinner
     private lateinit var baudInput: EditText
-    private lateinit var echoBox: CheckBox
     private lateinit var hexInput: EditText
     private lateinit var logView: TextView
     private lateinit var logScroll: ScrollView
@@ -189,12 +188,15 @@ class MainActivity : AppCompatActivity() {
 
         row(channelSpinner, paritySpinner, baudInput)
 
-        echoBox = CheckBox(this).apply {
-            text = "K-line echoes our own bytes (cancel it)"
-            isChecked = true
-            setOnCheckedChangeListener { _, v -> link?.echoExpected = v }
-        }
-        root.addView(echoBox, wide())
+        root.addView(
+            TextView(this).apply {
+                text = "Echo is detected automatically; replies are located by resynchronising " +
+                    "on the checksum, not by assuming byte alignment."
+                textSize = 11f
+                alpha = 0.7f
+            },
+            wide(),
+        )
 
         hexInput = EditText(this).apply {
             hint = "hex bytes, e.g.  00 04 00  or for DS2: addr then payload"
@@ -335,7 +337,7 @@ class MainActivity : AppCompatActivity() {
                 val dev = FtdiDevice.open(usbManager, device, channel)
                 dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
                 ftdi = dev
-                link = Ds2Link(dev, echoExpected = echoBox.isChecked)
+                link = Ds2Link(dev)
                 log("connected: channel ${('A' + channel)}, $baud baud, ${parity.name} parity, " +
                     "latency 1 ms, max packet ${dev.maxPacketSize}")
                 val (v, i) = FtdiDevice.encodeBaudDivisor(baud)
@@ -471,7 +473,7 @@ class MainActivity : AppCompatActivity() {
                 // Step 5 - if anything at all came back, ask all 256 addresses properly.
                 if (best != null && !stopRequested) {
                     log("")
-                    fullScan(device, best.baud, best.parity, best.echo)
+                    fullScan(device, best.baud, best.parity)
                 }
             } catch (e: Throwable) {
                 log("FULL RUN aborted: ${e.javaClass.simpleName}: ${e.message}")
@@ -581,16 +583,16 @@ class MainActivity : AppCompatActivity() {
      * Walks all 256 addresses in one configuration, printing every address that returns anything
      * other than a plain echo of the request.
      */
-    private fun fullScan(device: UsbDevice, baud: Int, parity: FtdiDevice.Parity, echo: Boolean) {
+    private fun fullScan(device: UsbDevice, baud: Int, parity: FtdiDevice.Parity) {
         log("=== FULL 256-ADDRESS SCAN ===")
-        log("  $baud baud, ${parity.name} parity, echo cancellation ${if (echo) "on" else "off"}")
+        log("  $baud baud, ${parity.name} parity")
         log("  only addresses that answer with something other than our own bytes are printed")
 
         var dev: FtdiDevice? = null
         try {
             dev = FtdiDevice.open(usbManager, device, 0)
             dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
-            val l = Ds2Link(dev, echoExpected = echo)
+            val l = Ds2Link(dev)
             var interesting = 0
             val hits = l.scanBus(timeoutMs = 180, shouldStop = { stopRequested }) { addr, r ->
                 val isPlainEcho = r.raw.contentEquals(r.request)
@@ -618,63 +620,67 @@ class MainActivity : AppCompatActivity() {
     private fun runSweep(device: UsbDevice): SweepBest? {
         run {
             data class Outcome(
-                val channel: Int, val baud: Int, val parity: FtdiDevice.Parity,
-                val echo: Boolean, val valid: Int, val bytesBack: Int,
+                val baud: Int, val parity: FtdiDevice.Parity,
+                val valid: Int, val bytesBack: Int, val beyondEcho: Int,
             )
 
             val probeAddresses = Ds2.KnownEcu.keys.toList()
             val results = ArrayList<Outcome>()
 
             log("=== AUTO-SWEEP ===")
-            log("interfaces on this device: ${device.interfaceCount}")
             log("probing ${probeAddresses.size} candidate addresses per configuration")
+            log("echo is detected per transaction now, so it is no longer a dimension to sweep")
             log("")
 
-            outer@ for (channel in 0 until device.interfaceCount) {
-                for (baud in listOf(9600, 10400)) {
-                    for (parity in listOf(FtdiDevice.Parity.EVEN, FtdiDevice.Parity.NONE)) {
-                        if (stopRequested) break@outer
+            outer@ for (baud in listOf(9600, 10400)) {
+                for (parity in listOf(FtdiDevice.Parity.EVEN, FtdiDevice.Parity.NONE)) {
+                    if (stopRequested) break@outer
 
-                        var dev: FtdiDevice? = null
-                        try {
-                            dev = FtdiDevice.open(usbManager, device, channel)
-                            dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
-                        } catch (e: Throwable) {
-                            log("ch${'A' + channel} $baud ${parity.name}: cannot open - ${e.message}")
-                            runCatching { dev?.close() }
-                            continue
-                        }
+                    var dev: FtdiDevice? = null
+                    try {
+                        dev = FtdiDevice.open(usbManager, device, 0)
+                        dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                    } catch (e: Throwable) {
+                        log("$baud ${parity.name}: cannot open - ${e.message}")
+                        runCatching { dev?.close() }
+                        continue
+                    }
 
-                        val l = Ds2Link(dev, echoExpected = true)
-                        for (echo in listOf(true, false)) {
-                            if (stopRequested) { runCatching { dev.close() }; break@outer }
-                            l.echoExpected = echo
+                    try {
+                        val l = Ds2Link(dev)
+                        var valid = 0
+                        var bytes = 0
+                        var beyondEcho = 0
+                        log("--- $baud baud, ${parity.name} parity ---")
+                        for (addr in probeAddresses) {
+                            if (stopRequested) break
+                            val r = l.identify(addr, timeoutMs = 250)
+                            bytes += r.raw.size
+                            // Bytes that are not simply our own transmission coming back. A clean
+                            // echo is self-consistent at any baud, so it tells us nothing about the
+                            // car; only the surplus is evidence that something else is talking.
+                            beyondEcho += r.raw.size - (if (r.echoOffset >= 0) r.request.size else 0)
+                            if (Ds2.isPresent(addr, r)) valid++
 
-                            var valid = 0
-                            var bytes = 0
-                            log("ch${'A' + channel}  $baud  ${parity.name}  echo=$echo")
-                            for (addr in probeAddresses) {
-                                if (stopRequested) break
-                                val r = l.identify(addr, timeoutMs = 200)
-                                bytes += r.raw.size
-                                if (Ds2.isPresent(addr, r)) valid++
-
-                                // Log the actual bytes, not just a count. The first run of this
-                                // sweep reported "bytes did come back" without saying what they
-                                // were, which is the one thing needed to tell an echo from a reply.
-                                log("   0x%02X TX %s  RX %s%s%s%s".format(
-                                    addr,
-                                    Ds2.hex(r.request),
-                                    if (r.raw.isEmpty()) "(silence)" else Ds2.hex(r.raw),
-                                    if (r.raw.contentEquals(r.request)) "  =TX" else "",
-                                    if (Ds2.isPresent(addr, r)) "  <<< VALID FRAME" else "",
-                                    describeTrouble(r),
-                                ))
+                            // Log the actual bytes, not just a count. The first field run reported
+                            // "bytes did come back" without saying what they were, which is exactly
+                            // the thing needed to tell an echo from a reply.
+                            log("   0x%02X TX %s  RX %s%s%s".format(
+                                addr,
+                                Ds2.hex(r.request),
+                                if (r.raw.isEmpty()) "(silence)" else Ds2.hex(r.raw),
+                                if (r.raw.contentEquals(r.request)) "  =TX exactly" else "",
+                                if (Ds2.isPresent(addr, r)) "  <<< VALID FRAME" else "",
+                            ))
+                            if (r.note.isNotEmpty() || r.lineStatus and 0x0E != 0) {
+                                log("        ${r.note}${describeTrouble(r)}")
                             }
-                            results.add(Outcome(channel, baud, parity, echo, valid, bytes))
-                            log("ch${'A' + channel}  %5d  %-4s  echo=%-5s  valid=%d  bytes back=%d".format(
-                                baud, parity.name, echo.toString(), valid, bytes))
                         }
+                        results.add(Outcome(baud, parity, valid, bytes, beyondEcho))
+                        log("  => %5d %-4s  valid=%d  total=%d  beyond-echo=%d".format(
+                            baud, parity.name, valid, bytes, beyondEcho))
+                        log("")
+                    } finally {
                         runCatching { dev.close() }
                     }
                 }
@@ -682,34 +688,35 @@ class MainActivity : AppCompatActivity() {
 
             log("")
             log("=== AUTO-SWEEP RESULT ===")
-            val best = results.maxByOrNull { it.valid * 10_000 + it.bytesBack }
+            // Rank by valid frames, then by bytes that were not just our own echo.
+            val best = results.maxByOrNull { it.valid * 1_000_000 + it.beyondEcho * 100 + it.bytesBack }
             when {
                 best == null -> log("nothing ran")
                 best.valid > 0 -> {
                     log("WORKING CONFIGURATION FOUND:")
-                    log("  channel ${('A' + best.channel)}, ${best.baud} baud, " +
-                        "${best.parity.name} parity, echo cancellation ${if (best.echo) "ON" else "OFF"}")
+                    log("  ${best.baud} baud, ${best.parity.name} parity")
                     log("  ${best.valid} module(s) answered")
                 }
+                best.beyondEcho > 0 -> {
+                    log("No valid frame, but something beyond our own echo came back.")
+                    log("  best: ${best.baud} baud, ${best.parity.name} parity, " +
+                        "${best.beyondEcho} byte(s) beyond echo")
+                    log("Those surplus bytes are the interesting ones - read the RX lines above.")
+                }
                 best.bytesBack > 0 -> {
-                    log("No valid frame anywhere, but bytes did come back - best was")
-                    log("  channel ${('A' + best.channel)}, ${best.baud} baud, " +
-                        "${best.parity.name} parity, echo=${best.echo}, ${best.bytesBack} bytes")
-                    log("Read the per-address RX lines above: '=TX' on all of them means the")
-                    log("hardware is simply echoing us and no module is replying.")
+                    log("Only our own transmission came back, in every configuration.")
+                    log("The cable echoes and nothing on the bus replies. Since a clean echo is")
+                    log("self-consistent at any baud, this result does not discriminate between")
+                    log("settings - it says the car is not answering DS2 identification at all.")
                 }
                 else -> {
-                    log("Total silence in every configuration.")
+                    log("Total silence in every configuration - not even an echo.")
                     log("Check first: ignition in position 2, cable seated in the OBD socket.")
                 }
             }
             log("=== end auto-sweep ===")
 
-            return if (best != null && best.bytesBack > 0) {
-                SweepBest(best.baud, best.parity, best.echo, best.valid)
-            } else {
-                null
-            }
+            return if (best != null) SweepBest(best.baud, best.parity, best.valid) else null
         }
     }
 
@@ -717,7 +724,6 @@ class MainActivity : AppCompatActivity() {
     private data class SweepBest(
         val baud: Int,
         val parity: FtdiDevice.Parity,
-        val echo: Boolean,
         val valid: Int,
     )
 
@@ -728,7 +734,7 @@ class MainActivity : AppCompatActivity() {
             log("this takes a while; silent addresses are normal. Stop button aborts.")
             var answered = 0
             val hits = l.scanBus(shouldStop = { stopRequested }) { addr, r ->
-                if (r.raw.isNotEmpty() && !(l.echoExpected && r.raw.size <= 4 && r.response == null)) {
+                if (r.raw.isNotEmpty() && !r.raw.contentEquals(r.request)) {
                     answered++
                     log("0x%02X -> %s".format(addr, Ds2.hex(r.raw)))
                 }
@@ -839,5 +845,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.3-probe"
+    const val NAME = "0.4-probe"
 }
