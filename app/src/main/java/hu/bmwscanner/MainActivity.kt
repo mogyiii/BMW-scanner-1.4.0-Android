@@ -148,6 +148,7 @@ class MainActivity : AppCompatActivity() {
                 "cbus" -> { stopRequested = false; io.launch { cbusHunt(device!!) } }
                 "cbusverify" -> { stopRequested = false; io.launch { cbusVerify(device!!) } }
                 "vendorinit" -> { stopRequested = false; io.launch { vendorInit(device!!) } }
+                "ledwalk" -> { stopRequested = false; io.launch { ledWalk(device!!) } }
                 "slowsend" -> { stopRequested = false; io.launch { slowSend(device!!, baud, parity) } }
                 "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
                 "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
@@ -583,7 +584,13 @@ class MainActivity : AppCompatActivity() {
                     runCatching { dev?.close() }
                 }
 
-                // Step 3 - is the receive line even attached to a working bus.
+                // Step 3 - the vendor's own start-up, which is the most informed guess we have
+                // about what this cable expects. Run first, because if it answers, nothing below
+                // matters much.
+                log("")
+                vendorInit(device)
+
+                // Step 4 - is the receive line even attached to a working bus.
                 log("")
                 probeLineState(device)
 
@@ -753,6 +760,72 @@ class MainActivity : AppCompatActivity() {
             runCatching { dev?.close() }
         }
         log("=== end spaced byte send ===")
+    }
+
+    /**
+     * Walks the CBUS pins and the transmit line slowly enough to be watched, so the cable's LEDs
+     * can be mapped by eye.
+     *
+     * The EEPROM puts CBUS0-3 in IOMODE, and on an FTDI cable that is where indicator LEDs usually
+     * hang. The owner reports a green LED that lights when the cable is in the car - consistent
+     * with vehicle power - and an orange one that blinked while we were transmitting. Establishing
+     * which signal drives which LED turns a guess into a known, and an LED that follows CBUS is
+     * also independent physical proof that those writes reach the board.
+     */
+    private fun ledWalk(device: UsbDevice) {
+        log("=== LED WALK - watch the cable ===")
+        log("Each step is held for 2 seconds. Note any LED that changes.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            log("  step 1: all CBUS pins LOW")
+            dev.setCbus(directions = 0x0F, values = 0x00)
+            Thread.sleep(2000)
+
+            for (bit in 0..3) {
+                if (stopRequested) { log("stopped"); return }
+                log("  step ${bit + 2}: CBUS$bit HIGH, the rest LOW")
+                dev.setCbus(directions = 0x0F, values = 1 shl bit)
+                Thread.sleep(2000)
+            }
+
+            log("  step 6: all CBUS pins HIGH")
+            dev.setCbus(directions = 0x0F, values = 0x0F)
+            Thread.sleep(2000)
+
+            // Back to normal UART so the transmit test is clean.
+            dev.setBitMode(0x00, FtdiDevice.BITMODE_RESET)
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            log("  step 7: continuous transmission for 4 seconds (no CBUS driving)")
+            val until = System.currentTimeMillis() + 4000
+            while (System.currentTimeMillis() < until && !stopRequested) {
+                dev.write(ByteArray(32) { 0x55 })
+                Thread.sleep(20)
+            }
+
+            log("  step 8: DTR asserted for 3 seconds")
+            dev.setModemControl(dtr = true, rts = null)
+            Thread.sleep(3000)
+            log("  step 9: DTR released")
+            dev.setModemControl(dtr = false, rts = null)
+            Thread.sleep(1500)
+
+            log("  step 10: RTS asserted for 3 seconds")
+            dev.setModemControl(dtr = null, rts = true)
+            Thread.sleep(3000)
+            log("  step 11: RTS released")
+            dev.setModemControl(dtr = null, rts = false)
+        } catch (e: Throwable) {
+            log("  LED walk failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end LED walk ===")
     }
 
     /**
@@ -1571,5 +1644,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.9-probe"
+    const val NAME = "0.10-probe"
 }
