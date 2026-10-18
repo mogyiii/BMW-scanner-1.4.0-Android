@@ -147,6 +147,7 @@ class MainActivity : AppCompatActivity() {
                 "handshake" -> { stopRequested = false; io.launch { handshakeHunt(device!!) } }
                 "cbus" -> { stopRequested = false; io.launch { cbusHunt(device!!) } }
                 "cbusverify" -> { stopRequested = false; io.launch { cbusVerify(device!!) } }
+                "vendorinit" -> { stopRequested = false; io.launch { vendorInit(device!!) } }
                 "slowsend" -> { stopRequested = false; io.launch { slowSend(device!!, baud, parity) } }
                 "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
                 "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
@@ -752,6 +753,71 @@ class MainActivity : AppCompatActivity() {
             runCatching { dev?.close() }
         }
         log("=== end spaced byte send ===")
+    }
+
+    /**
+     * Replays the exact start-up sequence the vendor's own software performs, recovered from a USB
+     * capture of BMWScan140.exe running against this cable.
+     *
+     * The capture (docs/field-logs/2026-10-18-run6-vendor-usb-capture.md) shows it reads the whole
+     * EEPROM, then:
+     *
+     *     SIO reset -> GET_MODEM_STATUS -> 19200 baud -> 8N1
+     *     -> purge RX x12 -> purge TX
+     *     -> DTR asserted -> ~100 ms -> DTR released
+     *     -> wait for the cable to say something
+     *
+     * Three things in that were never tried here: 19200 baud, 8N1 alongside it, and above all a
+     * DTR *pulse*. The handshake hunt only ever held DTR in a steady state, and found that holding
+     * it asserted killed the line - which is consistent with it being a reset that needs releasing,
+     * not a level that needs setting.
+     *
+     * Note what this sequence does NOT contain: a single byte of serial data. The vendor software
+     * decides whether the hardware is sound before it ever talks to the car, by pulsing DTR and
+     * waiting for the cable to announce itself.
+     */
+    private fun vendorInit(device: UsbDevice) {
+        log("=== VENDOR INIT REPLAY ===")
+        log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
+        log("")
+
+        for (baud in listOf(19200, 9600, 10400, 38400)) {
+            for (parity in listOf(FtdiDevice.Parity.NONE, FtdiDevice.Parity.EVEN)) {
+                if (stopRequested) { log("stopped"); return }
+                var dev: FtdiDevice? = null
+                try {
+                    dev = FtdiDevice.open(usbManager, device, 0)
+                    dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+
+                    repeat(12) { dev.purge() }
+
+                    // The pulse. Assert, hold, release - then listen without sending anything.
+                    dev.setModemControl(dtr = true, rts = null)
+                    Thread.sleep(100)
+                    dev.setModemControl(dtr = false, rts = null)
+
+                    val heard = dev.readUntilQuiet(quietMs = 150, overallTimeoutMs = 1500)
+                    log("  %5d %-4s  DTR pulse -> %s".format(
+                        baud, parity.name,
+                        if (heard.isEmpty()) "(silence)"
+                        else "%d byte(s): %s".format(heard.size, Ds2.hex(heard.copyOfRange(0, minOf(48, heard.size)))),
+                    ))
+
+                    // And with a DS2 request afterwards, in case it needs prompting.
+                    val l = Ds2Link(dev)
+                    val r = l.identify(0x00, timeoutMs = 400)
+                    log("        then ident 0x00 -> %s%s".format(
+                        if (r.raw.isEmpty()) "(silence)" else Ds2.hex(r.raw),
+                        if (Ds2.isPresent(0x00, r)) "  <<<<<< VALID FRAME" else "",
+                    ))
+                } catch (e: Throwable) {
+                    log("  $baud ${parity.name}: ${e.javaClass.simpleName}: ${e.message}")
+                } finally {
+                    runCatching { dev?.close() }
+                }
+            }
+        }
+        log("=== end vendor init replay ===")
     }
 
     /**
@@ -1505,5 +1571,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.8-probe"
+    const val NAME = "0.9-probe"
 }
