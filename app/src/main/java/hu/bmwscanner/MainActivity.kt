@@ -150,6 +150,11 @@ class MainActivity : AppCompatActivity() {
                 "vendorinit" -> { stopRequested = false; io.launch { vendorInit(device!!) } }
                 "ledwalk" -> { stopRequested = false; io.launch { ledWalk(device!!) } }
                 "burst" -> { stopRequested = false; io.launch { burstCapture(device!!) } }
+                "beacon" -> {
+                    val n = intent.getIntExtra("cycles", 20)
+                    stopRequested = false
+                    io.launch { radioBeacon(device!!, n) }
+                }
                 "slowsend" -> { stopRequested = false; io.launch { slowSend(device!!, baud, parity) } }
                 "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
                 "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
@@ -761,6 +766,58 @@ class MainActivity : AppCompatActivity() {
             runCatching { dev?.close() }
         }
         log("=== end spaced byte send ===")
+    }
+
+    /**
+     * Transmits a slow, regular on/off pattern so the car radio can be used as a field probe.
+     *
+     * The owner noticed the byte traffic as an audible pulsing on an empty AM frequency. That is
+     * real radiation from the switching edges, and it answers a question no byte-level measurement
+     * here can: whether our transmission actually leaves the cable and gets onto the vehicle's
+     * wiring. A few centimetres of cable under the dash is a poor antenna; several metres of
+     * harness running the length of the car is a good one.
+     *
+     * So the measurement is a comparison, not a reading. Run this with the cable in the OBD socket
+     * and listen, then unplug it from the car - leaving it on the phone, still transmitting - and
+     * listen again. If the pulsing weakens or disappears, the signal was propagating through the
+     * car and the K-line pin is connected. If it is unchanged, nothing is reaching the socket.
+     *
+     * One second on, one second off, because that is what the ear picks out of static. 0x55 at
+     * 9600 gives an edge every bit, which is the broadest spectrum we can produce.
+     */
+    private fun radioBeacon(device: UsbDevice, cycles: Int = 20) {
+        log("=== RADIO BEACON ===")
+        log("Tune the car radio to an empty AM frequency and listen.")
+        log("One second of transmission, one second of silence, $cycles times.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            val chunk = ByteArray(64) { 0x55 }
+            for (c in 1..cycles) {
+                if (stopRequested) { log("stopped"); break }
+
+                val until = System.currentTimeMillis() + 1000
+                var sent = 0
+                while (System.currentTimeMillis() < until && !stopRequested) {
+                    dev.write(chunk)
+                    sent += chunk.size
+                    dev.purge()
+                }
+                log("  cycle %2d/%d: ON  - %d bytes transmitted".format(c, cycles, sent))
+
+                Thread.sleep(1000)
+                log("  cycle %2d/%d: off".format(c, cycles))
+            }
+        } catch (e: Throwable) {
+            log("  beacon failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end radio beacon ===")
     }
 
     /**
@@ -1751,5 +1808,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.11-probe"
+    const val NAME = "0.12-probe"
 }
