@@ -171,6 +171,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Finds the cable, settles permission, and runs [body] off the UI thread. */
+    private fun withCable(what: String, body: (UsbDevice) -> Unit) {
+        val device = cableDevice() ?: run {
+            log("$what: no cable found - check the OTG adapter and that it is seated")
+            return
+        }
+        if (!usbManager.hasPermission(device)) {
+            log("$what: asking for USB permission - tap OK, then press the button again")
+            requestPermissionFor(device)
+            return
+        }
+        stopRequested = false
+        disconnect()
+        io.launch {
+            try {
+                body(device)
+            } catch (e: Throwable) {
+                log("$what FAILED: ${e.javaClass.simpleName}: ${e.message}")
+            } finally {
+                saveLogNow()
+            }
+        }
+    }
+
     /** The BMW cable if present, else any FTDI-looking device, else null. */
     private fun cableDevice(): UsbDevice? {
         devices = FtdiDevice.candidates(usbManager)
@@ -336,6 +360,10 @@ class MainActivity : AppCompatActivity() {
 
         row(button("Send raw") { sendRaw() },
             button("Send as DS2") { sendDs2() })
+
+        // The two field tests, reachable without a laptop or wifi.
+        row(button("RADIO BEACON") { withCable("beacon") { d -> radioBeacon(d) } },
+            button("BURST CAPTURE") { withCable("burst") { d -> burstCapture(d) } })
 
         row(button("AUTO-SWEEP") { autoSweep() },
             button("Stop") { stopRequested = true; log("stop requested") })
@@ -1808,5 +1836,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.12-probe"
+    const val NAME = "0.13-probe"
 }
