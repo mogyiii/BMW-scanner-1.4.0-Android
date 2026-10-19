@@ -360,11 +360,81 @@ socket, not from USB — which is why every off-car measurement has been silent,
 vendor software's "Hardware faulty" nor our native replay of its test means anything until both are
 repeated with the cable in the car.
 
+## The vendor sequence, replayed on the car — and the end of the argument
+
+Source: `field-logs/2026-10-19-run7-vendor-init-on-car.log`, 2026-10-19.
+
+This is the run the previous section said was still owed: the vendor start-up sequence recovered
+from the USB capture, replayed **with the cable in the OBD socket and the ignition on**. The
+off-car replay in v0.9 proved nothing, because the cable's automotive side is powered from the car.
+That caveat is now discharged.
+
+This run was genuinely on the car: RXD is caught low in 10 of 200 samples while transmitting, which
+never once happened in the desk control.
+
+### The DTR pulse produces a disturbance, not an announcement
+
+The replay does return bytes after the DTR pulse, which looked promising:
+
+```
+19200 NONE  DTR pulse -> 27 bytes: 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 ...
+ 9600 NONE  DTR pulse -> 14 bytes: 4B EF 4F AC 2B E6 05 41 03 46 EE 6C 2F F7
+38400 NONE  DTR pulse -> 50 bytes: 9E 78 F3 F8 98 E6 FE E6 FE E6 86 7E 33 ...
+```
+
+But measure the *duration* rather than counting bytes:
+
+| baud | bytes | duration |
+|---|---|---|
+| 9600 | 12–14 | 13.8–14.6 ms |
+| 10400 | 14–15 | 14.4–14.8 ms |
+| 19200 | 25–27 | 14.1–14.3 ms |
+| 38400 | 46–50 | 13.0–13.2 ms |
+
+The byte count varies by a factor of **4.2**; the duration is constant at **~14 ms within 7%**.
+
+A message has a fixed byte count whatever rate you read it at. A fixed-duration analogue event has
+a fixed duration and a byte count that scales with the sampling rate. This is unambiguously the
+second. The DTR edge produces a ~14 ms disturbance on the receive line, and different baud rates
+merely chop it into different numbers of bad bytes.
+
+The sequences are also reproducible across days — `9600 NONE` returned the identical 14 bytes
+`4B EF 4F AC 2B E6 05 41 03 46 EE 6C 2F F7` in run 4 the previous evening. Deterministic, which
+rules out noise and confirms it is a circuit response.
+
+### 256 different requests, three different answers
+
+The clearest demonstration in the whole project. The full scan sent a distinct identification
+request to each of 256 addresses. Grouping the replies:
+
+```
+76 x  C4 08 58 CC FF
+75 x  C4 48 58 CC FF
+63 x  C4 28 58 CC FF
+```
+
+214 of 256 replies fall into three byte sequences that differ only in one nibble. Addresses as
+unrelated as `0x00`, `0x44`, `0xA0` and `0xFF` all answer the same thing, with a parity error every
+time — 276 line-status errors across the run.
+
+**Zero valid frames anywhere in the run**, in any configuration.
+
+### Conclusion
+
+The reply carries no information from the request. It is a fixed artefact of the cable's circuitry,
+triggered by transmission, and it does not change when the vendor's own initialisation is applied.
+
+Every avenue is now closed with evidence rather than assumption: protocol settings (32 baud/parity
+combinations), handshake lines (DTR/RTS, all states), CBUS GPIO (all 16 states, with the writes
+verified), byte spacing (the vendor's own delay values), and finally the vendor's exact start-up
+sequence, replayed on a live car. **The cable's K-line stage does not work.** The software cannot
+fix it, and nothing further is worth trying against this cable.
+
 ## Still open
 
-Whether the cable is a "dumb" FTDI + K-line level shifter, or contains a microcontroller imposing
-its own framing. This is the one question that decides the project. See
-`docs/testing-on-the-car.md`.
+Nothing about the protocol approach. The remaining question is purely about the hardware: whether
+this cable can be returned or repaired. Opening it to inspect the transceiver stage is the only
+diagnostic left that software cannot reach.
 
 ## The Windows software
 
