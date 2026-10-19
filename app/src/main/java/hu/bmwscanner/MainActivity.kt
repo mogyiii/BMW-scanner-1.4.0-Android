@@ -149,6 +149,7 @@ class MainActivity : AppCompatActivity() {
                 "cbusverify" -> { stopRequested = false; io.launch { cbusVerify(device!!) } }
                 "vendorinit" -> { stopRequested = false; io.launch { vendorInit(device!!) } }
                 "ledwalk" -> { stopRequested = false; io.launch { ledWalk(device!!) } }
+                "burst" -> { stopRequested = false; io.launch { burstCapture(device!!) } }
                 "slowsend" -> { stopRequested = false; io.launch { slowSend(device!!, baud, parity) } }
                 "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
                 "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
@@ -760,6 +761,112 @@ class MainActivity : AppCompatActivity() {
             runCatching { dev?.close() }
         }
         log("=== end spaced byte send ===")
+    }
+
+    /**
+     * Captures the ~14 ms burst that follows a DTR pulse as raw line levels, and measures its edge
+     * timing directly.
+     *
+     * This settles a question the byte-level evidence cannot. Decoding the burst at eight
+     * baud/parity settings gave a byte count that scales with the sample rate and a duration that
+     * stays near 14 ms — but that is equally true of a real message read at the wrong rate and of a
+     * fixed-duration analogue disturbance. Counting bytes cannot separate them; only the edges can.
+     *
+     * If the burst is UART data at some rate we never tested, its edges fall on a consistent bit
+     * grid and the shortest interval between them is one bit time. If it is a circuit transient,
+     * the intervals have no common divisor and cluster around whatever the RC of the line is.
+     *
+     * The capture is self-calibrating: the burst's real duration is already known to be ~14 ms from
+     * eight independent decodes, so however many samples it spans fixes the sample period without
+     * needing to know the bitbang clock.
+     *
+     * Earlier bitbang attempts found nothing, but both were run off the car — where the cable's
+     * automotive side is unpowered — and neither pulsed DTR, so neither had anything to capture.
+     */
+    private fun burstCapture(device: UsbDevice) {
+        log("=== DTR BURST CAPTURE ===")
+        log("Pulsing DTR, then sampling the receive line as raw levels.")
+        log("Measuring edge intervals, which is what tells data from a transient.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            for (sampleBaud in listOf(115200, 38400)) {
+                if (stopRequested) { log("stopped"); return }
+
+                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.purge()
+
+                // The vendor's pulse, then capture immediately. The gap between releasing DTR and
+                // the first sample is one control transfer, so most of a 14 ms burst is caught.
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(100)
+                dev.setModemControl(dtr = false, rts = null)
+
+                // TXD is the only output and is held high, so nothing we do disturbs the line.
+                val wave = ByteArray(2400) { 0x01 }
+                val got = dev.syncBitbangCapture(wave, sampleBaud, driverMask = 0x01)
+
+                if (got.isEmpty()) {
+                    log("  sample clock $sampleBaud: capture returned nothing")
+                    continue
+                }
+
+                val levels = IntArray(got.size) { (got[it].toInt() shr 1) and 1 }
+                val lowCount = levels.count { it == 0 }
+
+                val runs = ArrayList<Int>()
+                var cur = levels[0]
+                var n = 1
+                for (i in 1 until levels.size) {
+                    if (levels[i] == cur) n++ else { runs.add(n); cur = levels[i]; n = 1 }
+                }
+                runs.add(n)
+
+                log("  --- sample clock setting $sampleBaud ---")
+                log("  ${got.size} samples, RXD low in $lowCount of them, ${runs.size - 1} edges")
+
+                if (lowCount == 0) {
+                    log("  RXD never moved. Either the burst had passed, or there is nothing to see.")
+                    continue
+                }
+
+                // Span from the first edge to the last: that is the burst.
+                val firstEdge = levels.indexOfFirst { it == 0 }
+                val lastEdge = levels.indexOfLast { it == 0 }
+                val span = lastEdge - firstEdge + 1
+                val usPerSample = 14000.0 / span
+
+                val interior = runs.drop(1).dropLast(1).filter { it > 0 }
+                val shortest = interior.minOrNull() ?: 0
+                val hist = interior.groupingBy { it }.eachCount().toSortedMap()
+
+                log("  burst spans $span samples; calibrating against the known ~14 ms gives " +
+                    "%.1f us per sample".format(usPerSample))
+                log("  run lengths (samples): $hist")
+                if (shortest > 0) {
+                    val bitUs = shortest * usPerSample
+                    log("  shortest interval = $shortest samples = %.1f us".format(bitUs))
+                    log("  if that is one bit, the line is running at %d baud".format(
+                        (1_000_000.0 / bitUs).toInt()))
+                    val multiples = interior.count { r ->
+                        val m = r.toDouble() / shortest
+                        kotlin.math.abs(m - kotlin.math.round(m)) < 0.25
+                    }
+                    log("  %d of %d intervals are whole multiples of it (%d%%)".format(
+                        multiples, interior.size, multiples * 100 / interior.size))
+                    log("  -> a high share means a real bit grid; a low one means a transient")
+                }
+                log("")
+            }
+        } catch (e: Throwable) {
+            log("  burst capture failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end burst capture ===")
     }
 
     /**
@@ -1644,5 +1751,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.10-probe"
+    const val NAME = "0.11-probe"
 }
