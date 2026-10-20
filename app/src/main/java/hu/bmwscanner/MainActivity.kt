@@ -210,6 +210,7 @@ class MainActivity : AppCompatActivity() {
     private fun withCable(what: String, body: (UsbDevice) -> Unit) {
         val device = cableDevice() ?: run {
             log("$what: no cable found - check the OTG adapter and that it is seated")
+            reportUnrecognisedDevices()
             return
         }
         if (!usbManager.hasPermission(device)) {
@@ -234,6 +235,41 @@ class MainActivity : AppCompatActivity() {
                 saveLogNow()
             }
         }
+    }
+
+    /**
+     * Lists every USB device that is present but was not recognised as a cable, with a guess at
+     * the chip, so that "no cable found" is actionable rather than a dead end.
+     *
+     * This matters for the situation the project is actually in. The BMW Scanner cable's vehicle
+     * side is dead and it cannot be returned, so the next adapter will be a different one, and the
+     * first question will be whether this app can drive it at all. A plain FTDI K-line adapter
+     * (`0403:6001`) is already handled by the fallback in [cableDevice]; a CH340 or a PL2303 is a
+     * different control-request interface entirely and needs code, not configuration. Printing the
+     * ids turns that into a two-second answer instead of a debugging session in a car park.
+     */
+    private fun reportUnrecognisedDevices() {
+        val all = usbManager.deviceList.values.toList()
+        if (all.isEmpty()) {
+            log("  no USB devices at all - the OTG adapter must pull the USB ID pin low")
+            return
+        }
+        log("  ${all.size} USB device(s) are present but none matched:")
+        for (d in all) {
+            log("    %04X:%04X  %s  -> %s".format(
+                d.vendorId, d.productId, d.productName ?: d.deviceName, usbChipGuess(d.vendorId)))
+        }
+    }
+
+    /** What a vendor id implies about the USB-serial chip, and so about whether this app fits it. */
+    private fun usbChipGuess(vendorId: Int): String = when (vendorId) {
+        0x0403 -> "FTDI - this app drives it directly, try it"
+        FtdiDevice.BMW_SCANNER_VID -> "re-flashed FTDI, the BMW Scanner id"
+        0x1A86 -> "WCH CH340/CH341 - a different interface, needs new driver code"
+        0x067B -> "Prolific PL2303 - a different interface, needs new driver code"
+        0x10C4 -> "Silicon Labs CP210x - a different interface, needs new driver code"
+        0x1A61, 0x05C6 -> "not a serial adapter"
+        else -> "unknown vendor - send the ids over"
     }
 
     /** The BMW cable if present, else any FTDI-looking device, else null. */
@@ -2249,5 +2285,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.17-probe"
+    const val NAME = "0.18-probe"
 }

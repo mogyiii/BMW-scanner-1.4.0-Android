@@ -218,17 +218,51 @@ rather than have us guess.
 
 ## What to do next
 
-Not a measurement. **Send `docs/fault-report.md` to the seller and ask for a replacement or a
-refund.** It states what was tested, under what conditions, and the three results that settle it,
-and it pre-empts the obvious objection by recording that the vendor software's own hardware
-self-test transfers zero bytes to the vehicle and therefore cannot verify the stage that failed.
+**There is no money to recover.** The cable came from AliExpress months ago and buyer protection has
+long expired, so `docs/fault-report.md` has no addressee. It is kept as the written record of what
+was established, not as a claim.
 
-Do not go back to the car for this. Nothing measurable there can change the verdict, and the two
-candidate tests both come down to judging a faint fast signal by eye or by ear.
+Do not go back to the car to measure anything further. Nothing measurable there can change the
+verdict, and the two candidate tests both come down to judging a faint, fast signal by eye or by ear.
 
-If the seller refuses and the cable is worth opening: the transceiver stage between the FT232R's TXD
-pin and the OBD-II K-line pin (pin 7 on the 16-pin socket) is where the fault is. That is a
-soldering-iron question, not a software one.
+So the original goal — fault codes including airbag, live values, service reset, module
+identification, from a phone with no laptop — is unmet for exactly one reason: **there is no working
+K-line interface in the picture.** Everything above that layer exists and is tested. Two ways
+forward, below.
+
+### Option A: a different adapter, verified in two minutes
+
+The app already looks for the BMW Scanner id first and then falls back to **any device with FTDI's
+vendor id `0403`**, so a plain FTDI-based K-line adapter — the common KKL 409.1 or a K+DCAN cable,
+both normally FT232RL with an L9637D-class transceiver — should be driven on the first plug-in with
+no code changes. E46 DS2 lives on **pin 7** of the 16-pin socket, which is what those cables are
+wired to.
+
+Two cautions. Many cheap cables now ship a **CH340** instead (vendor id `1A86`), which is a
+different control-request interface and needs new driver code rather than configuration; so does a
+PL2303 or a CP210x. `withCable` now prints the vendor and product id of every unrecognised USB
+device with a guess at the chip, so the answer takes seconds. And an **ELM327** of any kind is not a
+solution here: it speaks generic OBD-II only, which is precisely why a generic reader was ruled out
+at the start — no airbag module, no BMW-specific units.
+
+**The app is now an acceptance test.** Plug a new adapter in, press FULL RUN, and the verdict comes
+in about two minutes while buyer protection on that order is still alive:
+
+- **valid DS2 frames appear in the bus scan** → the interface works, and the project resumes at the
+  point it was always meant to reach: discovering the command set from the car rather than guessing
+  it.
+- **every address answers with the same `C4`-prefixed sequence** → the same fault as this cable.
+- **the passive listen hears module traffic with the engine running** → the receive path is
+  connected, which this cable never managed.
+
+That third line is the quickest single check and needs no transmission at all.
+
+### Option B: open this cable
+
+The fault is in the transceiver stage between the FT232R's TXD pin and OBD-II pin 7. The chip in
+that position is usually an L9637D or a discrete transistor pair, and it costs cents. Opening the
+case and looking is free, and the EEPROM, the LEDs and the FT232R are all known-good, so anything
+found on the automotive side is the fault. This is a soldering-iron question, not a software one.
 
 Nothing in the protocol approach depends on the answer any more. The burst capture is finished (run
 9), and run 10 closed the last two excuses the car itself could have offered — with the engine

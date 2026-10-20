@@ -3,6 +3,11 @@
 Prepared 2026-10-20. Supporting evidence: `docs/findings.md` and eleven raw measurement logs in
 `docs/field-logs/`.
 
+> **Status: no addressee.** The cable was bought on AliExpress months ago and buyer protection has
+> expired, so there is nobody to send this to. It is kept as the written record of what was
+> established and what it rests on, and because it is the right thing to hand over if the cable's
+> provenance ever matters again.
+
 ## The device
 
 | | |
