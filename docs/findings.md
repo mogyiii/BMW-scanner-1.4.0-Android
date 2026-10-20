@@ -535,29 +535,85 @@ conclusion. The burst is a transient. Taken with the data-independent replies fr
 scan, **the cable's K-line stage does not work**, and that now rests on the measurement that
 actually separates the two possibilities.
 
+## Run 10: three more conditions, and no difference at all
+
+2026-10-20, owner-driven, on the car. Three complete FULL RUNs back to back, in three conditions
+that had never been tried: **ignition position 1**, **engine running**, and the **USB-C plug
+reversed** in the phone. (`field-logs/2026-10-20-run10-three-configs-on-car.log`)
+
+The three runs are interchangeable:
+
+| | ignition 1 | engine running | USB-C reversed |
+|---|---|---|---|
+| Resting RXD, 200 samples | 100 % high | 100 % high | 100 % high |
+| RXD while transmitting | 94 % high, `0xFE` 15 %, `0xFD` 6 % | 95 %, 14 %, 4 % | 95 %, 13 %, 4 % |
+| Passive listen, 3 s at 9600 and 10400 | silent | silent | silent |
+| 256-address scan | 0 valid frames, 256 replies | 0 valid frames | 0 valid frames |
+
+**Engine running is the condition that mattered, and it changed nothing.** The alternator puts the
+bus at ~14 V instead of a resting battery's 12, and every module is awake and chattering. Three
+seconds of passive listening at both DS2 rates still hears **nothing**, which closes two
+explanations that had never been properly excluded: that the modules were asleep, and that the
+supply was too low for the transceiver. Neither is true.
+
+The reply is still the same data-independent artefact. Every one of the 256 addresses answers with a
+`C4`-prefixed sequence drawn from a handful of variants — `C4 08 58 CC FF`, `C4 28 58 CC FF`,
+`C4 48 58 CC FF` — with the second byte varying and nothing tracking the address. Writing `0x00`
+gives `C4 21`; writing `0xFF` gives `C4 08 F8`; writing `55 55 55 55` gives `C4 21 A3 83 ED`. The
+first byte never changes.
+
+USB-C orientation was never likely to matter — on USB 2.0 the CC pin selects the role and the data
+pair is muxed either way — and it did not.
+
+### Two defects this run exposed
+
+**Two diagnostics could run at once.** BURST CAPTURE was pressed while RADIO BEACON was still
+going; both opened the device and the beacon died one second into part B with
+`IOException: USB bulk OUT failed at offset 0 of 19`. From the driver's seat that is
+indistinguishable from the beacon not working, and it is the likely explanation for the owner's
+report that the radio test "cannot be carried through properly". Every diagnostic now takes a
+single-run lock and says plainly that it did not start.
+
+**The orange LED never blinked, all day.** `ledWalk` step 7 had established it as a transmit
+indicator from a single uninterrupted 4 s burst — which asked the eye whether a light was on, a
+judgement rather than an observation. A new step 12 asks a question that cannot be imagined either
+way: three cycles of 2 s transmitting, 2 s silent. Either the LED follows the square pattern or it
+stays dark. See "Still open".
+
 ## Still open
 
-One measurement, and it is about the nature of the fault rather than the protocol: **the gated
-radio beacon.** It answers a different question from everything above — not whether anything comes
-back, but whether our transmission reaches the vehicle's wiring at all. A few centimetres of cable
-under the dash is a poor antenna; several metres of harness is a good one.
+One question, and it is about the nature of the fault rather than the protocol: **does anything we
+transmit leave the cable at all?** Nothing above answers it. Every measurement so far asks what
+comes back; this asks whether something goes out.
 
-The plain on/off version has a confound. The phone streams USB while it transmits, and USB
-radiates, so pulsing that follows the write loop could be the cable driving the harness or could be
-bus traffic to the cable. Unplugging the cable mid-run is the crude control: it changes the antenna,
-but it also removes power from the cable's automotive side, so a difference has two causes.
+**The LED walk, step 12, is the test to run, and it needs no car.** The orange LED was established
+as a transmit indicator in the earlier walk — cable on the phone, no car attached, so it is driven
+from USB power and visible on the desk. The owner reports it never blinked at all on 2026-10-20.
+That observation is either a hardware fault that has appeared since, or an artefact of watching a
+connector under a dashboard; the original step 7 cannot separate the two, because asking whether a
+light is on is a judgement. Step 12 asks whether a light follows a 2 s on / 2 s off square pattern,
+three times, which is answerable without judging anything.
 
-Run 9 supplied a clean control instead. DTR asserted silences the line completely — 0 of 11 520
-samples, ten windows, two sample rates — while the chip goes on shifting the same bytes at the same
-rate, so the USB traffic is unchanged. **Toggling only the gate therefore isolates the drive onto
-the harness.** The beacon now runs that as part A and the original write/idle pattern as part B.
-Pulsing in A means the signal reaches the harness, which rules out an open connection and leaves
-signal levels as the fault — a driver that only manages 5 V would be invisible to every module
-while still radiating. Pulsing in B but not in A would mean what has been heard all along is the
-phone's own USB.
+- **Orange follows the pattern** → the transmit path through the cable's circuitry is intact, and
+  the fault is downstream, at the line driver. Consistent with everything measured.
+- **Orange stays dark** → transmission is not reaching the cable's circuitry at all, which is a
+  different and much more concrete fault to report, and one that contradicts the earlier walk.
 
-That distinction decides what to say in a warranty claim; it no longer decides whether the project
-continues.
+Reproduce the original conditions exactly: cable on the phone over OTG, **not** in the car, where
+the green LED is off and the orange one is in plain sight.
+
+### The radio beacon: inconclusive by method, and set aside
+
+The gated beacon (part A toggles only the cable's gate, holding the USB write rate constant at
+969–1045 bytes/s against the 960 the line can carry; part B is the plain write/idle pattern) is
+sound in design, and it does isolate the drive onto the harness from the phone's own USB radiation.
+But the owner reports that what can be heard is marginal and may be imagination, and the one careful
+attempt was destroyed by the concurrency defect above.
+
+A measurement whose read-out is "is this faint noise slightly different now" does not settle
+anything, and it is not worth another trip to the car. Recorded as attempted and inconclusive. The
+LED test asks the same underlying question — does our signal get out — with a binary answer and no
+listening involved.
 
 Otherwise the remaining question is purely about the hardware: whether this cable can be returned or
 repaired. Opening it to inspect the transceiver stage is the only diagnostic left that software

@@ -139,34 +139,64 @@ class MainActivity : AppCompatActivity() {
                 "baudhunt" -> {
                     val d = if (intent.hasExtra("dtr")) intent.getBooleanExtra("dtr", false) else null
                     val r = if (intent.hasExtra("rts")) intent.getBooleanExtra("rts", false) else null
-                    stopRequested = false
-                    io.launch { baudHunt(device!!, d, r) }
+                    guarded(what) { baudHunt(device!!, d, r) }
                 }
-                "linestate" -> { stopRequested = false; io.launch { probeLineState(device!!) } }
-                "pulse" -> { stopRequested = false; io.launch { pulseResponse(device!!) } }
-                "handshake" -> { stopRequested = false; io.launch { handshakeHunt(device!!) } }
-                "cbus" -> { stopRequested = false; io.launch { cbusHunt(device!!) } }
-                "cbusverify" -> { stopRequested = false; io.launch { cbusVerify(device!!) } }
-                "vendorinit" -> { stopRequested = false; io.launch { vendorInit(device!!) } }
-                "ledwalk" -> { stopRequested = false; io.launch { ledWalk(device!!) } }
-                "burst" -> { stopRequested = false; io.launch { burstCapture(device!!) } }
+                "linestate" -> guarded(what) { probeLineState(device!!) }
+                "pulse" -> guarded(what) { pulseResponse(device!!) }
+                "handshake" -> guarded(what) { handshakeHunt(device!!) }
+                "cbus" -> guarded(what) { cbusHunt(device!!) }
+                "cbusverify" -> guarded(what) { cbusVerify(device!!) }
+                "vendorinit" -> guarded(what) { vendorInit(device!!) }
+                "ledwalk" -> guarded(what) { ledWalk(device!!) }
+                "burst" -> guarded(what) { burstCapture(device!!) }
                 "beacon" -> {
-                    val n = intent.getIntExtra("cycles", 20)
-                    stopRequested = false
-                    io.launch { radioBeacon(device!!, n) }
+                    val n = intent.getIntExtra("cycles", 10)
+                    guarded(what) { radioBeacon(device!!, n) }
                 }
-                "slowsend" -> { stopRequested = false; io.launch { slowSend(device!!, baud, parity) } }
-                "chars" -> { stopRequested = false; io.launch { characteriseLine(device!!) } }
-                "sweep" -> { stopRequested = false; io.launch { runSweep(device!!) } }
-                "scan" -> { stopRequested = false; io.launch { fullScan(device!!, baud, parity) } }
+                "slowsend" -> guarded(what) { slowSend(device!!, baud, parity) }
+                "chars" -> guarded(what) { characteriseLine(device!!) }
+                "sweep" -> guarded(what) { runSweep(device!!) }
+                "scan" -> guarded(what) { fullScan(device!!, baud, parity) }
                 "send" -> {
                     val hex = intent.getStringExtra("hex") ?: run { log("    need --es hex"); return }
                     val dtr = if (intent.hasExtra("dtr")) intent.getBooleanExtra("dtr", false) else null
                     val rts = if (intent.hasExtra("rts")) intent.getBooleanExtra("rts", false) else null
-                    stopRequested = false
-                    io.launch { sendOnce(device!!, baud, parity, hex, dtr, rts) }
+                    guarded(what) { sendOnce(device!!, baud, parity, hex, dtr, rts) }
                 }
                 else -> log("    unknown command")
+            }
+        }
+    }
+
+    /**
+     * Name of the diagnostic currently running, or null. Guards against two of them sharing the
+     * cable.
+     *
+     * Run 10 showed why this is needed rather than tidy. BURST CAPTURE was started while RADIO
+     * BEACON was still going; both opened the device, the beacon's next write came back
+     * `IOException: USB bulk OUT failed at offset 0 of 19`, and it died a second into part B. From
+     * the car that looks like the beacon simply not working - the owner reported that the radio test
+     * "cannot be carried through properly", which is exactly what a diagnostic aborting mid-run
+     * sounds like through a radio. A long test that someone is listening to has to either run or say
+     * plainly that it did not start.
+     */
+    private val running = java.util.concurrent.atomic.AtomicReference<String?>(null)
+
+    /** Runs a remote-command diagnostic under the same one-at-a-time guard as the buttons. */
+    private fun guarded(what: String, body: () -> Unit) {
+        if (!running.compareAndSet(null, what)) {
+            log("    $what NOT STARTED: '${running.get()}' is still running; send 'stop' and wait")
+            return
+        }
+        stopRequested = false
+        io.launch {
+            try {
+                body()
+            } catch (e: Throwable) {
+                log("    $what FAILED: ${e.javaClass.simpleName}: ${e.message}")
+            } finally {
+                running.set(null)
+                saveLogNow()
             }
         }
     }
@@ -182,6 +212,11 @@ class MainActivity : AppCompatActivity() {
             requestPermissionFor(device)
             return
         }
+        if (!running.compareAndSet(null, what)) {
+            log("$what NOT STARTED: '${running.get()}' is still running. Press Stop and wait for")
+            log("  its '=== end ... ===' line, then try again.")
+            return
+        }
         stopRequested = false
         disconnect()
         io.launch {
@@ -190,6 +225,7 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Throwable) {
                 log("$what FAILED: ${e.javaClass.simpleName}: ${e.message}")
             } finally {
+                running.set(null)
                 saveLogNow()
             }
         }
@@ -592,6 +628,12 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        if (!running.compareAndSet(null, "FULL RUN")) {
+            log("FULL RUN NOT STARTED: '${running.get()}' is still running. Press Stop and wait")
+            log("  for its '=== end ... ===' line, then try again.")
+            return
+        }
+
         disconnect()
 
         io.launch {
@@ -648,6 +690,7 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Throwable) {
                 log("FULL RUN aborted: ${e.javaClass.simpleName}: ${e.message}")
             } finally {
+                running.set(null)
                 log("")
                 log("################ FULL RUN COMPLETE ################")
                 saveLogNow()
@@ -1254,6 +1297,34 @@ class MainActivity : AppCompatActivity() {
             Thread.sleep(3000)
             log("  step 11: RTS released")
             dev.setModemControl(dtr = null, rts = false)
+
+            // Step 7 established that the orange LED is a transmit indicator, but it did so with a
+            // single uninterrupted burst: the eye was asked whether a light was on, which is a
+            // judgement, not an observation. On 2026-10-20 the owner reported the orange LED never
+            // blinking at all while the cable was in the car, and a steady-state question cannot
+            // distinguish "it has stopped working" from "it was not being watched at the right
+            // moment". A square on/off pattern can: either the light follows the pattern or it does
+            // not, and that is answerable without judging brightness.
+            log("")
+            log("  step 12: orange LED re-test - three slow transmit pulses.")
+            log("  Watch the ORANGE LED only. Does it follow this pattern, or stay dark?")
+            dev.setModemControl(dtr = false, rts = null)
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            for (c in 1..3) {
+                if (stopRequested) { log("  stopped"); break }
+
+                log("    pulse $c/3: TRANSMITTING for 2 s  <-- orange should be blinking now")
+                val txUntil = System.currentTimeMillis() + 2000
+                var sent = 0
+                while (System.currentTimeMillis() < txUntil && !stopRequested) {
+                    dev.write(ByteArray(16) { 0x55 }, timeoutMs = 2000)
+                    sent += 16
+                }
+                dev.purge()
+                log("    pulse $c/3: silent for 2 s ($sent bytes went out, the line carries " +
+                    "${Ds2.BAUD / 10} per second)")
+                Thread.sleep(2000)
+            }
         } catch (e: Throwable) {
             log("  LED walk failed: ${e.javaClass.simpleName}: ${e.message}")
         } finally {
@@ -2078,5 +2149,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.15-probe"
+    const val NAME = "0.16-probe"
 }

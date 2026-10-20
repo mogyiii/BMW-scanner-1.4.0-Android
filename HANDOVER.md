@@ -55,7 +55,7 @@ SIO reset -> GET_MODEM_STATUS -> 19200 baud -> 8N1
 
 ## What the car measurements say
 
-Nine field runs are in `docs/field-logs/`. The important results:
+Ten field runs are in `docs/field-logs/`. The important results:
 
 - **Off the car: total silence**, 32 baud/parity combinations, RXD never moves while transmitting.
   This is the clean negative control — the cable invents nothing on its own, so there is no
@@ -65,7 +65,9 @@ Nine field runs are in `docs/field-logs/`. The important results:
   found it in a control run with no pulse at all.
 - **No valid DS2 frame has ever been decoded**, at any rate from 1200 to 230400, either parity, any
   DTR/RTS state, all 16 CBUS states (with the writes verified 16/16), with the vendor's own byte
-  spacing, or after the vendor init sequence.
+  spacing, after the vendor init sequence, at ignition position 1 or 2, or **with the engine
+  running** — which puts every module awake and the bus at alternator voltage, and still gives three
+  seconds of silence on a passive listen at both DS2 rates (run 10).
 - **The 256-address scan is the strongest single result**: 214 of 256 replies fall into three
   near-identical sequences, and `0x00`, `0x44`, `0xA0`, `0xFF` all answer the same thing. **The
   reply carries no information from the request.**
@@ -99,30 +101,42 @@ connected to the car.** In the VM it sat on a desk, where its automotive side is
 
 ## The measurement that is left
 
-Needs the car, has a button in the app, needs no wifi or laptop.
+**No car needed, no listening involved, two minutes on the desk: LED WALK, step 12.**
 
-**RADIO BEACON** — the owner hears the byte traffic as audible pulsing on an empty **FM** frequency,
-both originally and during the run-9 sessions. An earlier version of this document claimed FM could
-not show the effect; that was wrong, and is retracted. What radiates is the switching edge, not the
-4.8 kHz fundamental, and its nanosecond rise time reaches VHF; on an empty frequency there is no
-carrier for the FM demodulator to capture, so its limiter amplifies the impulse noise instead of
-rejecting it. Run 8's beacon was void only because of the purge bug, not the band.
+Everything measured so far asks what comes back from the bus. Nothing asks whether anything we
+transmit leaves the cable at all, and the owner handed over the observation that makes that
+answerable: **the orange LED never blinked once on 2026-10-20**, only the green one.
 
-The pulsing is real radiation, and it answers whether the signal reaches the vehicle's wiring: a few
-centimetres of cable is a poor antenna, several metres of harness is a good one.
+The earlier LED walk established orange as a transmit-activity indicator — cable on the phone, no
+car, so it runs off USB power and sits in plain sight. But it did so with one uninterrupted 4 s
+burst, which asks the eye whether a light is on. That is a judgement, and it cannot separate "the
+transmit path has died since" from "nobody was watching a connector under a dashboard at the right
+moment".
 
-The measurement has to control for one thing. **The phone streams USB while it transmits, and USB
-radiates**, so pulsing that follows the write loop could be the cable driving the harness or could
-be bus traffic to the cable. Unplugging mid-run is the crude control — it changes the antenna, but
-it also removes power from the cable's automotive side, so a difference has two causes.
+Step 12 asks something that cannot be imagined either way: three cycles of **2 s transmitting, 2 s
+silent**, announced in the log as it goes.
 
-Run 9 gave a clean one. DTR asserted silences the line completely (0 of 11 520 samples, ten windows)
-while the chip goes on shifting the same bytes at the same rate. So the beacon now runs two parts:
+- **Orange follows the pattern** → the transmit path through the cable's circuitry is intact and the
+  fault is downstream at the line driver, consistent with everything else.
+- **Orange stays dark** → transmission never reaches the cable's circuitry, which is a more concrete
+  fault to report and contradicts the earlier walk.
 
-- **Part A, gate toggles, USB constant.** One second driving, one second with DTR asserted. Pulsing
-  here can only be the cable's drive onto the harness.
-- **Part B, write toggles.** The original one-on, one-off. Pulsing in B but not in A would mean what
-  has been heard all along is the phone's own USB, not the car.
+Run it with the cable on the phone over OTG and **not** in the car, to reproduce the conditions of
+the original observation.
+
+### The radio beacon is set aside
+
+It was a good idea and the gated version is sound — part A toggles only the cable's gate while
+holding the USB write rate constant, which does separate the drive onto the harness from the phone's
+own USB radiation. Two things finished it off anyway. The one careful attempt was destroyed by a
+concurrency defect (BURST CAPTURE pressed on top of a running beacon killed it a second into part
+B), and the owner reports that what is audible is marginal enough to be imagination.
+
+A measurement whose read-out is "is this faint noise slightly different now" settles nothing.
+Recorded as attempted and inconclusive. For the record: the band is **FM**, where the owner has
+heard it; an earlier version of this document claimed FM could not work, which was wrong and is
+retracted — what radiates is the switching edge, whose nanosecond rise time reaches VHF, and an
+empty frequency gives the FM limiter no carrier to capture.
 
 ## The hypothesis that currently fits everything
 
@@ -184,21 +198,21 @@ rather than have us guess.
 
 ## What to do next
 
-One thing, and it needs ears rather than software.
+One thing, on the desk, two minutes, no car and no listening.
 
-1. Phone and cable in the car, ignition in position 2, car radio on the empty **FM** frequency where
-   the pulsing has been heard before.
-2. Press **RADIO BEACON** and listen to the two parts separately; the app announces each in the log.
-3. Report **part A**: does the pulsing follow the one-second gate pattern, or is the noise steady
-   through it? Pulsing means the signal reaches the harness — an open connection is ruled out and
-   the remaining fault is signal levels, a driver that radiates but cannot reach battery-voltage
-   logic. Steady noise means nothing is getting onto the bus and what we hear is the phone's USB.
-4. Report **part B** the same way, as the cross-check.
-5. The log saves itself; pull it with
+1. Cable on the phone over OTG, **not** plugged into the car. The green LED should be off and the
+   orange one somewhere you can see it.
+2. Press **LED WALK** and let it run to step 12. Steps 1–11 are the old walk; step 12 announces
+   three transmit pulses in the log as it goes.
+3. Report one thing: during step 12, does the **orange** LED blink in time with the 2 s on / 2 s off
+   pattern, or does it stay dark? Nothing else in that run matters.
+4. The log saves itself; pull it with
    `adb shell cat /sdcard/Android/data/hu.bmwscanner/files/<newest>.log` or use SHARE LOG.
 
-Nothing in the protocol approach depends on the answer any more. The burst capture is finished — see
-run 9 — and the verdict on the cable stands either way. This is for the warranty claim and for the
-record.
+Nothing in the protocol approach depends on the answer any more. The burst capture is finished (run
+9), and run 10 closed the last two excuses the car itself could have offered — with the engine
+running, so every module awake and the bus at alternator voltage, three seconds of passive listening
+still hears nothing. The verdict on the cable stands either way. Step 12 is for the warranty claim
+and for the record.
 
 Charge the phone first. OTG drains it and the single port cannot charge while the cable is attached.

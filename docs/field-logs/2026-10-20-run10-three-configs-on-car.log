@@ -1,0 +1,1571 @@
+16:21:13.260  BMW DS2 Probe 0.15-probe
+16:21:13.274  Looking for the cable: VID 0x0333 / PID 0x0137
+
+16:21:13.280  USB rescan: 1 device(s)
+16:21:13.281    /dev/bus/usb/001/002  0333:0137
+16:21:16.563  === RADIO BEACON ===
+16:21:16.563  Tune the car radio to an empty frequency - FM is where the pulsing has actually
+16:21:16.564  been heard, so use that; an empty AM frequency works on the same principle.
+
+16:21:16.564  Part A - GATE: the USB write rate never changes, only the cable's gate. One second
+16:21:16.565    driving the line, one second with DTR asserted, which run 9 showed silences it
+16:21:16.565    completely. Pulsing here cannot be USB radiation; it is the drive onto the harness.
+16:21:16.565  Part B - WRITE: the plain one-second-on, one-second-off, for comparison. Pulsing in B
+16:21:16.565    but not in A would mean what we have been hearing is the phone's USB, not the car.
+16:21:16.566  10 cycles each. Report the two parts separately.
+
+16:21:16.580    --- part A: gate toggles, USB traffic constant ---
+16:21:17.604      cycle  1/10: line DRIVEN  - 1064 bytes, the line carries 960
+16:21:18.612      cycle  1/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:19.621      cycle  2/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:20.630      cycle  2/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:21.639      cycle  3/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:22.648      cycle  3/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:23.658      cycle  4/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:24.665      cycle  4/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:25.674      cycle  5/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:26.685      cycle  5/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:27.694      cycle  6/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:28.703      cycle  6/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:29.712      cycle  7/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:30.722      cycle  7/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:31.730      cycle  8/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:32.740      cycle  8/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:33.748      cycle  9/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:34.758      cycle  9/10: line GATED   - 969 bytes, same rate, nothing on the bus
+16:21:35.767      cycle 10/10: line DRIVEN  - 969 bytes, the line carries 960
+16:21:36.776      cycle 10/10: line GATED   - 969 bytes, same rate, nothing on the bus
+
+16:21:36.779    --- part B: write toggles, the original test ---
+16:21:37.789      cycle  1/10: ON  - 969 bytes, the line carries 960
+16:21:37.823  === DTR BURST CAPTURE ===
+16:21:37.828  The DTR pulse is part of the bitbang waveform, so the capture is already
+16:21:37.828  running when DTR is released, and one sample is exactly 1/sample clock.
+16:21:37.829  Each run also reports whether the sample clock stalled - if it did, ignore it.
+
+16:21:38.172    clock calibration: 12000 samples, divisor set for 9600, back in 318 ms
+16:21:38.182    -> 37736 samples/s, so the bitbang clock is the programmed baud x4
+
+16:21:38.189    --- 115200 samples/s (8,68 us/sample); DTR# low = asserted, the FTDI convention ---
+16:21:38.342      14976 of 14976 samples back in 143 ms (clock needs 130 ms)
+16:21:38.363      DTR asserted: 11520 samples (100,0 ms), RXD low in 0
+16:21:38.363        line idle high throughout
+16:21:38.365      after the release: 3456 samples (30,0 ms), RXD low in 0
+16:21:38.365        line idle high throughout
+
+16:21:38.369    --- 115200 samples/s (8,68 us/sample); inverted, in case this cable's gate is the other way up ---
+16:21:38.516      14976 of 14976 samples back in 139 ms (clock needs 130 ms)
+16:21:38.524      DTR asserted: 11520 samples (100,0 ms), RXD low in 775
+16:21:38.526        1 event(s), counting a gap of 2 ms of idle as a separation
+16:21:38.528        event 1: starts 47,51 ms in, lasts 13,89 ms, 48% low
+16:21:38.529        longest event: 141 level runs, lengths in samples [1=9, 2=8, 3=5, 4=4, 5=4, 6=7, 7=9, 8=18, 9=9, 10=5, 11=8, 12=4, 13=6, 14=8, 15=7, 17=7, 18=3, 19=5, 20=1, 21=2] ... (30 distinct)
+16:21:38.553        best-fitting bit time over all candidates: 2 samples = 17,4 us -> 57600 baud
+16:21:38.554        44% of runs are whole multiples of it
+16:21:38.555        -> UART data sampled this far above its bit rate gives a run-length histogram
+16:21:38.555           clustered at multiples of one bit and empty in between, i.e. well over 90%.
+16:21:38.555           A smooth spread of lengths with no preferred spacing is a transient.
+16:21:38.557      after the release: 3456 samples (30,0 ms), RXD low in 0
+16:21:38.557        line idle high throughout
+
+16:21:38.560    --- 57600 samples/s (17,36 us/sample); DTR# low = asserted, the FTDI convention ---
+16:21:38.702      7488 of 7488 samples back in 132 ms (clock needs 130 ms)
+16:21:38.708      DTR asserted: 5760 samples (100,0 ms), RXD low in 0
+16:21:38.708        line idle high throughout
+16:21:38.709      after the release: 1728 samples (30,0 ms), RXD low in 0
+16:21:38.709        line idle high throughout
+
+16:21:38.710    --- 57600 samples/s (17,36 us/sample); inverted, in case this cable's gate is the other way up ---
+16:21:38.791      cycle  1/10: off
+16:21:38.793    beacon failed: IOException: USB bulk OUT failed at offset 0 of 19
+16:21:38.793  === end radio beacon ===
+16:21:38.805  log saved: /storage/emulated/0/Android/data/hu.bmwscanner/files/ds2probe-20261020-162138.log
+16:21:38.863      7488 of 7488 samples back in 145 ms (clock needs 130 ms)
+16:21:38.869      DTR asserted: 5760 samples (100,0 ms), RXD low in 352
+16:21:38.871        1 event(s), counting a gap of 2 ms of idle as a separation
+16:21:38.872        event 1: starts 67,01 ms in, lasts 13,42 ms, 45% low
+16:21:38.873        longest event: 133 level runs, lengths in samples {1=6, 2=18, 3=16, 4=27, 5=10, 6=14, 7=10, 8=8, 9=6, 10=3, 11=2, 12=3, 13=2, 14=3, 15=1, 17=1, 18=1, 19=1, 28=1}
+16:21:38.884        best-fitting bit time over all candidates: 2 samples = 34,7 us -> 28800 baud
+16:21:38.885        58% of runs are whole multiples of it
+16:21:38.885        -> UART data sampled this far above its bit rate gives a run-length histogram
+16:21:38.885           clustered at multiples of one bit and empty in between, i.e. well over 90%.
+16:21:38.885           A smooth spread of lengths with no preferred spacing is a transient.
+16:21:38.886      after the release: 1728 samples (30,0 ms), RXD low in 0
+16:21:38.886        line idle high throughout
+
+16:21:38.887    --- 115200 samples/s (8,68 us/sample); CONTROL: no pulse, DTR held released ---
+16:21:39.030      14976 of 14976 samples back in 132 ms (clock needs 130 ms)
+16:21:39.036      DTR released throughout: 14976 samples (130,0 ms), RXD low in 276
+16:21:39.037        1 event(s), counting a gap of 2 ms of idle as a separation
+16:21:39.037        event 1: starts 124,03 ms in, lasts 5,97 ms, 40% low
+16:21:39.038        longest event: 59 level runs, lengths in samples [1=1, 2=3, 3=2, 4=3, 5=1, 6=5, 7=1, 8=10, 9=2, 10=5, 11=2, 12=4, 14=4, 15=1, 16=4, 18=2, 19=1, 20=1, 22=1, 26=1] ... (24 distinct)
+16:21:39.039        best-fitting bit time over all candidates: 2 samples = 17,4 us -> 57600 baud
+16:21:39.039        79% of runs are whole multiples of it
+16:21:39.040        -> UART data sampled this far above its bit rate gives a run-length histogram
+16:21:39.040           clustered at multiples of one bit and empty in between, i.e. well over 90%.
+16:21:39.040           A smooth spread of lengths with no preferred spacing is a transient.
+
+16:21:39.041    --- 19200 samples/s (52,08 us/sample); LISTEN: 600 ms, DTR held released, coarse clock ---
+16:21:39.651      11520 of 11520 samples back in 599 ms (clock needs 600 ms)
+16:21:39.663      DTR released throughout: 11520 samples (600,0 ms), RXD low in 0
+16:21:39.664        line idle high throughout
+
+16:21:39.666  === end burst capture ===
+16:21:39.667  log saved: /storage/emulated/0/Android/data/hu.bmwscanner/files/ds2probe-20261020-162139.log
+16:21:52.761  USB rescan: 1 device(s)
+16:21:52.773    /dev/bus/usb/001/002  0333:0137
+16:22:04.007  USB rescan: 1 device(s)
+16:22:04.019    /dev/bus/usb/001/002  0333:0137
+
+16:22:04.039  ################ FULL RUN ################
+16:22:04.040  started 2026-10-20 16:22:04
+
+16:22:04.040  === USB descriptors ===
+16:22:04.040  device /dev/bus/usb/001/002  VID=0333 PID=0137
+16:22:04.041    manufacturer=PASOFT  product=BMW Scanner V14x
+16:22:04.043    serial=PA5BG64Y
+16:22:04.043    class=0 subclass=0 protocol=0
+16:22:04.045    interfaces=1
+16:22:04.045    iface#0 class=255 endpoints=2
+16:22:04.047        ep 0x81 IN  bulk maxPacket=64
+16:22:04.048        ep 0x02 OUT bulk maxPacket=64
+16:22:04.048  === end descriptors ===
+
+16:22:04.063  === FTDI EEPROM dump (words 0x00..0x3F) ===
+16:22:04.265    00: 4000 0333 0137 0000 2D80 0008 0000 0E98
+16:22:04.279    08: 22A6 12C8 AAAA 0006 030E 0050 0041 0053
+16:22:04.280    10: 004F 0046 0054 0322 0042 004D 0057 0020
+16:22:04.280    18: 0053 0063 0061 006E 006E 0065 0072 0020
+16:22:04.281    20: 0056 0031 0034 0078 0312 0050 0041 0035
+16:22:04.281    28: 0042 0047 0036 0034 0059 0000 0000 0000
+16:22:04.281    30: 0000 0000 0000 0000 0000 0000 0000 0000
+16:22:04.282    38: 0000 0000 0000 0000 0000 0000 0000 6206
+16:22:04.282    EEPROM VID=0x0333 PID=0x0137
+16:22:04.282  === end EEPROM dump ===
+
+16:22:04.283  === VENDOR INIT REPLAY ===
+16:22:04.283  Reproducing BMWScan140.exe's start-up exactly, from the USB capture.
+
+16:22:04.742    19200 NONE  DTR pulse -> 27 byte(s): 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+16:22:04.889          then ident 0x00 -> 65 3D 02 E2 31 78
+16:22:05.378    19200 EVEN  DTR pulse -> 25 byte(s): 9B CD AA ED 2D 57 A2 9B 17 2C FF B9 74 11 CA 05 86 4A 6A 2E B5 CF AD D0 F9
+16:22:05.518          then ident 0x00 -> 65 3D 02 E1 4C DE
+16:22:05.986     9600 NONE  DTR pulse -> 14 byte(s): 4B EF 4F AC 2B E6 05 41 03 46 EE 6C 2F F7
+16:22:06.130          then ident 0x00 -> C4 21 44
+16:22:06.588     9600 EVEN  DTR pulse -> 12 byte(s): 4B F8 F6 6D 30 05 10 20 E3 87 C3 DC
+16:22:06.734          then ident 0x00 -> C4 28 22
+16:22:07.214    10400 NONE  DTR pulse -> 15 byte(s): 7B 7F 37 71 BC 11 BD F8 68 40 2D 5E BF 7B 88
+16:22:07.355          then ident 0x00 -> F4 81 51 FF
+16:22:07.840    10400 EVEN  DTR pulse -> 14 byte(s): 7B 7F BF 1C FB D6 BD 51 13 36 5E 7C 77 F7
+16:22:07.981          then ident 0x00 -> F4 D1 54
+16:22:08.447    38400 NONE  DTR pulse -> 50 byte(s): 9E 78 F3 F8 98 E6 FE E6 FE E6 86 7E 33 18 CC 9E 78 3F 60 C0 86 F8 18 3F 06 F3 7E 03 E0 98 F8 66 00 80 98 18 30 9E F8 86 66 CF FE F8 98 E6 7E 00
+16:22:08.590          then ident 0x00 -> 66 3C E6 18 03 60 FE FC
+16:22:09.067    38400 EVEN  DTR pulse -> 46 byte(s): 9E 78 1E 98 E6 FE F3 FF F3 C3 7E E6 18 E6 9E 78 06 80 86 F8 18 66 98 7E 60 78 66 FF 33 00 80 98 18 98 9F F8 86 66 9E F8 98 E6 7F C0 CF C3
+16:22:09.206          then ident 0x00 -> 66 9E E6 18 00 78 FE
+16:22:09.208  === end vendor init replay ===
+
+16:22:09.210  === LINE STATE ===
+16:22:09.241    chip: bcdDevice=0x0600  ->  FT232R / FT245R
+16:22:09.254    resting pin levels (bit1 = RXD), 200 samples while we stay silent:
+16:22:09.876      0xFF  11111111  200/200  (100%)
+16:22:09.877      RXD high in 100% of samples - steady high (nothing is pulling it down)
+16:22:09.877    pin levels sampled while transmitting:
+16:22:10.531      0xFF  11111111  157/200  (78%)
+16:22:10.533      0xFE  11111110  31/200  (15%)
+16:22:10.534      0xFD  11111101  12/200  (6%)
+16:22:10.535      RXD high in 94% of samples - UNSTABLE - what an unconnected, undriven input looks like
+
+16:22:10.943    passive listen - no transmission at all:
+16:22:13.976       9600 baud, 3 s: nothing - the bus is quiet while we are
+16:22:16.994      10400 baud, 3 s: nothing - the bus is quiet while we are
+16:22:16.997  === end line state ===
+
+16:22:16.998  === BAUD HUNT ===
+16:22:16.999  Looking for a rate at which our own bytes come back unchanged.
+16:22:16.999  A clean echo pins the cable's real bit rate; garbage everywhere means
+16:22:17.000  whatever answers is not a UART running at any of these speeds.
+
+16:22:17.521      1200 NONE  RX (silence)                  
+16:22:18.048      1200 EVEN  RX (silence)                  
+16:22:18.250      2400 NONE  RX 82 C5                      
+16:22:18.489      2400 EVEN  RX 86 4D                      
+16:22:18.718      4800 NONE  RX 23 8C A7 FF                
+16:22:18.945      4800 EVEN  RX 23 8C 73 FD                
+16:22:19.167      9600 NONE  RX C4 21 A3 83 ED             
+16:22:19.387      9600 EVEN  RX C4 08 58 CC 7B FE          
+16:22:19.569     10400 NONE  RX F4 81 88 35 5C FF          
+16:22:19.773     10400 EVEN  RX FC 91 B3 33 DD             
+16:22:19.951     14400 NONE  RX D3 57 84 18 69 21 FF       
+16:22:20.132     14400 EVEN  RX 53 08 25 94 44 FE          
+16:22:20.345     19200 NONE  RX 65 3D 02 12 0A B3 0A       
+16:22:20.561     19200 EVEN  RX 65 3D 02 11 85 36 E1       
+16:22:20.765     28800 NONE  RX 12 92 8C 00 8C 18 02 8E FE 
+16:22:20.940     28800 EVEN  RX 12 92 8C 80 46 C6 60 9C    
+16:22:21.464     38400 NONE  RX (silence)                  
+16:22:21.666     38400 EVEN  RX 66 9E E6 18 00 18 60 66 E0 
+16:22:22.217     57600 NONE  RX (silence)                  
+16:22:22.422     57600 EVEN  RX 1C E0 1C FC E0 70 00 E0 70 C0 F0 07 E0 
+16:22:22.946     62500 NONE  RX (silence)                  
+16:22:23.156     62500 EVEN  RX 3C C0 3C FC C0 E0 00 C0 E0 00 C0 1C 00 
+16:22:23.349     76800 NONE  RX 78 3C E0 78 3C FE 80 80 00 80 80 00 
+16:22:23.565     76800 EVEN  RX 78 1E F8 78 1E 80 80 00 80 80 00 
+16:22:23.783     83333 NONE  RX F8 78 80 F8 78 FC 00 00 00 00 00 00 
+16:22:23.956     83333 EVEN  RX F8 3C E0 F8 3C FF 00 00 00 00 00 00 
+16:22:24.509    115200 NONE  RX (silence)                  
+16:22:24.684    115200 EVEN  RX E0 E0 00 E0 E0 E0 00 00 00 00 00 00 
+16:22:25.238    125000 NONE  RX (silence)                  
+16:22:25.441    125000 EVEN  RX C0 C0 00 C0 C0 C0 00 00 00 00 00 00 
+16:22:25.614    230400 NONE  RX 00 00 00 00 00 00 00 00 00 00 00 00 
+16:22:25.787    230400 EVEN  RX 00 00 00 00 00 00 00 00 00 00 00 00 
+
+16:22:25.789  Bytes came back but never matched what we sent, at any rate. Whatever
+16:22:25.790  drives the receive line is not a UART at a standard speed.
+16:22:25.791  === end baud hunt ===
+
+16:22:25.792  === LINE CHARACTERISATION ===
+16:22:25.793  Sending fixed patterns; RX is printed exactly as received.
+16:22:25.793    '=TX' means the hardware echoed our transmission back unchanged,
+16:22:25.794    which is normal and expected on a single-wire K-line.
+
+16:22:26.035     9600 EVEN TX 55 55 55 55    RX C4 28 58 CC 7B FE          LONGER than TX - 2 extra byte(s)
+16:22:26.214     9600 EVEN TX AA AA          RX C4 08 58 FC                LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:22:26.401     9600 EVEN TX 00             RX C4 08                      LONGER than TX - 1 extra byte(s)  LINE=0x64
+16:22:26.610     9600 EVEN TX FF             RX C4 08 F8                   LONGER than TX - 2 extra byte(s)
+16:22:26.825     9600 EVEN TX 80 04 00 84    RX C4 48 58 CC                same length, different bytes  LINE=0x64
+16:22:27.024     9600 NONE TX 55 55 55 55    RX C4 21 A3 83 ED             LONGER than TX - 1 extra byte(s)
+16:22:27.205     9600 NONE TX AA AA          RX C4 21 A3 F3                LONGER than TX - 2 extra byte(s)
+16:22:27.410     9600 NONE TX 00             RX C4 21                      LONGER than TX - 1 extra byte(s)  LINE=0x68
+16:22:27.590     9600 NONE TX FF             RX C4 21                      LONGER than TX - 1 extra byte(s)  LINE=0x68
+16:22:27.776     9600 NONE TX 80 04 00 84    RX C4 21 A3 F3                same length, different bytes
+16:22:28.018    10400 EVEN TX 55 55 55 55    RX F4 91 B3 33 DD             LONGER than TX - 1 extra byte(s)  LINE=0x64
+16:22:28.199    10400 EVEN TX AA AA          RX F4 91 B3 F3                LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:22:28.399    10400 EVEN TX 00             RX F4 91                      LONGER than TX - 1 extra byte(s)  LINE=0x6C
+16:22:28.579    10400 EVEN TX FF             RX F4 91 F3                   LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:22:28.790    10400 EVEN TX 80 04 00 84    RX F4 91 B3 33                same length, different bytes  LINE=0x64
+16:22:28.990    10400 NONE TX 55 55 55 55    RX F4 81 88 35 5C FF          LONGER than TX - 2 extra byte(s)
+16:22:29.170    10400 NONE TX AA AA          RX F4 81 88 FD                LONGER than TX - 2 extra byte(s)
+16:22:29.382    10400 NONE TX 00             RX F4 81 FC                   LONGER than TX - 2 extra byte(s)
+16:22:29.589    10400 NONE TX FF             RX F4 81 FC                   LONGER than TX - 2 extra byte(s)
+16:22:29.810    10400 NONE TX 80 04 00 84    RX FC 81 88 35                same length, different bytes
+16:22:29.810  === end line characterisation ===
+
+16:22:29.811  === AUTO-SWEEP ===
+16:22:29.812  probing 8 candidate addresses per configuration
+16:22:29.812  echo is detected per transaction now, so it is no longer a dimension to sweep
+
+16:22:29.831  --- 9600 baud, EVEN parity ---
+16:22:29.974     0x00 TX 00 04 00 04  RX C4 08 58 FC
+16:22:29.975          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:30.118     0x12 TX 12 04 00 16  RX C4 28 58 CC FF
+16:22:30.119          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:30.263     0x16 TX 16 04 00 12  RX C4 08 58 CC FF
+16:22:30.264          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:30.410     0x44 TX 44 04 00 40  RX C4 08 58 CC FF
+16:22:30.415          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:30.563     0x56 TX 56 04 00 52  RX C4 48 58 CC FF
+16:22:30.565          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:30.710     0x60 TX 60 04 00 64  RX C4 48 58 CC FF
+16:22:30.711          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:30.855     0x80 TX 80 04 00 84  RX C4 08 58 CC
+16:22:30.855          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:31.005     0xA0 TX A0 04 00 A4  RX C4 48 58 CC FF
+16:22:31.007          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:31.010    =>  9600 EVEN  valid=0  total=38  beyond-echo=38
+
+16:22:31.041  --- 9600 baud, NONE parity ---
+16:22:31.184     0x00 TX 00 04 00 04  RX C4 21 A3 F3
+16:22:31.185          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:22:31.329     0x12 TX 12 04 00 16  RX C4 21 A3 83 FD
+16:22:31.330          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:31.474     0x16 TX 16 04 00 12  RX C4 21 A3 83 FD
+16:22:31.475          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:31.619     0x44 TX 44 04 00 40  RX C4 21 A3 83 FD
+16:22:31.621          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:31.765     0x56 TX 56 04 00 52  RX C4 21 A3 83 FD
+16:22:31.780          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:31.926     0x60 TX 60 04 00 64  RX C4 21 A3 83 FD
+16:22:31.927          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:32.070     0x80 TX 80 04 00 84  RX C4 21 A3 F3
+16:22:32.071          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:22:32.216     0xA0 TX A0 04 00 A4  RX C4 21 A3 83 FD
+16:22:32.217          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:32.218    =>  9600 NONE  valid=0  total=38  beyond-echo=38
+
+16:22:32.236  --- 10400 baud, EVEN parity ---
+16:22:32.380     0x00 TX 00 04 00 04  RX F4 91 B3 F3
+16:22:32.381          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:32.525     0x12 TX 12 04 00 16  RX F4 91 B3 33 FD
+16:22:32.526          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:32.670     0x16 TX 16 04 00 12  RX F4 91 B3 33 FD
+16:22:32.671          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:32.818     0x44 TX 44 04 00 40  RX FC 91 B3 33 FD
+16:22:32.819          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:32.963     0x56 TX 56 04 00 52  RX FC 91 B3 33 FD
+16:22:32.965          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:33.109     0x60 TX 60 04 00 64  RX F4 91 B3 33 FD
+16:22:33.110          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:33.254     0x80 TX 80 04 00 84  RX F4 91 B3 33
+16:22:33.255          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:33.399     0xA0 TX A0 04 00 A4  RX F4 91 B3 33 FD
+16:22:33.400          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:33.401    => 10400 EVEN  valid=0  total=38  beyond-echo=38
+
+16:22:33.418  --- 10400 baud, NONE parity ---
+16:22:33.563     0x00 TX 00 04 00 04  RX FC 81 88 35
+16:22:33.564          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:22:33.708     0x12 TX 12 04 00 16  RX F4 81 CC 35 5C
+16:22:33.709          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:33.851     0x16 TX 16 04 00 12  RX FC 81 88 35 5C
+16:22:33.853          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:33.996     0x44 TX 44 04 00 40  RX F4 81 88 35 5C
+16:22:33.997          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:34.141     0x56 TX 56 04 00 52  RX F4 81 CC 35 5C
+16:22:34.142          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:34.286     0x60 TX 60 04 00 64  RX F4 81 88 35 5C
+16:22:34.287          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:34.428     0x80 TX 80 04 00 84  RX F4 81 88 35
+16:22:34.430          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:22:34.572     0xA0 TX A0 04 00 A4  RX F4 81 CC 35 5C
+16:22:34.573          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:22:34.574    => 10400 NONE  valid=0  total=38  beyond-echo=38
+
+
+16:22:34.577  === AUTO-SWEEP RESULT ===
+16:22:34.578  No valid frame, but something beyond our own echo came back.
+16:22:34.578    best: 9600 baud, EVEN parity, 38 byte(s) beyond echo
+16:22:34.579  Those surplus bytes are the interesting ones - read the RX lines above.
+16:22:34.580  === end auto-sweep ===
+
+16:22:34.581  === FULL 256-ADDRESS SCAN ===
+16:22:34.582    9600 baud, EVEN parity
+16:22:34.583    only addresses that answer with something other than our own bytes are printed
+16:22:34.744     0x00 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:34.886     0x12 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:35.031     0x16 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:35.176     0x44 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:35.323     0x56 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:35.486     0x60 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:35.648     0x80 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:35.795     0xA0 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:35.938     0x01 RX C4 08 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:36.080     0x02 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:36.237     0x03 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:36.378     0x04 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:36.523     0x05 RX C4 08 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:36.692     0x06 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:36.835     0x07 RX C4 48 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:36.979     0x08 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:37.145     0x09 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:37.292     0x0A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:37.452     0x0B RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:37.600     0x0C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:37.744     0x0D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:37.889     0x0E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:38.050     0x0F RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:38.200     0x10 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:38.346     0x11 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:38.498     0x13 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:38.661     0x14 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:38.806     0x15 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:38.953     0x17 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:39.097     0x18 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:39.242     0x19 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:39.385     0x1A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:39.562     0x1B RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:39.714     0x1C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:39.876     0x1D RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:40.021     0x1E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:40.165     0x1F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:40.321     0x20 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:40.468     0x21 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:40.612     0x22 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:40.757     0x23 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:40.902     0x24 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:41.062     0x25 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:41.208     0x26 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:41.360     0x27 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:41.503     0x28 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:41.655     0x29 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:41.820     0x2A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:41.972     0x2B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:42.116     0x2C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:42.260     0x2D RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:42.420     0x2E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:42.566     0x2F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:42.711     0x30 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:42.856     0x31 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:43.008     0x32 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:43.168     0x33 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:43.333     0x34 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:43.501     0x35 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:43.653     0x36 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:43.816     0x37 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:43.982     0x38 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:44.126     0x39 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:44.290     0x3A RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:44.457     0x3B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:44.618     0x3C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:44.784     0x3D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:44.935     0x3E RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:45.080     0x3F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:45.225     0x40 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:45.386     0x41 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:45.548     0x42 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:45.705     0x43 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:45.853     0x45 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:45.998     0x46 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:46.143     0x47 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:46.287     0x48 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:46.447     0x49 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:46.613     0x4A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:46.772     0x4B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:46.933     0x4C RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:47.097     0x4D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:47.264     0x4E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:47.416     0x4F RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:47.560     0x50 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:47.705     0x51 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:47.870     0x52 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:48.013     0x53 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:48.158     0x54 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:48.319     0x55 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:48.484     0x57 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:48.638     0x58 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:48.785     0x59 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:48.929     0x5A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:49.074     0x5B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:49.217     0x5C RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:49.381     0x5D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:49.526     0x5E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:49.671     0x5F RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:49.816     0x61 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:49.977     0x62 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:50.125     0x63 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:50.293     0x64 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:50.437     0x65 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:50.582     0x66 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:50.743     0x67 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:50.891     0x68 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:51.035     0x69 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:51.179     0x6A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:51.342     0x6B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:51.486     0x6C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:51.629     0x6D RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:51.774     0x6E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:51.918     0x6F RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:52.063     0x70 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:52.225     0x71 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:52.369     0x72 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:52.544     0x73 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:52.694     0x74 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:52.853     0x75 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:53.016     0x76 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:53.184     0x77 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:53.333     0x78 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:53.478     0x79 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:53.623     0x7A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:53.783     0x7B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:53.957     0x7C RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:54.111     0x7D RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:54.280     0x7E RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:54.425     0x7F RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:54.582     0x81 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:54.740     0x82 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:54.886     0x83 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:55.052     0x84 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:55.197     0x85 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:55.357     0x86 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:55.500     0x87 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:22:55.646     0x88 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:55.789     0x89 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:55.933     0x8A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:56.097     0x8B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:56.255     0x8C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:56.398     0x8D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:56.543     0x8E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:56.687     0x8F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:56.832     0x90 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:56.983     0x91 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:57.129     0x92 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:57.280     0x93 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:57.424     0x94 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:57.568     0x95 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:57.712     0x96 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:57.857     0x97 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:58.001     0x98 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:58.165     0x99 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:58.309     0x9A RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:58.461     0x9B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:58.605     0x9C RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:58.750     0x9D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:58.894     0x9E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:59.038     0x9F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:59.181     0xA1 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:59.336     0xA2 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:59.480     0xA3 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:59.640     0xA4 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:59.799     0xA5 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:22:59.944     0xA6 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:00.089     0xA7 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:00.233     0xA8 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:00.392     0xA9 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:00.551     0xAA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:00.695     0xAB RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:00.839     0xAC RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:00.983     0xAD RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:01.143     0xAE RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:01.287     0xAF RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:01.433     0xB0 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:01.578     0xB1 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:01.722     0xB2 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:01.867     0xB3 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:02.012     0xB4 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:02.157     0xB5 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:02.327     0xB6 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:02.470     0xB7 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:02.615     0xB8 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:02.760     0xB9 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:02.904     0xBA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:03.048     0xBB RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:03.193     0xBC RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:03.337     0xBD RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:03.482     0xBE RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:03.626     0xBF RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:03.768     0xC0 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:03.912     0xC1 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:04.070     0xC2 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:04.213     0xC3 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:04.356     0xC4 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:04.499     0xC5 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:04.641     0xC6 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:04.798     0xC7 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:04.943     0xC8 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:05.086     0xC9 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:05.230     0xCA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:05.374     0xCB RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:05.531     0xCC RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:05.698     0xCD RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:05.843     0xCE RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:05.987     0xCF RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:06.131     0xD0 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:06.276     0xD1 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:06.437     0xD2 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:06.582     0xD3 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:06.725     0xD4 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:06.869     0xD5 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:07.013     0xD6 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:07.156     0xD7 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:07.301     0xD8 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:07.445     0xD9 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:07.590     0xDA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:07.736     0xDB RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:07.895     0xDC RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:08.039     0xDD RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:08.184     0xDE RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:08.330     0xDF RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:08.474     0xE0 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:08.617     0xE1 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:08.759     0xE2 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:08.903     0xE3 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:09.055     0xE4 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:09.201     0xE5 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:09.345     0xE6 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:09.512     0xE7 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:09.656     0xE8 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:09.800     0xE9 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:09.943     0xEA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:10.088     0xEB RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:10.232     0xEC RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:10.378     0xED RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:10.541     0xEE RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:10.703     0xEF RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:10.847     0xF0 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:10.990     0xF1 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:11.134     0xF2 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:11.277     0xF3 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:11.421     0xF4 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:11.564     0xF5 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:11.707     0xF6 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:11.851     0xF7 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:11.997     0xF8 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:12.150     0xF9 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:12.293     0xFA RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:12.437     0xFB RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:12.580     0xFC RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:12.739     0xFD RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:12.883     0xFE RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:13.025     0xFF RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:13.026  === scan done: 0 valid frame(s), 256 non-echo response(s) ===
+
+16:23:13.028  ################ FULL RUN COMPLETE ################
+16:23:13.031  log saved: /storage/emulated/0/Android/data/hu.bmwscanner/files/ds2probe-20261020-162313.log
+16:23:13.032  Now press SHARE LOG and send it over.
+16:23:24.181  USB rescan: 1 device(s)
+16:23:24.236    /dev/bus/usb/001/002  0333:0137
+
+16:23:24.304  ################ FULL RUN ################
+16:23:24.304  started 2026-10-20 16:23:24
+
+16:23:24.304  === USB descriptors ===
+16:23:24.305  device /dev/bus/usb/001/002  VID=0333 PID=0137
+16:23:24.305    manufacturer=PASOFT  product=BMW Scanner V14x
+16:23:24.306    serial=PA5BG64Y
+16:23:24.306    class=0 subclass=0 protocol=0
+16:23:24.306    interfaces=1
+16:23:24.307    iface#0 class=255 endpoints=2
+16:23:24.307        ep 0x81 IN  bulk maxPacket=64
+16:23:24.307        ep 0x02 OUT bulk maxPacket=64
+16:23:24.307  === end descriptors ===
+
+16:23:24.322  === FTDI EEPROM dump (words 0x00..0x3F) ===
+16:23:24.529    00: 4000 0333 0137 0000 2D80 0008 0000 0E98
+16:23:24.530    08: 22A6 12C8 AAAA 0006 030E 0050 0041 0053
+16:23:24.530    10: 004F 0046 0054 0322 0042 004D 0057 0020
+16:23:24.530    18: 0053 0063 0061 006E 006E 0065 0072 0020
+16:23:24.531    20: 0056 0031 0034 0078 0312 0050 0041 0035
+16:23:24.531    28: 0042 0047 0036 0034 0059 0000 0000 0000
+16:23:24.531    30: 0000 0000 0000 0000 0000 0000 0000 0000
+16:23:24.531    38: 0000 0000 0000 0000 0000 0000 0000 6206
+16:23:24.532    EEPROM VID=0x0333 PID=0x0137
+16:23:24.532  === end EEPROM dump ===
+
+16:23:24.533  === VENDOR INIT REPLAY ===
+16:23:24.533  Reproducing BMWScan140.exe's start-up exactly, from the USB capture.
+
+16:23:24.989    19200 NONE  DTR pulse -> 27 byte(s): 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+16:23:25.129          then ident 0x00 -> 65 3D 02 E2 31 78
+16:23:25.584    19200 EVEN  DTR pulse -> 25 byte(s): 9B CD AA ED 2D 57 A2 9B 17 2C FF B9 74 11 CA 05 86 4A 6A 2E B5 CF AB D0 F9
+16:23:25.723          then ident 0x00 -> 65 3D 02 F1 4C DE
+16:23:26.183     9600 NONE  DTR pulse -> 14 byte(s): 4B EF 4F AC 2B E6 05 41 03 46 EE 6C 2F F7
+16:23:26.333          then ident 0x00 -> C4 21 44
+16:23:26.791     9600 EVEN  DTR pulse -> 12 byte(s): 4B B8 F6 6D 30 05 10 20 E3 87 C3 DC
+16:23:26.936          then ident 0x00 -> C4 28 22
+16:23:27.400    10400 NONE  DTR pulse -> 15 byte(s): 7B 7F 37 71 BC 80 AF F0 68 40 2D 5E AF 7B 88
+16:23:27.567          then ident 0x00 -> F4 81 A2 FD
+16:23:28.070    10400 EVEN  DTR pulse -> 14 byte(s): 7B 7F BF 1C FB D6 B5 51 13 36 5E 74 77 F7
+16:23:28.211          then ident 0x00 -> F4 D1 54
+16:23:28.673    38400 NONE  DTR pulse -> 50 byte(s): 9E 78 F3 F8 98 E6 FE E6 FE E6 86 7E 33 18 CC 9E 78 3F 60 C0 86 F8 18 3F 06 F3 7E 03 E0 98 F8 66 00 80 98 18 30 9E F8 86 66 CF FE F8 98 E6 7E 00
+16:23:28.814          then ident 0x00 -> 66 3C E6 18 03 60 FE FC
+16:23:29.271    38400 EVEN  DTR pulse -> 46 byte(s): 9E 78 1E 98 E6 FE E3 FF F3 C3 7E E6 18 E6 9E 78 06 80 86 F8 18 66 98 7E 60 78 66 FF 33 00 80 98 18 98 9F F8 86 66 9E F8 98 E6 7F C0 CF C3
+16:23:29.409          then ident 0x00 -> 66 9E E6 18 00 78 FE
+16:23:29.409  === end vendor init replay ===
+
+16:23:29.410  === LINE STATE ===
+16:23:29.411    chip: bcdDevice=0x0600  ->  FT232R / FT245R
+16:23:29.425    resting pin levels (bit1 = RXD), 200 samples while we stay silent:
+16:23:30.037      0xFF  11111111  200/200  (100%)
+16:23:30.038      RXD high in 100% of samples - steady high (nothing is pulling it down)
+16:23:30.052    pin levels sampled while transmitting:
+16:23:30.701      0xFF  11111111  162/200  (81%)
+16:23:30.703      0xFE  11111110  29/200  (14%)
+16:23:30.705      0xFD  11111101  9/200  (4%)
+16:23:30.711      RXD high in 95% of samples - UNSTABLE - what an unconnected, undriven input looks like
+
+16:23:31.118    passive listen - no transmission at all:
+16:23:34.148       9600 baud, 3 s: nothing - the bus is quiet while we are
+16:23:37.167      10400 baud, 3 s: nothing - the bus is quiet while we are
+16:23:37.169  === end line state ===
+
+16:23:37.170  === BAUD HUNT ===
+16:23:37.171  Looking for a rate at which our own bytes come back unchanged.
+16:23:37.171  A clean echo pins the cable's real bit rate; garbage everywhere means
+16:23:37.172  whatever answers is not a UART running at any of these speeds.
+
+16:23:37.407      1200 NONE  RX FD                         
+16:23:37.925      1200 EVEN  RX (silence)                  
+16:23:38.123      2400 NONE  RX 82 4D                      
+16:23:38.333      2400 EVEN  RX 86 4D                      
+16:23:38.544      4800 NONE  RX 63 8C A7 FF                
+16:23:38.747      4800 EVEN  RX 63 8C F3 FD                
+16:23:38.946      9600 NONE  RX C4 21 A3 83 ED             
+16:23:39.132      9600 EVEN  RX C4 08 58 CC 7B FE          
+16:23:39.326     10400 NONE  RX F4 81 88 35 5C FF          
+16:23:39.517     10400 EVEN  RX F4 91 B3 33 DD             
+16:23:39.701     14400 NONE  RX D3 57 84 18 69 21 FF       
+16:23:39.890     14400 EVEN  RX 53 08 25 94 44 FE          
+16:23:40.073     19200 NONE  RX 65 3D 02 12 0A B3 0A       
+16:23:40.248     19200 EVEN  RX 65 3D 02 11 85 36 E1       
+16:23:40.433     28800 NONE  RX 12 92 8C 00 8C 18 02 8E FE 
+16:23:40.617     28800 EVEN  RX 12 92 8C 80 46 C6 60 9C    
+16:23:41.146     38400 NONE  RX (silence)                  
+16:23:41.333     38400 EVEN  RX 66 9E E6 18 00 18 60 66 E0 
+16:23:41.859     57600 NONE  RX (silence)                  
+16:23:42.032     57600 EVEN  RX 1C E0 1C FC E0 70 00 E0 70 C0 E0 07 E0 
+16:23:42.561     62500 NONE  RX (silence)                  
+16:23:42.738     62500 EVEN  RX 3C C0 3C FC C0 E0 00 C0 E0 00 C0 1C 00 
+16:23:42.913     76800 NONE  RX 78 3C E0 78 3C FE 80 80 00 80 80 00 
+16:23:43.091     76800 EVEN  RX 78 1E F8 78 1E 80 80 00 80 80 00 
+16:23:43.270     83333 NONE  RX F8 78 80 F8 78 FC 00 00 00 00 00 00 
+16:23:43.443     83333 EVEN  RX F8 3C E0 F8 3C FF 00 00 00 00 00 00 
+16:23:43.972    115200 NONE  RX (silence)                  
+16:23:44.159    115200 EVEN  RX E0 E0 00 E0 E0 E0 00 00 00 00 00 00 
+16:23:44.688    125000 NONE  RX (silence)                  
+16:23:44.869    125000 EVEN  RX C0 C0 00 C0 C0 C0 00 00 00 00 00 00 
+16:23:45.045    230400 NONE  RX 00 00 00 00 00 00 00 00 00 00 00 00 
+16:23:45.228    230400 EVEN  RX 00 00 00 00 00 00 00 00 00 00 00 00 
+
+16:23:45.230  Bytes came back but never matched what we sent, at any rate. Whatever
+16:23:45.230  drives the receive line is not a UART at a standard speed.
+16:23:45.231  === end baud hunt ===
+
+16:23:45.232  === LINE CHARACTERISATION ===
+16:23:45.233  Sending fixed patterns; RX is printed exactly as received.
+16:23:45.233    '=TX' means the hardware echoed our transmission back unchanged,
+16:23:45.234    which is normal and expected on a single-wire K-line.
+
+16:23:45.438     9600 EVEN TX 55 55 55 55    RX C4 48 58 CC 7B FE          LONGER than TX - 2 extra byte(s)
+16:23:45.618     9600 EVEN TX AA AA          RX C4 28 58 FC                LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:23:45.795     9600 EVEN TX 00             RX C4 08                      LONGER than TX - 1 extra byte(s)  LINE=0x64
+16:23:45.973     9600 EVEN TX FF             RX C4 28 F8                   LONGER than TX - 2 extra byte(s)
+16:23:46.163     9600 EVEN TX 80 04 00 84    RX C4 48 58 CC                same length, different bytes  LINE=0x64
+16:23:46.378     9600 NONE TX 55 55 55 55    RX C4 21 A3 83 ED             LONGER than TX - 1 extra byte(s)
+16:23:46.580     9600 NONE TX AA AA          RX C4 21 A3 F3                LONGER than TX - 2 extra byte(s)
+16:23:46.779     9600 NONE TX 00             RX C4 21                      LONGER than TX - 1 extra byte(s)  LINE=0x68
+16:23:46.969     9600 NONE TX FF             RX C4 21                      LONGER than TX - 1 extra byte(s)  LINE=0x68
+16:23:47.163     9600 NONE TX 80 04 00 84    RX C4 21 A3 F3                same length, different bytes
+16:23:47.368    10400 EVEN TX 55 55 55 55    RX F4 91 B3 33 DD             LONGER than TX - 1 extra byte(s)  LINE=0x64
+16:23:47.554    10400 EVEN TX AA AA          RX F4 91 B3 F3                LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:23:47.733    10400 EVEN TX 00             RX F4 91                      LONGER than TX - 1 extra byte(s)  LINE=0x6C
+16:23:47.912    10400 EVEN TX FF             RX F4 91 F3                   LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:23:48.097    10400 EVEN TX 80 04 00 84    RX F4 91 B3 33                same length, different bytes  LINE=0x64
+16:23:48.313    10400 NONE TX 55 55 55 55    RX F4 81 CC 35 5C FF          LONGER than TX - 2 extra byte(s)
+16:23:48.509    10400 NONE TX AA AA          RX F4 81 88 FD                LONGER than TX - 2 extra byte(s)
+16:23:48.688    10400 NONE TX 00             RX F4 81 FC                   LONGER than TX - 2 extra byte(s)
+16:23:48.883    10400 NONE TX FF             RX F4 81 FC                   LONGER than TX - 2 extra byte(s)
+16:23:49.072    10400 NONE TX 80 04 00 84    RX F4 81 88 35                same length, different bytes
+16:23:49.074  === end line characterisation ===
+
+16:23:49.075  === AUTO-SWEEP ===
+16:23:49.076  probing 8 candidate addresses per configuration
+16:23:49.077  echo is detected per transaction now, so it is no longer a dimension to sweep
+
+16:23:49.104  --- 9600 baud, EVEN parity ---
+16:23:49.248     0x00 TX 00 04 00 04  RX C4 48 58 FC
+16:23:49.248          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:49.390     0x12 TX 12 04 00 16  RX C4 48 58 CC FF
+16:23:49.390          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:49.532     0x16 TX 16 04 00 12  RX C4 08 58 CC FF
+16:23:49.532          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:49.675     0x44 TX 44 04 00 40  RX C4 28 58 CC FF
+16:23:49.676          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:49.818     0x56 TX 56 04 00 52  RX C4 48 58 CC FF
+16:23:49.819          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:49.961     0x60 TX 60 04 00 64  RX C4 28 58 CC FF
+16:23:49.962          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:50.104     0x80 TX 80 04 00 84  RX C4 08 58 CC
+16:23:50.104          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:50.247     0xA0 TX A0 04 00 A4  RX C4 28 58 CC FF
+16:23:50.247          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:50.247    =>  9600 EVEN  valid=0  total=38  beyond-echo=38
+
+16:23:50.262  --- 9600 baud, NONE parity ---
+16:23:50.403     0x00 TX 00 04 00 04  RX C4 21 A3 F3
+16:23:50.403          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:23:50.545     0x12 TX 12 04 00 16  RX C4 21 A3 83 FD
+16:23:50.545          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:50.687     0x16 TX 16 04 00 12  RX C4 21 A3 83 FD
+16:23:50.688          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:50.830     0x44 TX 44 04 00 40  RX C4 21 A3 83 FD
+16:23:50.831          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:50.976     0x56 TX 56 04 00 52  RX C4 21 A3 83 FD
+16:23:50.977          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:51.120     0x60 TX 60 04 00 64  RX C4 21 A3 83 FD
+16:23:51.120          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:51.262     0x80 TX 80 04 00 84  RX C4 21 A3 F3
+16:23:51.262          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:23:51.407     0xA0 TX A0 04 00 A4  RX C4 21 A3 83 FD
+16:23:51.408          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:51.409    =>  9600 NONE  valid=0  total=38  beyond-echo=38
+
+16:23:51.424  --- 10400 baud, EVEN parity ---
+16:23:51.565     0x00 TX 00 04 00 04  RX F4 91 B3 F3
+16:23:51.565          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:51.707     0x12 TX 12 04 00 16  RX F4 91 B3 33 FD
+16:23:51.707          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:51.850     0x16 TX 16 04 00 12  RX F4 91 B3 33 FD
+16:23:51.850          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:51.993     0x44 TX 44 04 00 40  RX F4 91 B3 33 FD
+16:23:51.994          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:52.136     0x56 TX 56 04 00 52  RX FC 91 B3 33 FD
+16:23:52.137          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:52.281     0x60 TX 60 04 00 64  RX FC 91 B3 33 FD
+16:23:52.281          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:52.423     0x80 TX 80 04 00 84  RX F4 91 B3 33
+16:23:52.424          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:52.568     0xA0 TX A0 04 00 A4  RX F4 91 B3 33 FD
+16:23:52.569          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:52.569    => 10400 EVEN  valid=0  total=38  beyond-echo=38
+
+16:23:52.584  --- 10400 baud, NONE parity ---
+16:23:52.725     0x00 TX 00 04 00 04  RX F4 81 CC 35
+16:23:52.725          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:23:52.867     0x12 TX 12 04 00 16  RX FC 81 88 35 5C
+16:23:52.867          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:53.010     0x16 TX 16 04 00 12  RX F4 81 CC 35 5C
+16:23:53.011          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:53.152     0x44 TX 44 04 00 40  RX F4 81 C4 35 5C
+16:23:53.153          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:53.295     0x56 TX 56 04 00 52  RX F4 81 88 35 5C
+16:23:53.295          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:53.437     0x60 TX 60 04 00 64  RX F4 81 CC 35 5C
+16:23:53.437          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:53.578     0x80 TX 80 04 00 84  RX F4 81 CC 35
+16:23:53.578          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:23:53.721     0xA0 TX A0 04 00 A4  RX F4 81 88 35 5C
+16:23:53.722          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:23:53.722    => 10400 NONE  valid=0  total=38  beyond-echo=38
+
+
+16:23:53.723  === AUTO-SWEEP RESULT ===
+16:23:53.723  No valid frame, but something beyond our own echo came back.
+16:23:53.723    best: 9600 baud, EVEN parity, 38 byte(s) beyond echo
+16:23:53.723  Those surplus bytes are the interesting ones - read the RX lines above.
+16:23:53.723  === end auto-sweep ===
+
+16:23:53.724  === FULL 256-ADDRESS SCAN ===
+16:23:53.724    9600 baud, EVEN parity
+16:23:53.724    only addresses that answer with something other than our own bytes are printed
+16:23:53.881     0x00 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:54.023     0x12 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:54.165     0x16 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:54.308     0x44 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:54.451     0x56 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:54.594     0x60 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:54.736     0x80 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:54.879     0xA0 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:55.021     0x01 RX C4 08 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:55.164     0x02 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:55.307     0x03 RX C4 08 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:55.450     0x04 RX C4 08 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:55.593     0x05 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:55.735     0x06 RX C4 48 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:55.881     0x07 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:23:56.025     0x08 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:56.169     0x09 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:56.313     0x0A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:56.457     0x0B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:56.602     0x0C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:56.765     0x0D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:56.909     0x0E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:57.053     0x0F RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:57.197     0x10 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:57.342     0x11 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:57.486     0x13 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:57.633     0x14 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:57.778     0x15 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:57.922     0x17 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:58.069     0x18 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:58.224     0x19 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:58.369     0x1A RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:58.513     0x1B RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:58.658     0x1C RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:58.803     0x1D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:58.947     0x1E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:59.093     0x1F RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:59.238     0x20 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:59.383     0x21 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:59.527     0x22 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:59.674     0x23 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:59.818     0x24 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:23:59.966     0x25 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:00.109     0x26 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:00.254     0x27 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:00.397     0x28 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:00.542     0x29 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:00.686     0x2A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:00.830     0x2B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:00.974     0x2C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:01.118     0x2D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:01.263     0x2E RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:01.406     0x2F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:01.551     0x30 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:01.696     0x31 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:01.840     0x32 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:01.984     0x33 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:02.128     0x34 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:02.274     0x35 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:02.419     0x36 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:02.564     0x37 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:02.709     0x38 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:02.856     0x39 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:03.000     0x3A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:03.145     0x3B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:03.289     0x3C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:03.434     0x3D RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:03.577     0x3E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:03.744     0x3F RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:03.889     0x40 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:04.033     0x41 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:04.178     0x42 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:04.322     0x43 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:04.468     0x45 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:04.613     0x46 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:04.758     0x47 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:04.903     0x48 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:05.047     0x49 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:05.191     0x4A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:05.336     0x4B RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:05.495     0x4C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:05.639     0x4D RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:05.784     0x4E RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:05.928     0x4F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:06.073     0x50 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:06.217     0x51 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:06.360     0x52 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:06.504     0x53 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:06.651     0x54 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:06.796     0x55 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:06.940     0x57 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:07.087     0x58 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:07.232     0x59 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:07.376     0x5A RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:07.520     0x5B RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:07.664     0x5C RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:07.808     0x5D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:07.953     0x5E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:08.097     0x5F RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:08.242     0x61 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:08.386     0x62 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:08.531     0x63 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:08.677     0x64 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:08.822     0x65 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:08.967     0x66 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:09.112     0x67 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:09.256     0x68 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:09.399     0x69 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:09.542     0x6A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:09.690     0x6B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:09.847     0x6C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:09.991     0x6D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:10.135     0x6E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:10.283     0x6F RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:10.427     0x70 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:10.573     0x71 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:10.718     0x72 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:10.863     0x73 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:11.008     0x74 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:11.153     0x75 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:11.298     0x76 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:11.443     0x77 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:11.587     0x78 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:11.733     0x79 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:11.878     0x7A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:12.038     0x7B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:12.182     0x7C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:12.327     0x7D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:12.472     0x7E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:12.617     0x7F RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:12.760     0x81 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:12.903     0x82 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:13.046     0x83 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:13.189     0x84 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:13.333     0x85 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:13.479     0x86 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:13.622     0x87 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:13.765     0x88 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:13.910     0x89 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:14.054     0x8A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:14.213     0x8B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:14.357     0x8C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:14.501     0x8D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:14.649     0x8E RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:14.806     0x8F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:14.951     0x90 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:15.095     0x91 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:15.240     0x92 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:15.384     0x93 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:15.527     0x94 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:15.671     0x95 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:15.816     0x96 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:15.960     0x97 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:16.104     0x98 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:16.249     0x99 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:16.400     0x9A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:16.544     0x9B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:16.687     0x9C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:16.831     0x9D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:16.976     0x9E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:17.120     0x9F RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:17.264     0xA1 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:17.409     0xA2 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:17.553     0xA3 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:17.697     0xA4 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:17.841     0xA5 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:17.985     0xA6 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:18.129     0xA7 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:18.273     0xA8 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:18.417     0xA9 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:18.576     0xAA RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:18.720     0xAB RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:18.865     0xAC RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:19.009     0xAD RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:19.153     0xAE RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:19.297     0xAF RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:19.441     0xB0 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:19.585     0xB1 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:19.729     0xB2 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:19.873     0xB3 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:20.017     0xB4 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:20.161     0xB5 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:20.305     0xB6 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:20.449     0xB7 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:20.593     0xB8 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:20.738     0xB9 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:20.882     0xBA RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:21.025     0xBB RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:21.169     0xBC RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:21.313     0xBD RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:21.457     0xBE RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:21.602     0xBF RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:21.745     0xC0 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:21.887     0xC1 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:22.030     0xC2 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:22.173     0xC3 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:22.316     0xC4 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:22.459     0xC5 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:22.602     0xC6 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:22.745     0xC7 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:22.889     0xC8 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:23.033     0xC9 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:23.177     0xCA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:23.321     0xCB RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:23.465     0xCC RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:23.609     0xCD RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:23.753     0xCE RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:23.897     0xCF RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:24.041     0xD0 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:24.185     0xD1 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:24.329     0xD2 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:24.473     0xD3 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:24.617     0xD4 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:24.763     0xD5 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:24.907     0xD6 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:25.050     0xD7 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:25.193     0xD8 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:25.337     0xD9 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:25.481     0xDA RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:25.625     0xDB RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:25.769     0xDC RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:25.915     0xDD RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:26.059     0xDE RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:26.202     0xDF RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:26.345     0xE0 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:26.488     0xE1 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:26.635     0xE2 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:26.780     0xE3 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:26.923     0xE4 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:27.067     0xE5 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:27.210     0xE6 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:27.352     0xE7 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:27.496     0xE8 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:27.640     0xE9 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:27.784     0xEA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:27.928     0xEB RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:28.071     0xEC RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:28.216     0xED RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:28.361     0xEE RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:28.508     0xEF RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:24:28.651     0xF0 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:28.795     0xF1 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:28.938     0xF2 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:29.081     0xF3 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:29.224     0xF4 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:29.367     0xF5 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:29.509     0xF6 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:29.656     0xF7 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:29.800     0xF8 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:29.949     0xF9 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:30.094     0xFA RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:30.236     0xFB RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:30.379     0xFC RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:30.523     0xFD RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:30.667     0xFE RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:30.809     0xFF RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:24:30.810  === scan done: 0 valid frame(s), 256 non-echo response(s) ===
+
+16:24:30.811  ################ FULL RUN COMPLETE ################
+16:24:30.813  log saved: /storage/emulated/0/Android/data/hu.bmwscanner/files/ds2probe-20261020-162430.log
+16:24:30.813  Now press SHARE LOG and send it over.
+16:24:51.523  USB rescan: 1 device(s)
+16:24:51.625    /dev/bus/usb/001/002  0333:0137
+
+16:24:51.727  ################ FULL RUN ################
+16:24:51.727  started 2026-10-20 16:24:51
+
+16:24:51.729  === USB descriptors ===
+16:24:51.729  device /dev/bus/usb/001/002  VID=0333 PID=0137
+16:24:51.729    manufacturer=PASOFT  product=BMW Scanner V14x
+16:24:51.730    serial=PA5BG64Y
+16:24:51.731    class=0 subclass=0 protocol=0
+16:24:51.731    interfaces=1
+16:24:51.731    iface#0 class=255 endpoints=2
+16:24:51.731        ep 0x81 IN  bulk maxPacket=64
+16:24:51.732        ep 0x02 OUT bulk maxPacket=64
+16:24:51.732  === end descriptors ===
+
+16:24:51.747  === FTDI EEPROM dump (words 0x00..0x3F) ===
+16:24:51.944    00: 4000 0333 0137 0000 2D80 0008 0000 0E98
+16:24:51.945    08: 22A6 12C8 AAAA 0006 030E 0050 0041 0053
+16:24:51.945    10: 004F 0046 0054 0322 0042 004D 0057 0020
+16:24:51.946    18: 0053 0063 0061 006E 006E 0065 0072 0020
+16:24:51.946    20: 0056 0031 0034 0078 0312 0050 0041 0035
+16:24:51.947    28: 0042 0047 0036 0034 0059 0000 0000 0000
+16:24:51.947    30: 0000 0000 0000 0000 0000 0000 0000 0000
+16:24:51.950    38: 0000 0000 0000 0000 0000 0000 0000 6206
+16:24:51.951    EEPROM VID=0x0333 PID=0x0137
+16:24:51.951  === end EEPROM dump ===
+
+16:24:51.952  === VENDOR INIT REPLAY ===
+16:24:51.952  Reproducing BMWScan140.exe's start-up exactly, from the USB capture.
+
+16:24:52.413    19200 NONE  DTR pulse -> 27 byte(s): 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+16:24:52.552          then ident 0x00 -> 65 3D 02 E2 31 78
+16:24:53.012    19200 EVEN  DTR pulse -> 25 byte(s): 9B CD AA ED 2D 57 A2 9B 17 2C FF B9 74 11 CA 05 86 4A 6A 2E B5 CF AD D0 F9
+16:24:53.153          then ident 0x00 -> 65 3D 02 E1 4C DE
+16:24:53.615     9600 NONE  DTR pulse -> 14 byte(s): 4B EF 4F AC 2B E6 05 41 03 46 EE 6C 2F F7
+16:24:53.757          then ident 0x00 -> C4 21 44
+16:24:54.217     9600 EVEN  DTR pulse -> 12 byte(s): 4B F8 F6 6D 30 05 10 20 E3 87 C3 DC
+16:24:54.359          then ident 0x00 -> C4 28 22
+16:24:54.815    10400 NONE  DTR pulse -> 15 byte(s): 7B 7F 37 79 BC 11 BD F0 68 40 2D 5E BF 73 88
+16:24:54.955          then ident 0x00 -> F4 81 51 FF
+16:24:55.415    10400 EVEN  DTR pulse -> 14 byte(s): 7B 7F BF 1C FB D6 B5 51 13 36 5E 7C 7F F7
+16:24:55.566          then ident 0x00 -> F4 D1 54
+16:24:56.033    38400 NONE  DTR pulse -> 50 byte(s): 9E 78 F3 F8 98 E6 FE E6 FE E6 86 7E 33 18 CC 9E 78 3F 60 C0 86 F8 18 3F 06 F3 7E 03 E0 98 F8 66 00 80 98 18 30 9E F8 86 66 CF FE F8 98 E6 7E 00
+16:24:56.171          then ident 0x00 -> 66 3C E6 18 03 60 7E FC
+16:24:56.634    38400 EVEN  DTR pulse -> 46 byte(s): 9E 78 1E 98 E6 FE E3 FF F3 C3 7E E6 18 E6 9E 78 06 80 86 F8 18 66 98 7E 60 78 66 FF 33 00 80 98 18 98 9F F8 86 66 9E F8 98 E6 7F C0 CF C3
+16:24:56.773          then ident 0x00 -> 66 9E E6 18 00 78 FE
+16:24:56.774  === end vendor init replay ===
+
+16:24:56.776  === LINE STATE ===
+16:24:56.783    chip: bcdDevice=0x0600  ->  FT232R / FT245R
+16:24:56.797    resting pin levels (bit1 = RXD), 200 samples while we stay silent:
+16:24:57.405      0xFF  11111111  200/200  (100%)
+16:24:57.408      RXD high in 100% of samples - steady high (nothing is pulling it down)
+16:24:57.410    pin levels sampled while transmitting:
+16:24:58.055      0xFF  11111111  164/200  (82%)
+16:24:58.059      0xFE  11111110  27/200  (13%)
+16:24:58.062      0xFD  11111101  9/200  (4%)
+16:24:58.064      RXD high in 95% of samples - UNSTABLE - what an unconnected, undriven input looks like
+
+16:24:58.473    passive listen - no transmission at all:
+16:25:01.493       9600 baud, 3 s: nothing - the bus is quiet while we are
+16:25:04.514      10400 baud, 3 s: nothing - the bus is quiet while we are
+16:25:04.517  === end line state ===
+
+16:25:04.520  === BAUD HUNT ===
+16:25:04.521  Looking for a rate at which our own bytes come back unchanged.
+16:25:04.522  A clean echo pins the cable's real bit rate; garbage everywhere means
+16:25:04.524  whatever answers is not a UART running at any of these speeds.
+
+16:25:05.045      1200 NONE  RX (silence)                  
+16:25:05.565      1200 EVEN  RX (silence)                  
+16:25:05.768      2400 NONE  RX 82 09                      
+16:25:05.968      2400 EVEN  RX 86 4D                      
+16:25:06.159      4800 NONE  RX 23 8C 27 FF                
+16:25:06.353      4800 EVEN  RX 23 8C B3 FD                
+16:25:06.538      9600 NONE  RX C4 21 A3 83 ED             
+16:25:06.723      9600 EVEN  RX C4 08 58 CC 7B FE          
+16:25:06.907     10400 NONE  RX F4 81 CC 35 5C FF          
+16:25:07.090     10400 EVEN  RX F4 91 B3 33 DD             
+16:25:07.267     14400 NONE  RX 53 17 84 18 69 21 FF       
+16:25:07.446     14400 EVEN  RX D3 08 25 94 44 FE          
+16:25:07.627     19200 NONE  RX 65 3D 02 12 0A B3 0A       
+16:25:07.809     19200 EVEN  RX 65 3D 02 09 85 36 E1       
+16:25:07.986     28800 NONE  RX 12 92 8C 00 8C 18 02 8E FE 
+16:25:08.162     28800 EVEN  RX 12 92 8C 80 46 C6 60 9C    
+16:25:08.683     38400 NONE  RX (silence)                  
+16:25:08.867     38400 EVEN  RX 66 9E E6 18 00 18 60 66 E0 
+16:25:09.389     57600 NONE  RX (silence)                  
+16:25:09.564     57600 EVEN  RX 1C E0 1C FC E0 70 00 E0 70 C0 F0 07 E0 
+16:25:10.087     62500 NONE  RX (silence)                  
+16:25:10.268     62500 EVEN  RX 3C C0 3C FC C0 E0 00 C0 E0 00 C0 1C 00 
+16:25:10.447     76800 NONE  RX 78 3C E0 78 3C FE 80 80 00 80 80 00 
+16:25:10.620     76800 EVEN  RX 78 1E F8 78 1E 80 80 00 80 80 00 
+16:25:10.794     83333 NONE  RX F8 78 80 F8 78 FC 00 00 00 00 00 00 
+16:25:10.968     83333 EVEN  RX F8 3C E0 F8 3C FF 00 00 00 00 00 00 
+16:25:11.493    115200 NONE  RX (silence)                  
+16:25:11.672    115200 EVEN  RX E0 E0 00 E0 E0 E0 00 00 00 00 00 00 
+16:25:12.195    125000 NONE  RX (silence)                  
+16:25:12.375    125000 EVEN  RX C0 C0 00 C0 C0 C0 00 00 00 00 00 00 
+16:25:12.555    230400 NONE  RX 00 00 00 00 00 00 00 00 00 00 00 00 
+16:25:12.741    230400 EVEN  RX 00 00 00 00 00 00 00 00 00 00 00 00 
+
+16:25:12.746  Bytes came back but never matched what we sent, at any rate. Whatever
+16:25:12.747  drives the receive line is not a UART at a standard speed.
+16:25:12.749  === end baud hunt ===
+
+16:25:12.752  === LINE CHARACTERISATION ===
+16:25:12.753  Sending fixed patterns; RX is printed exactly as received.
+16:25:12.753    '=TX' means the hardware echoed our transmission back unchanged,
+16:25:12.754    which is normal and expected on a single-wire K-line.
+
+16:25:12.958     9600 EVEN TX 55 55 55 55    RX C4 08 58 CC 7B FE          LONGER than TX - 2 extra byte(s)
+16:25:13.138     9600 EVEN TX AA AA          RX C4 28 58 FC                LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:25:13.315     9600 EVEN TX 00             RX C4 48                      LONGER than TX - 1 extra byte(s)
+16:25:13.495     9600 EVEN TX FF             RX C4 08 F8                   LONGER than TX - 2 extra byte(s)
+16:25:13.676     9600 EVEN TX 80 04 00 84    RX C4 28 58 CC                same length, different bytes  LINE=0x64
+16:25:13.873     9600 NONE TX 55 55 55 55    RX C4 21 A3 83 ED             LONGER than TX - 1 extra byte(s)
+16:25:14.052     9600 NONE TX AA AA          RX C4 21 A3 F3                LONGER than TX - 2 extra byte(s)
+16:25:14.231     9600 NONE TX 00             RX C4 21                      LONGER than TX - 1 extra byte(s)  LINE=0x68
+16:25:14.413     9600 NONE TX FF             RX C4 21                      LONGER than TX - 1 extra byte(s)  LINE=0x68
+16:25:14.598     9600 NONE TX 80 04 00 84    RX C4 21 A3 F3                same length, different bytes
+16:25:14.803    10400 EVEN TX 55 55 55 55    RX FC 91 B3 33 DD             LONGER than TX - 1 extra byte(s)  LINE=0x64
+16:25:14.987    10400 EVEN TX AA AA          RX F4 91 B3 F3                LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:25:15.166    10400 EVEN TX 00             RX F4 91                      LONGER than TX - 1 extra byte(s)  LINE=0x6C
+16:25:15.348    10400 EVEN TX FF             RX F4 91 F3                   LONGER than TX - 2 extra byte(s)  LINE=0x64
+16:25:15.535    10400 EVEN TX 80 04 00 84    RX F4 91 B3 33                same length, different bytes  LINE=0x64
+16:25:15.741    10400 NONE TX 55 55 55 55    RX FC 81 88 35 5C FF          LONGER than TX - 2 extra byte(s)
+16:25:15.928    10400 NONE TX AA AA          RX F4 81 88 FD                LONGER than TX - 2 extra byte(s)
+16:25:16.107    10400 NONE TX 00             RX F4 81 FC                   LONGER than TX - 2 extra byte(s)
+16:25:16.287    10400 NONE TX FF             RX F4 81 FE                   LONGER than TX - 2 extra byte(s)
+16:25:16.473    10400 NONE TX 80 04 00 84    RX FC 81 88 35                same length, different bytes
+16:25:16.476  === end line characterisation ===
+
+16:25:16.481  === AUTO-SWEEP ===
+16:25:16.482  probing 8 candidate addresses per configuration
+16:25:16.482  echo is detected per transaction now, so it is no longer a dimension to sweep
+
+16:25:16.498  --- 9600 baud, EVEN parity ---
+16:25:16.641     0x00 TX 00 04 00 04  RX C4 08 58 FC
+16:25:16.641          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:16.784     0x12 TX 12 04 00 16  RX C4 28 58 CC FF
+16:25:16.784          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:16.926     0x16 TX 16 04 00 12  RX C4 28 58 CC FF
+16:25:16.926          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:17.068     0x44 TX 44 04 00 40  RX C4 48 58 CC FF
+16:25:17.068          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:17.211     0x56 TX 56 04 00 52  RX C4 08 58 CC FF
+16:25:17.211          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:17.355     0x60 TX 60 04 00 64  RX C4 28 58 CC FF
+16:25:17.356          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:17.497     0x80 TX 80 04 00 84  RX C4 28 58 CC
+16:25:17.498          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:17.642     0xA0 TX A0 04 00 A4  RX C4 48 58 CC FF
+16:25:17.643          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:17.643    =>  9600 EVEN  valid=0  total=38  beyond-echo=38
+
+16:25:17.657  --- 9600 baud, NONE parity ---
+16:25:17.800     0x00 TX 00 04 00 04  RX C4 21 A3 F3
+16:25:17.802          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:25:17.946     0x12 TX 12 04 00 16  RX C4 21 A3 83 FD
+16:25:17.946          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:18.090     0x16 TX 16 04 00 12  RX C4 21 A3 83 FD
+16:25:18.093          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:18.238     0x44 TX 44 04 00 40  RX C4 21 A3 83 FD
+16:25:18.241          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:18.384     0x56 TX 56 04 00 52  RX C4 21 A3 83 FD
+16:25:18.384          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:18.527     0x60 TX 60 04 00 64  RX C4 21 A3 83 FD
+16:25:18.528          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:18.668     0x80 TX 80 04 00 84  RX C4 21 A3 F3
+16:25:18.669          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:25:18.811     0xA0 TX A0 04 00 A4  RX C4 21 A3 83 FD
+16:25:18.811          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:18.812    =>  9600 NONE  valid=0  total=38  beyond-echo=38
+
+16:25:18.826  --- 10400 baud, EVEN parity ---
+16:25:18.968     0x00 TX 00 04 00 04  RX F4 91 B3 F3
+16:25:18.968          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:19.110     0x12 TX 12 04 00 16  RX F4 91 B3 33 FD
+16:25:19.110          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:19.252     0x16 TX 16 04 00 12  RX FC 91 B3 33 FD
+16:25:19.252          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:19.396     0x44 TX 44 04 00 40  RX F4 91 B3 33 FD
+16:25:19.396          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:19.541     0x56 TX 56 04 00 52  RX F4 91 B3 33 FD
+16:25:19.542          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:19.685     0x60 TX 60 04 00 64  RX F4 91 B3 33 FD
+16:25:19.686          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:19.834     0x80 TX 80 04 00 84  RX F4 91 B3 33
+16:25:19.834          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:19.977     0xA0 TX A0 04 00 A4  RX F4 91 B3 33 FD
+16:25:19.977          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:19.977    => 10400 EVEN  valid=0  total=38  beyond-echo=38
+
+16:25:19.992  --- 10400 baud, NONE parity ---
+16:25:20.134     0x00 TX 00 04 00 04  RX F4 81 CC 35
+16:25:20.136          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:25:20.278     0x12 TX 12 04 00 16  RX F4 81 88 35 5C
+16:25:20.278          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:20.420     0x16 TX 16 04 00 12  RX F4 81 88 35 5C
+16:25:20.420          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:20.562     0x44 TX 44 04 00 40  RX F4 81 88 35 5C
+16:25:20.563          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:20.706     0x56 TX 56 04 00 52  RX FC 81 88 35 5C
+16:25:20.707          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:20.851     0x60 TX 60 04 00 64  RX F4 81 CC 35 5C
+16:25:20.851          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:20.993     0x80 TX 80 04 00 84  RX F4 81 88 35
+16:25:20.993          no echo and no valid frame in 4 byte(s)  [no echo and no valid frame in 4 byte(s)]
+16:25:21.135     0xA0 TX A0 04 00 A4  RX F4 81 88 35 5C
+16:25:21.135          no echo and no valid frame in 5 byte(s)  [no echo and no valid frame in 5 byte(s)]
+16:25:21.136    => 10400 NONE  valid=0  total=38  beyond-echo=38
+
+
+16:25:21.136  === AUTO-SWEEP RESULT ===
+16:25:21.137  No valid frame, but something beyond our own echo came back.
+16:25:21.137    best: 9600 baud, EVEN parity, 38 byte(s) beyond echo
+16:25:21.137  Those surplus bytes are the interesting ones - read the RX lines above.
+16:25:21.137  === end auto-sweep ===
+
+16:25:21.138  === FULL 256-ADDRESS SCAN ===
+16:25:21.138    9600 baud, EVEN parity
+16:25:21.138    only addresses that answer with something other than our own bytes are printed
+16:25:21.293     0x00 RX C4 08 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:21.435     0x12 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:21.578     0x16 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:21.723     0x44 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:21.874     0x56 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:22.020     0x60 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:22.164     0x80 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:22.307     0xA0 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:22.451     0x01 RX C4 48 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:22.593     0x02 RX C4 48 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:22.735     0x03 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:22.877     0x04 RX C4 48 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:23.019     0x05 RX C4 08 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:23.159     0x06 RX C4 08 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:23.299     0x07 RX C4 28 58 FC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:23.441     0x08 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:23.585     0x09 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:23.728     0x0A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:23.873     0x0B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:24.019     0x0C RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:24.164     0x0D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:24.306     0x0E RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:24.451     0x0F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:24.594     0x10 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:24.737     0x11 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:24.881     0x13 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:25.025     0x14 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:25.168     0x15 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:25.310     0x17 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:25.456     0x18 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:25.600     0x19 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:25.743     0x1A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:25.886     0x1B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:26.032     0x1C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:26.175     0x1D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:26.318     0x1E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:26.460     0x1F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:26.603     0x20 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:26.748     0x21 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:26.891     0x22 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:27.035     0x23 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:27.179     0x24 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:27.321     0x25 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:27.463     0x26 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:27.605     0x27 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:27.748     0x28 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:27.901     0x29 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:28.045     0x2A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:28.188     0x2B RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:28.331     0x2C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:28.473     0x2D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:28.615     0x2E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:28.757     0x2F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:28.900     0x30 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:29.060     0x31 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:29.205     0x32 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:29.348     0x33 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:29.493     0x34 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:29.638     0x35 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:29.781     0x36 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:29.923     0x37 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:30.067     0x38 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:30.211     0x39 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:30.354     0x3A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:30.496     0x3B RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:30.639     0x3C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:30.781     0x3D RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:30.951     0x3E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:31.094     0x3F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:31.238     0x40 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:31.384     0x41 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:31.526     0x42 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:31.668     0x43 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:31.810     0x45 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:31.952     0x46 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:32.096     0x47 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:32.241     0x48 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:32.385     0x49 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:32.529     0x4A RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:32.673     0x4B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:32.815     0x4C RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:32.958     0x4D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:33.101     0x4E RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:33.247     0x4F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:33.391     0x50 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:33.539     0x51 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:33.681     0x52 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:33.823     0x53 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:33.970     0x54 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:34.113     0x55 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:34.257     0x57 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:34.399     0x58 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:34.543     0x59 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:34.686     0x5A RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:34.828     0x5B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:34.970     0x5C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:35.113     0x5D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:35.256     0x5E RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:35.399     0x5F RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:35.543     0x61 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:35.686     0x62 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:35.829     0x63 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:35.973     0x64 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:36.115     0x65 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:36.257     0x66 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:36.400     0x67 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:36.543     0x68 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:36.685     0x69 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:36.827     0x6A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:36.969     0x6B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:37.111     0x6C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:37.253     0x6D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:37.396     0x6E RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:37.539     0x6F RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:37.684     0x70 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:37.828     0x71 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:37.971     0x72 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:38.113     0x73 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:38.255     0x74 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:38.398     0x75 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:38.542     0x76 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:38.686     0x77 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:38.828     0x78 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:38.971     0x79 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:39.113     0x7A RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:39.256     0x7B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:39.399     0x7C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:39.543     0x7D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:39.686     0x7E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:39.828     0x7F RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:39.970     0x81 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:40.120     0x82 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:40.261     0x83 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:40.402     0x84 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:40.544     0x85 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:40.685     0x86 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:40.826     0x87 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:40.968     0x88 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:41.110     0x89 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:41.252     0x8A RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:41.398     0x8B RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:41.541     0x8C RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:41.690     0x8D RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:41.833     0x8E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:41.977     0x8F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:42.120     0x90 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:42.263     0x91 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:42.409     0x92 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:42.554     0x93 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:42.698     0x94 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:42.846     0x95 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:42.989     0x96 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:43.131     0x97 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:43.273     0x98 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:43.416     0x99 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:43.559     0x9A RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:43.703     0x9B RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:43.846     0x9C RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:43.988     0x9D RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:44.140     0x9E RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:44.283     0x9F RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:44.427     0xA1 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:44.570     0xA2 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:44.716     0xA3 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:44.859     0xA4 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:45.001     0xA5 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:45.147     0xA6 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:45.291     0xA7 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:45.436     0xA8 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:45.579     0xA9 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:45.723     0xAA RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:45.866     0xAB RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:46.008     0xAC RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:46.152     0xAD RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:46.297     0xAE RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:46.440     0xAF RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:46.584     0xB0 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:46.729     0xB1 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:46.873     0xB2 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:47.015     0xB3 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:47.158     0xB4 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:47.304     0xB5 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:47.449     0xB6 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:47.593     0xB7 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:47.736     0xB8 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:47.881     0xB9 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:48.028     0xBA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:48.171     0xBB RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:48.313     0xBC RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:48.459     0xBD RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:48.603     0xBE RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:48.751     0xBF RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:48.895     0xC0 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:49.037     0xC1 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:49.178     0xC2 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:49.318     0xC3 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:49.459     0xC4 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:49.601     0xC5 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:49.743     0xC6 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:49.885     0xC7 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:50.028     0xC8 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:50.170     0xC9 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:50.313     0xCA RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:50.456     0xCB RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:50.600     0xCC RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:50.744     0xCD RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:50.888     0xCE RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:51.030     0xCF RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:51.175     0xD0 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:51.318     0xD1 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:51.460     0xD2 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:51.602     0xD3 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:51.745     0xD4 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:51.888     0xD5 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:52.031     0xD6 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:52.174     0xD7 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:52.316     0xD8 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:52.458     0xD9 RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:52.601     0xDA RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:52.743     0xDB RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:52.887     0xDC RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:53.030     0xDD RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:53.173     0xDE RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:53.315     0xDF RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:53.456     0xE0 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:53.596     0xE1 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:53.737     0xE2 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:53.881     0xE3 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:54.024     0xE4 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:54.166     0xE5 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:54.307     0xE6 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:54.447     0xE7 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:54.589     0xE8 RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:54.731     0xE9 RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:54.874     0xEA RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:55.017     0xEB RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:55.160     0xEC RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:55.302     0xED RX C4 28 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:55.444     0xEE RX C4 08 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:55.586     0xEF RX C4 48 58 CC FF  [no echo and no valid frame in 5 byte(s)]  LINE=0x64/parity
+16:25:55.726     0xF0 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:55.869     0xF1 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:56.011     0xF2 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:56.154     0xF3 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:56.301     0xF4 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:56.444     0xF5 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:56.584     0xF6 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:56.725     0xF7 RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:56.867     0xF8 RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:57.010     0xF9 RX C4 48 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:57.151     0xFA RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:57.293     0xFB RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:57.433     0xFC RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:57.574     0xFD RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:57.715     0xFE RX C4 28 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:57.859     0xFF RX C4 08 58 CC  [no echo and no valid frame in 4 byte(s)]  LINE=0x64/parity
+16:25:57.860  === scan done: 0 valid frame(s), 256 non-echo response(s) ===
+
+16:25:57.860  ################ FULL RUN COMPLETE ################
