@@ -434,15 +434,17 @@ fix it, and nothing further is worth trying against this cable.
 
 Both field tests were run on the car, ignition on, and both came back negative. Neither result was
 usable, for reasons that had nothing to do with the cable.
-(`field-logs/2026-10-20-run8-beacon-on-fm-void.log`, `-run8-burst-old-code-void.log`)
+(`field-logs/2026-10-20-run8-beacon-purge-bug-void.log`, `-run8-burst-old-code-void.log`)
 
-**The radio beacon was listened to on FM.** `HANDOVER.md` said FM; the code and the original
-observation both said AM. FM cannot show this effect in either direction — an FM demodulator limits
-away amplitude noise, and 9600 baud switching edges put no energy anywhere near 100 MHz, whereas an
-AM receiver demodulates impulse noise straight into the audio. Hearing nothing on FM is not
-evidence. The band in the handover was simply wrong.
+**The band was never the problem — FM works.** An earlier version of this section claimed FM could
+not show the effect, reasoning that the fundamental of a 9600 baud square wave is 4.8 kHz and
+nowhere near 100 MHz. That reasoning was wrong: what radiates is the switching *edge*, whose
+nanosecond rise time carries harmonic content well into VHF, and on an *empty* FM frequency there is
+no carrier for the demodulator to capture, so its limiter amplifies the impulse noise rather than
+rejecting it. The owner has heard the pulsing on FM both originally and during the run-9 sessions.
+The claim is retracted; FM is the band that has been shown to work here.
 
-**And the beacon was barely transmitting.** Its loop purged the TX FIFO after every 64-byte write,
+**The beacon was barely transmitting — this was the problem.** Its loop purged the TX FIFO after every 64-byte write,
 so the chip was handed roughly 15 000 bytes per second while the line at 9600 8N1 can carry 960.
 The log is explicit about it — *"14848 bytes transmitted"* in a one-second window — and that number
 was counting USB writes, not anything that reached the wire. All but a fraction were discarded from
@@ -535,13 +537,27 @@ actually separates the two possibilities.
 
 ## Still open
 
-One measurement, and it is about the fault rather than the protocol: **the radio beacon, on AM.**
-It answers a different question from everything above — not whether anything comes back, but
-whether our transmission reaches the vehicle's wiring at all. A few centimetres of cable under the
-dash is a poor antenna; several metres of harness is a good one, so comparing the pulsing with the
-cable in the socket against unplugged mid-run separates an open connection from a driver that
-radiates but cannot reach battery-voltage logic levels. That distinction decides what to say in a
-warranty claim; it no longer decides whether the project continues.
+One measurement, and it is about the nature of the fault rather than the protocol: **the gated
+radio beacon.** It answers a different question from everything above — not whether anything comes
+back, but whether our transmission reaches the vehicle's wiring at all. A few centimetres of cable
+under the dash is a poor antenna; several metres of harness is a good one.
+
+The plain on/off version has a confound. The phone streams USB while it transmits, and USB
+radiates, so pulsing that follows the write loop could be the cable driving the harness or could be
+bus traffic to the cable. Unplugging the cable mid-run is the crude control: it changes the antenna,
+but it also removes power from the cable's automotive side, so a difference has two causes.
+
+Run 9 supplied a clean control instead. DTR asserted silences the line completely — 0 of 11 520
+samples, ten windows, two sample rates — while the chip goes on shifting the same bytes at the same
+rate, so the USB traffic is unchanged. **Toggling only the gate therefore isolates the drive onto
+the harness.** The beacon now runs that as part A and the original write/idle pattern as part B.
+Pulsing in A means the signal reaches the harness, which rules out an open connection and leaves
+signal levels as the fault — a driver that only manages 5 V would be invisible to every module
+while still radiating. Pulsing in B but not in A would mean what has been heard all along is the
+phone's own USB.
+
+That distinction decides what to say in a warranty claim; it no longer decides whether the project
+continues.
 
 Otherwise the remaining question is purely about the hardware: whether this cable can be returned or
 repaired. Opening it to inspect the transceiver stage is the only diagnostic left that software

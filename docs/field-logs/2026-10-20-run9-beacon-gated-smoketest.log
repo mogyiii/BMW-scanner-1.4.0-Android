@@ -1,0 +1,30 @@
+16:16:00.215  BMW DS2 Probe 0.13-probe
+16:16:00.229  Looking for the cable: VID 0x0333 / PID 0x0137
+
+16:16:00.236  USB rescan: 1 device(s)
+16:16:00.238    /dev/bus/usb/001/002  0333:0137
+16:16:03.801  >>> remote command: beacon
+16:16:03.823  === RADIO BEACON ===
+16:16:03.825  Tune the car radio to an empty frequency - FM is where the pulsing has actually
+16:16:03.826  been heard, so use that; an empty AM frequency works on the same principle.
+
+16:16:03.828  Part A - GATE: the USB write rate never changes, only the cable's gate. One second
+16:16:03.829    driving the line, one second with DTR asserted, which run 9 showed silences it
+16:16:03.829    completely. Pulsing here cannot be USB radiation; it is the drive onto the harness.
+16:16:03.830  Part B - WRITE: the plain one-second-on, one-second-off, for comparison. Pulsing in B
+16:16:03.831    but not in A would mean what we have been hearing is the phone's USB, not the car.
+16:16:03.831  2 cycles each. Report the two parts separately.
+
+16:16:03.852    --- part A: gate toggles, USB traffic constant ---
+16:16:04.858      cycle  1/2: line DRIVEN  - 1045 bytes, the line carries 960
+16:16:05.884      cycle  1/2: line GATED   - 988 bytes, same rate, nothing on the bus
+16:16:06.893      cycle  2/2: line DRIVEN  - 969 bytes, the line carries 960
+16:16:07.903      cycle  2/2: line GATED   - 969 bytes, same rate, nothing on the bus
+
+16:16:07.908    --- part B: write toggles, the original test ---
+16:16:08.914      cycle  1/2: ON  - 969 bytes, the line carries 960
+16:16:09.917      cycle  1/2: off
+16:16:10.943      cycle  2/2: ON  - 1064 bytes, the line carries 960
+16:16:11.946      cycle  2/2: off
+16:16:11.950  === end radio beacon ===
+16:16:18.194  >>> remote command: save

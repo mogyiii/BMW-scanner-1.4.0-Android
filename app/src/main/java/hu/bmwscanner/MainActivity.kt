@@ -799,86 +799,113 @@ class MainActivity : AppCompatActivity() {
     /**
      * Transmits a slow, regular on/off pattern so the car radio can be used as a field probe.
      *
-     * The owner noticed the byte traffic as an audible pulsing on an empty AM frequency. That is
+     * The owner noticed the byte traffic as an audible pulsing on an empty radio frequency. That is
      * real radiation from the switching edges, and it answers a question no byte-level measurement
      * here can: whether our transmission actually leaves the cable and gets onto the vehicle's
      * wiring. A few centimetres of cable under the dash is a poor antenna; several metres of
      * harness running the length of the car is a good one.
      *
-     * So the measurement is a comparison, not a reading. Run this with the cable in the OBD socket
-     * and listen, then unplug it from the car - leaving it on the phone, still transmitting - and
-     * listen again. If the pulsing weakens or disappears, the signal was propagating through the
-     * car and the K-line pin is connected. If it is unchanged, nothing is reaching the socket.
+     * So the measurement is a comparison, not a reading, and part A below is the comparison worth
+     * making. Unplugging the cable from the socket mid-run is the cruder version of the same idea -
+     * it changes the antenna, but it also changes whether the cable's automotive side has power at
+     * all, so a difference has two possible causes.
      *
      * One second on, one second off, because that is what the ear picks out of static. 0x55 gives
      * an edge every bit, which is the broadest spectrum we can produce.
      *
-     * Run 8 heard nothing, and neither half of the test was sound. The listening was done on FM,
-     * which cannot show this - an FM demodulator limits away amplitude noise, and 9600 baud edges
-     * put no energy anywhere near 100 MHz, whereas an AM receiver demodulates impulse noise
-     * straight into the audio. The band was wrong in the handover document, not in the code.
+     * **The band is FM, and the earlier claim here that it could not be was wrong.** That claim
+     * reasoned from the fundamental of a 9600 baud square wave, which is 4.8 kHz and indeed nowhere
+     * near 100 MHz. But what radiates is not the fundamental, it is the switching edge: nanosecond
+     * rise times carry harmonic content into the VHF band, and on an *empty* FM frequency there is
+     * no carrier for the demodulator to capture, so its limiter amplifies whatever noise is present
+     * instead of rejecting it. The owner has now heard the pulsing on FM twice, which settles it by
+     * measurement. AM would work too; FM is what has actually been shown to work here.
      *
-     * And the transmission was mostly fictional. The loop purged the TX FIFO after every 64-byte
-     * write, so the chip was handed roughly 15 000 bytes per second while the line at 9600 8N1 can
-     * carry 960 - visible in the run-8 log, which reported "14848 bytes transmitted" in one second.
-     * All but a fraction were discarded before reaching the wire, and the counter was measuring USB
-     * writes rather than anything transmitted. Dropping that purge leaves the bulk write to block
-     * on a full FIFO, which paces the loop at exactly the line rate and makes the count true.
+     * Run 8's beacon was still void, but for one reason rather than two. The loop purged the TX
+     * FIFO after every 64-byte write, so the chip was handed roughly 15 000 bytes per second while
+     * the line at 9600 8N1 can carry 960 - visible in the run-8 log, which reported "14848 bytes
+     * transmitted" in one second. All but a fraction were discarded before reaching the wire, and
+     * the counter was measuring USB writes rather than anything transmitted. Dropping that purge
+     * leaves the bulk write to block on a full FIFO, which paces the loop at the line rate and
+     * makes the count true.
      *
-     * The tone now alternates between 9600 and 1200 baud. Judging a level by ear across a minute is
-     * unreliable; recognising a two-tone pattern is not, and a listener who hears only the high tone
-     * has still told us something.
+     * The plain on/off test has a confound that unplugging the cable does not remove cleanly: the
+     * phone is streaming USB at the same time, and USB radiates. Pulsing that follows our write
+     * loop could be the K-line drive or could be the bus traffic to the cable. So part A toggles
+     * **only the gate**, holding the USB write rate constant: DTR asserted silences the line
+     * completely - 0 of 11 520 samples in run 9, ten windows - while the chip goes on shifting the
+     * same bytes at the same rate. Pulsing in part A can only be the cable's drive onto the
+     * harness. Part B is the original write/idle pattern, kept so the two can be compared.
      */
-    private fun radioBeacon(device: UsbDevice, cycles: Int = 20) {
+    private fun radioBeacon(device: UsbDevice, cycles: Int = 10) {
         log("=== RADIO BEACON ===")
-        log("Tune the car radio to an empty AM / medium-wave frequency. NOT FM - FM cannot")
-        log("show this, and an FM run tells us nothing either way.")
+        log("Tune the car radio to an empty frequency - FM is where the pulsing has actually")
+        log("been heard, so use that; an empty AM frequency works on the same principle.")
         log("")
-        log("Alternating tones, so there is a pattern to recognise rather than a level to judge:")
-        log("  odd cycles  9600 baud 0x55 -> a 4.8 kHz whine")
-        log("  even cycles 1200 baud 0x55 -> a 600 Hz hum, ten times fewer edges so much fainter")
-        log("One second on, one second off, $cycles cycles.")
+        log("Part A - GATE: the USB write rate never changes, only the cable's gate. One second")
+        log("  driving the line, one second with DTR asserted, which run 9 showed silences it")
+        log("  completely. Pulsing here cannot be USB radiation; it is the drive onto the harness.")
+        log("Part B - WRITE: the plain one-second-on, one-second-off, for comparison. Pulsing in B")
+        log("  but not in A would mean what we have been hearing is the phone's USB, not the car.")
+        log("$cycles cycles each. Report the two parts separately.")
         log("")
 
         var dev: FtdiDevice? = null
         try {
             dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
 
-            var lastBaud = 0
-            for (c in 1..cycles) {
-                if (stopRequested) { log("stopped"); break }
+            // Bytes the line can carry in a one-second window, at 8N1: ten bits per byte.
+            val perSecond = Ds2.BAUD / 10
+            val chunk = ByteArray((perSecond / 50).coerceIn(1, 64)) { 0x55 }
 
-                val baud = if (c % 2 == 1) Ds2.BAUD else 1200
-                if (baud != lastBaud) {
-                    dev.configure(baudRate = baud, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
-                    lastBaud = baud
-                }
-
-                // Bytes the line can carry in the one-second window, at 8N1: ten bits per byte.
-                val perSecond = baud / 10
-                val chunk = ByteArray((perSecond / 50).coerceIn(1, 64)) { 0x55 }
-
-                // No purge inside this loop - see above. The write blocks on a full FIFO instead,
-                // which is the pacing we want.
+            /**
+             * Writes 0x55 for a second and returns how many bytes the chip accepted. No purge in
+             * here: the write blocks on a full FIFO instead, which paces the loop at the line rate.
+             */
+            fun driveForOneSecond(): Int {
                 val until = System.currentTimeMillis() + 1000
                 var sent = 0
                 while (System.currentTimeMillis() < until && !stopRequested) {
-                    dev.write(chunk, timeoutMs = 2000)
+                    dev!!.write(chunk, timeoutMs = 2000)
                     sent += chunk.size
                 }
+                return sent
+            }
 
-                // One purge, here at the cut, to drop the tail still queued in the FIFO. At 1200
-                // baud a full 128-byte FIFO would go on sounding for most of the silent second and
-                // smear the on/off pattern the whole test rests on.
+            log("  --- part A: gate toggles, USB traffic constant ---")
+            for (c in 1..cycles) {
+                if (stopRequested) { log("  stopped"); break }
+
+                dev.setModemControl(dtr = false, rts = null)
+                val driven = driveForOneSecond()
+                log("    cycle %2d/%d: line DRIVEN  - %d bytes, the line carries %d"
+                    .format(c, cycles, driven, perSecond))
+
+                dev.setModemControl(dtr = true, rts = null)
+                val gated = driveForOneSecond()
+                log("    cycle %2d/%d: line GATED   - %d bytes, same rate, nothing on the bus"
+                    .format(c, cycles, gated))
+            }
+
+            dev.setModemControl(dtr = false, rts = null)
+            log("")
+            log("  --- part B: write toggles, the original test ---")
+            for (c in 1..cycles) {
+                if (stopRequested) { log("  stopped"); break }
+
+                val sent = driveForOneSecond()
+
+                // One purge, here at the cut, to drop the tail still queued in the FIFO so it does
+                // not sound into the silent second and smear the pattern the test rests on.
                 dev.purge()
-
-                log("  cycle %2d/%d: ON at %5d baud - %d bytes to the chip, the line carries %d%s"
-                    .format(c, cycles, baud, sent, perSecond,
+                log("    cycle %2d/%d: ON  - %d bytes, the line carries %d%s"
+                    .format(c, cycles, sent, perSecond,
                         if (sent > perSecond * 2 + 200) "   <-- too many, bytes are being dropped"
                         else ""))
 
                 Thread.sleep(1000)
-                log("  cycle %2d/%d: off".format(c, cycles))
+                log("    cycle %2d/%d: off".format(c, cycles))
             }
         } catch (e: Throwable) {
             log("  beacon failed: ${e.javaClass.simpleName}: ${e.message}")
@@ -2051,5 +2078,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.13-probe"
+    const val NAME = "0.15-probe"
 }

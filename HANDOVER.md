@@ -101,19 +101,28 @@ connected to the car.** In the VM it sat on a desk, where its automotive side is
 
 Needs the car, has a button in the app, needs no wifi or laptop.
 
-**RADIO BEACON** — the owner noticed the byte traffic as audible pulsing on an empty **AM
-(medium-wave)** frequency. **Not FM.** An FM demodulator limits away amplitude noise and 9600 baud
-edges put no energy near 100 MHz, so an FM run tells us nothing either way; an AM receiver
-demodulates impulse noise straight into the audio. Run 8 was listened to on FM because this document
-said FM, and was void for that reason alone.
+**RADIO BEACON** — the owner hears the byte traffic as audible pulsing on an empty **FM** frequency,
+both originally and during the run-9 sessions. An earlier version of this document claimed FM could
+not show the effect; that was wrong, and is retracted. What radiates is the switching edge, not the
+4.8 kHz fundamental, and its nanosecond rise time reaches VHF; on an empty frequency there is no
+carrier for the FM demodulator to capture, so its limiter amplifies the impulse noise instead of
+rejecting it. Run 8's beacon was void only because of the purge bug, not the band.
 
-The pulsing is real radiation from the switching edges, and it answers whether the signal reaches
-the vehicle's wiring: a few centimetres of cable is a poor antenna, several metres of harness is a
-good one. The measurement is a **comparison** — listen with the cable in the OBD socket, then unplug
-it from the car mid-run while it keeps transmitting on the phone. Weaker or gone means the signal
-propagates through the car and the K-line pin is connected. Unchanged means nothing reaches the
-socket. One second on, one second off, twenty cycles, alternating a 9600 baud 4.8 kHz whine with a
-1200 baud 600 Hz hum so there is a pattern to recognise rather than a level to judge.
+The pulsing is real radiation, and it answers whether the signal reaches the vehicle's wiring: a few
+centimetres of cable is a poor antenna, several metres of harness is a good one.
+
+The measurement has to control for one thing. **The phone streams USB while it transmits, and USB
+radiates**, so pulsing that follows the write loop could be the cable driving the harness or could
+be bus traffic to the cable. Unplugging mid-run is the crude control — it changes the antenna, but
+it also removes power from the cable's automotive side, so a difference has two causes.
+
+Run 9 gave a clean one. DTR asserted silences the line completely (0 of 11 520 samples, ten windows)
+while the chip goes on shifting the same bytes at the same rate. So the beacon now runs two parts:
+
+- **Part A, gate toggles, USB constant.** One second driving, one second with DTR asserted. Pulsing
+  here can only be the cable's drive onto the harness.
+- **Part B, write toggles.** The original one-on, one-off. Pulsing in B but not in A would mean what
+  has been heard all along is the phone's own USB, not the car.
 
 ## The hypothesis that currently fits everything
 
@@ -177,16 +186,14 @@ rather than have us guess.
 
 One thing, and it needs ears rather than software.
 
-1. Phone and cable in the car, ignition in position 2, car radio on an empty **AM / medium-wave**
-   frequency — the band where the pulsing was originally noticed. Not FM.
-2. Press **RADIO BEACON**. Twenty cycles of one second on, one second off, alternating a high whine
-   with a low hum.
-3. Partway through, **unplug the cable from the OBD socket** while leaving it on the phone, and keep
-   listening.
-4. Report which of three things happened: the pulsing got **weaker**, went **away**, or was
-   **unchanged**. Weaker or gone means the signal reaches the harness and the K-line pin is
-   connected, which rules out an open connection and leaves signal levels as the fault. Unchanged
-   means nothing reaches the socket.
+1. Phone and cable in the car, ignition in position 2, car radio on the empty **FM** frequency where
+   the pulsing has been heard before.
+2. Press **RADIO BEACON** and listen to the two parts separately; the app announces each in the log.
+3. Report **part A**: does the pulsing follow the one-second gate pattern, or is the noise steady
+   through it? Pulsing means the signal reaches the harness — an open connection is ruled out and
+   the remaining fault is signal levels, a driver that radiates but cannot reach battery-voltage
+   logic. Steady noise means nothing is getting onto the bus and what we hear is the phone's USB.
+4. Report **part B** the same way, as the cross-check.
 5. The log saves itself; pull it with
    `adb shell cat /sdcard/Android/data/hu.bmwscanner/files/<newest>.log` or use SHARE LOG.
 
