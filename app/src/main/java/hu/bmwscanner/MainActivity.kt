@@ -148,6 +148,11 @@ class MainActivity : AppCompatActivity() {
                 "cbusverify" -> guarded(what) { cbusVerify(device!!) }
                 "vendorinit" -> guarded(what) { vendorInit(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
+                "ledslow" -> {
+                    val block = intent.getIntExtra("block", 6000)
+                    val rounds = intent.getIntExtra("rounds", 4)
+                    guarded(what) { ledRhythm(device!!, block, rounds) }
+                }
                 "burst" -> guarded(what) { burstCapture(device!!) }
                 "beacon" -> {
                     val n = intent.getIntExtra("cycles", 10)
@@ -400,6 +405,9 @@ class MainActivity : AppCompatActivity() {
         // The two field tests, reachable without a laptop or wifi.
         row(button("RADIO BEACON") { withCable("beacon") { d -> radioBeacon(d) } },
             button("BURST CAPTURE") { withCable("burst") { d -> burstCapture(d) } })
+
+        row(button("ORANGE LED") { withCable("ledslow") { d -> ledRhythm(d) } },
+            button("LED WALK") { withCable("ledwalk") { d -> ledWalk(d) } })
 
         row(button("AUTO-SWEEP") { autoSweep() },
             button("Stop") { stopRequested = true; log("stop requested") })
@@ -1334,6 +1342,98 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * The orange-LED test, slowed down until the answer is a yes or no instead of an impression.
+     *
+     * Step 12 used 2 s blocks and got back an honest report of something genuinely hard to see:
+     * *"it blinks, very fast, and there is a pause, but there is a lot of short and a lot of long in
+     * it, if I wanted to write it musically — a bit like Morse SOS"*. Of course. Continuous 0x55 at
+     * 9600 is a 4.8 kHz square wave, so whatever the LED does inside a block is far beyond what an
+     * eye can resolve, and the eye is left integrating flicker and guessing at the envelope. No
+     * rhythm can be concluded from that, in either direction.
+     *
+     * Six-second blocks remove the judgement. Nobody has to assess brightness or tempo, only
+     * whether the light is **out**, and six seconds of darkness is not something an eye invents.
+     *
+     * Two parts, asking different things:
+     *
+     *  - **Part 1, write toggles.** Transmit, then stop. A dark block means the LED follows
+     *    transmission, which is all the transmit-indicator claim needs.
+     *  - **Part 2, gate toggles.** Transmit throughout, but assert DTR for alternate blocks. DTR
+     *    silences the bus completely — 0 of 11 520 samples in run 9, ten windows. So if the LED goes
+     *    dark here too it sits *downstream* of the gate and is reporting what actually reaches the
+     *    bus. If it stays lit, it is an indicator upstream of the gate and says nothing about the
+     *    bus at all.
+     *
+     * Run 11 answered it, and the answer was the unhelpful one: bursts of seven or eight very fast
+     * flashes separated by about a tenth of a second, repeating. That is the USB fill-and-drain
+     * cycle — the 19-byte chunk below fills the FT232R's 128-byte transmit FIFO in seven writes, and
+     * 128 bytes at 9600 8N1 take 133 ms to drain while the host is held off. The LED flashes once
+     * per bulk write, so it only ever confirmed that the host hands bytes to the chip. Kept because
+     * establishing what an indicator does *not* indicate is worth the hundred lines.
+     */
+    private fun ledRhythm(device: UsbDevice, blockMs: Int = 6000, rounds: Int = 4) {
+        log("=== ORANGE LED, SLOWLY ===")
+        log("Watch the ORANGE LED. Do not judge brightness or tempo - only whether it goes OUT.")
+        log("Blocks are ${blockMs / 1000} seconds long and are announced here as they start.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            val perSecond = Ds2.BAUD / 10
+            val chunk = ByteArray((perSecond / 50).coerceIn(1, 64)) { 0x55 }
+
+            /** Transmits 0x55 for [ms], paced by the FIFO rather than by a purge. */
+            fun transmitFor(ms: Int): Int {
+                val until = System.currentTimeMillis() + ms
+                var sent = 0
+                while (System.currentTimeMillis() < until && !stopRequested) {
+                    dev!!.write(chunk, timeoutMs = 2000)
+                    sent += chunk.size
+                }
+                return sent
+            }
+
+            log("  --- PART 1: transmitting, then not transmitting ---")
+            dev.setModemControl(dtr = false, rts = null)
+            for (r in 1..rounds) {
+                if (stopRequested) { log("  stopped"); break }
+
+                log("    round $r/$rounds: TRANSMITTING for ${blockMs / 1000} s")
+                val sent = transmitFor(blockMs)
+                dev.purge()
+                log("    round $r/$rounds: SILENT for ${blockMs / 1000} s  ->  is the orange LED out?" +
+                    "   ($sent bytes went out, the line carries $perSecond per second)")
+                Thread.sleep(blockMs.toLong())
+            }
+
+            log("")
+            log("  --- PART 2: transmitting the whole time, only the gate toggles ---")
+            for (r in 1..rounds) {
+                if (stopRequested) { log("  stopped"); break }
+
+                dev.setModemControl(dtr = false, rts = null)
+                log("    round $r/$rounds: line DRIVEN for ${blockMs / 1000} s")
+                transmitFor(blockMs)
+
+                dev.setModemControl(dtr = true, rts = null)
+                log("    round $r/$rounds: line GATED for ${blockMs / 1000} s, still transmitting" +
+                    "  ->  is the orange LED out?")
+                transmitFor(blockMs)
+            }
+            dev.setModemControl(dtr = false, rts = null)
+            dev.purge()
+        } catch (e: Throwable) {
+            log("  orange LED test failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end orange LED test ===")
+    }
+
+    /**
      * Replays the exact start-up sequence the vendor's own software performs, recovered from a USB
      * capture of BMWScan140.exe running against this cable.
      *
@@ -2149,5 +2249,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.16-probe"
+    const val NAME = "0.17-probe"
 }

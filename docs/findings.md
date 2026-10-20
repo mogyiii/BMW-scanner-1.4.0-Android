@@ -580,27 +580,48 @@ judgement rather than an observation. A new step 12 asks a question that cannot 
 way: three cycles of 2 s transmitting, 2 s silent. Either the LED follows the square pattern or it
 stays dark. See "Still open".
 
-## Still open
+## Run 11: the orange LED is a USB indicator, not a bus indicator
 
-One question, and it is about the nature of the fault rather than the protocol: **does anything we
-transmit leave the cable at all?** Nothing above answers it. Every measurement so far asks what
-comes back; this asks whether something goes out.
+Desk, cable on the phone over OTG, no car. Slow version of the LED test — 6 s transmitting, 6 s
+silent, then 6 s driven, 6 s gated with transmission continuing throughout. Byte accounting is
+exact: **5852 bytes in each 6 s block, against the 960 per second the line can carry.**
 
-**The LED walk, step 12, is the test to run, and it needs no car.** The orange LED was established
-as a transmit indicator in the earlier walk — cable on the phone, no car attached, so it is driven
-from USB power and visible on the desk. The owner reports it never blinked at all on 2026-10-20.
-That observation is either a hardware fault that has appeared since, or an artefact of watching a
-connector under a dashboard; the original step 7 cannot separate the two, because asking whether a
-light is on is a judgement. Step 12 asks whether a light follows a 2 s on / 2 s off square pattern,
-three times, which is answerable without judging anything.
+The owner's description, watching the LED directly:
 
-- **Orange follows the pattern** → the transmit path through the cable's circuitry is intact, and
-  the fault is downstream, at the line driver. Consistent with everything measured.
-- **Orange stays dark** → transmission is not reaching the cable's circuitry at all, which is a
-  different and much more concrete fault to report, and one that contradicts the earlier walk.
+> very fast blinking, the flashes themselves look clean, there is never a case where it fails to go
+> fully out, and it flashes very fast about **eight times, then a pause of about a tenth of a
+> second, then the same thing again and again**.
 
-Reproduce the original conditions exactly: cable on the phone over OTG, **not** in the car, where
-the green LED is off and the orange one is in plain sight.
+That pattern is not the data and it is not the bus. It is the USB fill-and-drain cycle, and the
+arithmetic is close enough to settle it:
+
+| | |
+|---|---|
+| Write chunk | 19 bytes (`960 / 50`, sized for a 20 ms loop) |
+| FT232R transmit FIFO | 128 bytes → `128 / 19` ≈ **6.7, so 7 writes fill it** |
+| Drain time at 9600 8N1 | `128 / 960` s ≈ **133 ms**, during which the host is held off |
+
+Seven or eight rapid flashes followed by roughly a tenth of a second of nothing, repeating. **The
+orange LED flashes once per USB bulk write.** At 960 bytes per second a per-byte indicator would be
+a 960 Hz flicker, which the eye reads as steady light, not as countable flashes.
+
+**So the earlier conclusion that orange is a "transmit-activity indicator" was right only in the
+trivial sense.** It indicates that the host is handing bytes to the chip — the one part of this
+system never in doubt. It says nothing about whether anything leaves the cable's automotive side,
+which is the only question that was worth asking it.
+
+### Why the car/desk difference cannot be chased further
+
+The owner reports the orange LED blinking on the desk and **not** blinking in the car on
+2026-10-20, with a clear view of it in both cases. An earlier draft of this document offered
+"watching a connector under a dashboard" as the explanation. That was invented, not measured, and
+the owner corrected it: the LED was visible.
+
+The asymmetry is therefore real and unexplained. It is also not worth pursuing, because the witness
+has turned out to be unreliable: the read-out is a roughly 40–50 Hz flicker to be compared by eye
+across two locations and two sessions. That is the same class of measurement as the radio beacon —
+a human judgement about a faint, fast signal — and it cannot carry a conclusion. Recorded as an
+open oddity, not a lead.
 
 ### The radio beacon: inconclusive by method, and set aside
 
@@ -611,9 +632,26 @@ But the owner reports that what can be heard is marginal and may be imagination,
 attempt was destroyed by the concurrency defect above.
 
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
-anything, and it is not worth another trip to the car. Recorded as attempted and inconclusive. The
-LED test asks the same underlying question — does our signal get out — with a binary answer and no
-listening involved.
+anything. Recorded as attempted and inconclusive.
+
+## Nothing is still open on the software side
+
+Eleven runs. There is no measurement left that is both clean and capable of changing the verdict,
+and the two that remained — the radio beacon and the LED comparison — both read out as a human
+judgement about a faint fast signal, which is why neither is being pursued.
+
+The diagnosis in one paragraph. **The computer side of the cable is in perfect order**: the FT232R
+enumerates, its whole EEPROM reads back with a valid checksum, baud divisors match all fifteen
+published libftdi reference values, CBUS writes are verified 16/16, synchronous bitbang streams at
+a clock measured to four times the divisor rate, DTR gating behaves exactly as a working gate
+should, and byte accounting matches the line rate to within a percent. **The vehicle side does not
+work.** No valid DS2 frame has ever been decoded under any condition tried; all 256 bus addresses
+answer with the same `C4`-prefixed artefact that carries no information from the request; the burst
+that looked like a reply is a transient; and with the engine running, every module awake and the
+bus at alternator voltage, three seconds of passive listening hear nothing at all.
+
+What remains is a hardware question — return, repair, or open the case and look at the transceiver
+stage — and a written statement for the seller, which is in `docs/fault-report.md`.
 
 Otherwise the remaining question is purely about the hardware: whether this cable can be returned or
 repaired. Opening it to inspect the transceiver stage is the only diagnostic left that software

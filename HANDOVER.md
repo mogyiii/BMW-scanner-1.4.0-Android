@@ -15,10 +15,9 @@ not be implemented.**
 
 ## Current state in one line
 
-The Android software is finished and verified. **The cable's K-line stage does not work, and as of
-run 9 that rests on a measurement that actually discriminates** — the ~14 ms burst is a transient,
-not a message. One measurement remains, and it concerns the nature of the fault rather than whether
-there is one.
+Finished. The Android software works and is verified; **the cable's vehicle-side line driver does
+not, and every avenue is closed with a measurement rather than an assumption.** Nothing worth
+measuring remains. The deliverable is `docs/fault-report.md`, for the seller.
 
 ## The hardware, established
 
@@ -99,7 +98,28 @@ Still untested, and still a loose end: **the vendor software has never been run 
 connected to the car.** In the VM it sat on a desk, where its automotive side is unpowered, so
 "Hardware faulty" from that run means little.
 
-## The measurement that is left
+## Nothing is left to measure
+
+Eleven runs. Both of the tests that remained — the radio beacon and the orange-LED comparison — turn
+out to read out as a human judgement about a faint, fast signal, and neither can carry a conclusion.
+The section below is kept because it records what they were for and why they were dropped.
+
+The orange LED in particular is not the witness it looked like. Run 11 measured its pattern on the
+desk: bursts of seven or eight very fast flashes separated by roughly a tenth of a second, over and
+over. That is the USB fill-and-drain cycle, not the bus — the write chunk is 19 bytes, the FT232R's
+transmit FIFO is 128, so seven writes fill it and 128 bytes at 9600 8N1 take 133 ms to drain while
+the host is held off. **The LED flashes once per USB bulk write**, so it only ever confirmed that
+the host hands bytes to the chip, which was never in doubt.
+
+The owner reports it blinking on the desk and not in the car, with a clear view in both cases, and
+that asymmetry is unexplained. An earlier draft of this document blamed a connector hidden under the
+dashboard; that was invented rather than measured, and the owner corrected it. It is recorded as an
+oddity in `docs/findings.md`, not as a lead.
+
+**What to do instead: `docs/fault-report.md`.** A seller-facing statement of what was tested, under
+what conditions, and what the three decisive results were. That is the deliverable now.
+
+## The measurements that were left, and why they were dropped
 
 **No car needed, no listening involved, two minutes on the desk: LED WALK, step 12.**
 
@@ -198,16 +218,17 @@ rather than have us guess.
 
 ## What to do next
 
-One thing, on the desk, two minutes, no car and no listening.
+Not a measurement. **Send `docs/fault-report.md` to the seller and ask for a replacement or a
+refund.** It states what was tested, under what conditions, and the three results that settle it,
+and it pre-empts the obvious objection by recording that the vendor software's own hardware
+self-test transfers zero bytes to the vehicle and therefore cannot verify the stage that failed.
 
-1. Cable on the phone over OTG, **not** plugged into the car. The green LED should be off and the
-   orange one somewhere you can see it.
-2. Press **LED WALK** and let it run to step 12. Steps 1–11 are the old walk; step 12 announces
-   three transmit pulses in the log as it goes.
-3. Report one thing: during step 12, does the **orange** LED blink in time with the 2 s on / 2 s off
-   pattern, or does it stay dark? Nothing else in that run matters.
-4. The log saves itself; pull it with
-   `adb shell cat /sdcard/Android/data/hu.bmwscanner/files/<newest>.log` or use SHARE LOG.
+Do not go back to the car for this. Nothing measurable there can change the verdict, and the two
+candidate tests both come down to judging a faint fast signal by eye or by ear.
+
+If the seller refuses and the cable is worth opening: the transceiver stage between the FT232R's TXD
+pin and the OBD-II K-line pin (pin 7 on the 16-pin socket) is where the fault is. That is a
+soldering-iron question, not a software one.
 
 Nothing in the protocol approach depends on the answer any more. The burst capture is finished (run
 9), and run 10 closed the last two excuses the car itself could have offered — with the engine

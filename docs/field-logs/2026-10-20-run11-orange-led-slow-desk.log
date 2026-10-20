@@ -1,0 +1,46 @@
+19:25:01.585  >>> remote command: ledslow
+19:25:01.604  === ORANGE LED, SLOWLY ===
+19:25:01.607  Watch the ORANGE LED. Do not judge brightness or tempo - only whether it goes OUT.
+19:25:01.608  Blocks are 6 seconds long and are announced here as they start.
+
+19:25:01.625    --- PART 1: transmitting, then not transmitting ---
+19:25:01.627      round 1/2: TRANSMITTING for 6 s
+19:25:07.636      round 1/2: SILENT for 6 s  ->  is the orange LED out?   (5852 bytes went out, the line carries 960 per second)
+19:25:13.645      round 2/2: TRANSMITTING for 6 s
+19:25:19.658      round 2/2: SILENT for 6 s  ->  is the orange LED out?   (5852 bytes went out, the line carries 960 per second)
+
+19:25:25.662    --- PART 2: transmitting the whole time, only the gate toggles ---
+19:25:25.663      round 1/2: line DRIVEN for 6 s
+19:25:31.671      round 1/2: line GATED for 6 s, still transmitting  ->  is the orange LED out?
+19:25:37.685      round 2/2: line DRIVEN for 6 s
+19:25:43.702      round 2/2: line GATED for 6 s, still transmitting  ->  is the orange LED out?
+19:25:49.720  === end orange LED test ===
+19:25:49.735  log saved: /storage/emulated/0/Android/data/hu.bmwscanner/files/ds2probe-20261020-192549.log
+19:27:13.639  === ORANGE LED, SLOWLY ===
+19:27:13.639  Watch the ORANGE LED. Do not judge brightness or tempo - only whether it goes OUT.
+19:27:13.639  Blocks are 6 seconds long and are announced here as they start.
+
+19:27:13.656    --- PART 1: transmitting, then not transmitting ---
+19:27:13.660      round 1/4: TRANSMITTING for 6 s
+19:27:19.669      round 1/4: SILENT for 6 s  ->  is the orange LED out?   (5852 bytes went out, the line carries 960 per second)
+19:27:23.994  ledwalk NOT STARTED: 'ledslow' is still running. Press Stop and wait for
+19:27:24.000    its '=== end ... ===' line, then try again.
+19:27:25.672      round 2/4: TRANSMITTING for 6 s
+19:27:31.683      round 2/4: SILENT for 6 s  ->  is the orange LED out?   (5852 bytes went out, the line carries 960 per second)
+19:27:37.686      round 3/4: TRANSMITTING for 6 s
+19:27:43.697      round 3/4: SILENT for 6 s  ->  is the orange LED out?   (5852 bytes went out, the line carries 960 per second)
+19:27:49.703      round 4/4: TRANSMITTING for 6 s
+19:27:55.714      round 4/4: SILENT for 6 s  ->  is the orange LED out?   (5852 bytes went out, the line carries 960 per second)
+
+19:28:01.720    --- PART 2: transmitting the whole time, only the gate toggles ---
+19:28:01.724      round 1/4: line DRIVEN for 6 s
+19:28:07.735      round 1/4: line GATED for 6 s, still transmitting  ->  is the orange LED out?
+19:28:13.752      round 2/4: line DRIVEN for 6 s
+19:28:19.763      round 2/4: line GATED for 6 s, still transmitting  ->  is the orange LED out?
+19:28:25.778      round 3/4: line DRIVEN for 6 s
+19:28:31.793      round 3/4: line GATED for 6 s, still transmitting  ->  is the orange LED out?
+19:28:37.810      round 4/4: line DRIVEN for 6 s
+19:28:43.823      round 4/4: line GATED for 6 s, still transmitting  ->  is the orange LED out?
+19:28:49.844  === end orange LED test ===
+19:28:49.852  log saved: /storage/emulated/0/Android/data/hu.bmwscanner/files/ds2probe-20261020-192849.log
+19:31:30.521  >>> remote command: save
