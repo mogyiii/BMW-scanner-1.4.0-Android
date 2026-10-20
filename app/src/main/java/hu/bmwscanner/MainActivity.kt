@@ -810,32 +810,72 @@ class MainActivity : AppCompatActivity() {
      * listen again. If the pulsing weakens or disappears, the signal was propagating through the
      * car and the K-line pin is connected. If it is unchanged, nothing is reaching the socket.
      *
-     * One second on, one second off, because that is what the ear picks out of static. 0x55 at
-     * 9600 gives an edge every bit, which is the broadest spectrum we can produce.
+     * One second on, one second off, because that is what the ear picks out of static. 0x55 gives
+     * an edge every bit, which is the broadest spectrum we can produce.
+     *
+     * Run 8 heard nothing, and neither half of the test was sound. The listening was done on FM,
+     * which cannot show this - an FM demodulator limits away amplitude noise, and 9600 baud edges
+     * put no energy anywhere near 100 MHz, whereas an AM receiver demodulates impulse noise
+     * straight into the audio. The band was wrong in the handover document, not in the code.
+     *
+     * And the transmission was mostly fictional. The loop purged the TX FIFO after every 64-byte
+     * write, so the chip was handed roughly 15 000 bytes per second while the line at 9600 8N1 can
+     * carry 960 - visible in the run-8 log, which reported "14848 bytes transmitted" in one second.
+     * All but a fraction were discarded before reaching the wire, and the counter was measuring USB
+     * writes rather than anything transmitted. Dropping that purge leaves the bulk write to block
+     * on a full FIFO, which paces the loop at exactly the line rate and makes the count true.
+     *
+     * The tone now alternates between 9600 and 1200 baud. Judging a level by ear across a minute is
+     * unreliable; recognising a two-tone pattern is not, and a listener who hears only the high tone
+     * has still told us something.
      */
     private fun radioBeacon(device: UsbDevice, cycles: Int = 20) {
         log("=== RADIO BEACON ===")
-        log("Tune the car radio to an empty AM frequency and listen.")
-        log("One second of transmission, one second of silence, $cycles times.")
+        log("Tune the car radio to an empty AM / medium-wave frequency. NOT FM - FM cannot")
+        log("show this, and an FM run tells us nothing either way.")
+        log("")
+        log("Alternating tones, so there is a pattern to recognise rather than a level to judge:")
+        log("  odd cycles  9600 baud 0x55 -> a 4.8 kHz whine")
+        log("  even cycles 1200 baud 0x55 -> a 600 Hz hum, ten times fewer edges so much fainter")
+        log("One second on, one second off, $cycles cycles.")
         log("")
 
         var dev: FtdiDevice? = null
         try {
             dev = FtdiDevice.open(usbManager, device, 0)
-            dev.configure(baudRate = Ds2.BAUD, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
 
-            val chunk = ByteArray(64) { 0x55 }
+            var lastBaud = 0
             for (c in 1..cycles) {
                 if (stopRequested) { log("stopped"); break }
 
+                val baud = if (c % 2 == 1) Ds2.BAUD else 1200
+                if (baud != lastBaud) {
+                    dev.configure(baudRate = baud, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                    lastBaud = baud
+                }
+
+                // Bytes the line can carry in the one-second window, at 8N1: ten bits per byte.
+                val perSecond = baud / 10
+                val chunk = ByteArray((perSecond / 50).coerceIn(1, 64)) { 0x55 }
+
+                // No purge inside this loop - see above. The write blocks on a full FIFO instead,
+                // which is the pacing we want.
                 val until = System.currentTimeMillis() + 1000
                 var sent = 0
                 while (System.currentTimeMillis() < until && !stopRequested) {
-                    dev.write(chunk)
+                    dev.write(chunk, timeoutMs = 2000)
                     sent += chunk.size
-                    dev.purge()
                 }
-                log("  cycle %2d/%d: ON  - %d bytes transmitted".format(c, cycles, sent))
+
+                // One purge, here at the cut, to drop the tail still queued in the FIFO. At 1200
+                // baud a full 128-byte FIFO would go on sounding for most of the silent second and
+                // smear the on/off pattern the whole test rests on.
+                dev.purge()
+
+                log("  cycle %2d/%d: ON at %5d baud - %d bytes to the chip, the line carries %d%s"
+                    .format(c, cycles, baud, sent, perSecond,
+                        if (sent > perSecond * 2 + 200) "   <-- too many, bytes are being dropped"
+                        else ""))
 
                 Thread.sleep(1000)
                 log("  cycle %2d/%d: off".format(c, cycles))
@@ -861,90 +901,67 @@ class MainActivity : AppCompatActivity() {
      * grid and the shortest interval between them is one bit time. If it is a circuit transient,
      * the intervals have no common divisor and cluster around whatever the RC of the line is.
      *
-     * The capture is self-calibrating: the burst's real duration is already known to be ~14 ms from
-     * eight independent decodes, so however many samples it spans fixes the sample period without
-     * needing to know the bitbang clock.
-     *
      * Earlier bitbang attempts found nothing, but both were run off the car — where the cable's
      * automotive side is unpowered — and neither pulsed DTR, so neither had anything to capture.
+     *
+     * Run 8 added a third way of finding nothing. On the car, ignition on, it reported RXD low in
+     * 0 of 2400 samples — but that measured this code, not the cable. Between releasing DTR and
+     * the first sample sat four control transfers and a bulk write (a baud change, two purges, a
+     * bitmode change), which over OTG is comfortably longer than the 14 ms the burst lasts. The
+     * comment that claimed the gap was "one control transfer" was wrong.
+     *
+     * So the pulse now lives inside the bitbang waveform, on the same clock as the samples: bit 4
+     * is the DTR pin, bit 0 is TXD held idle high. The release edge is sample-accurate and the
+     * capture is already running when it happens. Two things follow that are worth more than the
+     * fix itself:
+     *
+     *  - the time base becomes absolute. One sample is 1/sampleBaud, so the burst's duration is now
+     *    an output that can be checked against the ~14 ms the UART decodes gave, instead of that
+     *    figure being assumed and fed back in as the calibration.
+     *  - the window while DTR is held asserted is a control inside the same capture. That is the
+     *    state in which the line is known to fall completely silent, so it should read idle high;
+     *    if it does not, the capture itself is suspect and nothing after it counts.
+     *
+     * Both pulse polarities are tried, because which pin level means "asserted" rests on FTDI's
+     * active-low DTR# convention rather than on anything measured here, and a run with no pulse at
+     * all is included so that a burst can be attributed to the pulse rather than to the ambient.
      */
     private fun burstCapture(device: UsbDevice) {
         log("=== DTR BURST CAPTURE ===")
-        log("Pulsing DTR, then sampling the receive line as raw levels.")
-        log("Measuring edge intervals, which is what tells data from a transient.")
+        log("The DTR pulse is part of the bitbang waveform, so the capture is already")
+        log("running when DTR is released, and one sample is exactly 1/sample clock.")
+        log("Each run also reports whether the sample clock stalled - if it did, ignore it.")
         log("")
 
         var dev: FtdiDevice? = null
         try {
             dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
 
-            for (sampleBaud in listOf(115200, 38400)) {
+            val mult = calibrateBitbangClock(dev)
+            log("")
+
+            for (sampleRate in listOf(115200, 57600)) {
                 if (stopRequested) { log("stopped"); return }
+                burstRun(dev, sampleRate, mult, "DTR# low = asserted, the FTDI convention", true)
+                if (stopRequested) { log("stopped"); return }
+                burstRun(dev, sampleRate, mult, "inverted, in case this cable's gate is the other way up", false)
+            }
 
-                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
-                dev.purge()
+            // Same total length as a pulsed run, so it is a matched control: activity that only
+            // appears in a 100 ms window and not in a 30 ms one would otherwise look like the
+            // pulse's doing when it is really a matter of how long we watched.
+            if (!stopRequested) {
+                burstRun(dev, 115200, mult, "CONTROL: no pulse, DTR held released", null, tailMs = 130)
+            }
 
-                // The vendor's pulse, then capture immediately. The gap between releasing DTR and
-                // the first sample is one control transfer, so most of a 14 ms burst is caught.
-                dev.setModemControl(dtr = true, rts = null)
-                Thread.sleep(100)
-                dev.setModemControl(dtr = false, rts = null)
-
-                // TXD is the only output and is held high, so nothing we do disturbs the line.
-                val wave = ByteArray(2400) { 0x01 }
-                val got = dev.syncBitbangCapture(wave, sampleBaud, driverMask = 0x01)
-
-                if (got.isEmpty()) {
-                    log("  sample clock $sampleBaud: capture returned nothing")
-                    continue
-                }
-
-                val levels = IntArray(got.size) { (got[it].toInt() shr 1) and 1 }
-                val lowCount = levels.count { it == 0 }
-
-                val runs = ArrayList<Int>()
-                var cur = levels[0]
-                var n = 1
-                for (i in 1 until levels.size) {
-                    if (levels[i] == cur) n++ else { runs.add(n); cur = levels[i]; n = 1 }
-                }
-                runs.add(n)
-
-                log("  --- sample clock setting $sampleBaud ---")
-                log("  ${got.size} samples, RXD low in $lowCount of them, ${runs.size - 1} edges")
-
-                if (lowCount == 0) {
-                    log("  RXD never moved. Either the burst had passed, or there is nothing to see.")
-                    continue
-                }
-
-                // Span from the first edge to the last: that is the burst.
-                val firstEdge = levels.indexOfFirst { it == 0 }
-                val lastEdge = levels.indexOfLast { it == 0 }
-                val span = lastEdge - firstEdge + 1
-                val usPerSample = 14000.0 / span
-
-                val interior = runs.drop(1).dropLast(1).filter { it > 0 }
-                val shortest = interior.minOrNull() ?: 0
-                val hist = interior.groupingBy { it }.eachCount().toSortedMap()
-
-                log("  burst spans $span samples; calibrating against the known ~14 ms gives " +
-                    "%.1f us per sample".format(usPerSample))
-                log("  run lengths (samples): $hist")
-                if (shortest > 0) {
-                    val bitUs = shortest * usPerSample
-                    log("  shortest interval = $shortest samples = %.1f us".format(bitUs))
-                    log("  if that is one bit, the line is running at %d baud".format(
-                        (1_000_000.0 / bitUs).toInt()))
-                    val multiples = interior.count { r ->
-                        val m = r.toDouble() / shortest
-                        kotlin.math.abs(m - kotlin.math.round(m)) < 0.25
-                    }
-                    log("  %d of %d intervals are whole multiples of it (%d%%)".format(
-                        multiples, interior.size, multiples * 100 / interior.size))
-                    log("  -> a high share means a real bit grid; a low one means a transient")
-                }
-                log("")
+            // If the control run finds the event too, the question stops being what triggers it and
+            // becomes how often it comes. A coarse clock buys a window long enough to see several,
+            // which is the only way to get the interval; 52 us per sample is plenty to time an
+            // event that lasts 14 ms even though it is far too coarse for bit times.
+            if (!stopRequested) {
+                burstRun(dev, 19200, mult, "LISTEN: 600 ms, DTR held released, coarse clock", null,
+                    tailMs = 600)
             }
         } catch (e: Throwable) {
             log("  burst capture failed: ${e.javaClass.simpleName}: ${e.message}")
@@ -952,6 +969,204 @@ class MainActivity : AppCompatActivity() {
             runCatching { dev?.close() }
         }
         log("=== end burst capture ===")
+    }
+
+    /**
+     * Measures how fast synchronous bitbang actually samples, rather than assuming the programmed
+     * baud rate is the sample rate.
+     *
+     * It is not, and the rewritten capture caught it on its first run: 14976 samples asked for at
+     * 115200 came back in 43 ms, where 115200 samples per second needs 130. The FT232R's bitbang
+     * clock runs at a multiple of the baud the divisor encodes - libftdi hard-codes a factor for
+     * exactly this reason. Every number the burst capture produces, bit times and durations alike,
+     * scales directly with that factor, so it is measured here instead of trusted.
+     *
+     * A low programmed rate over a long waveform keeps the USB overhead to a few percent of the
+     * elapsed time, which is what makes the division meaningful.
+     */
+    private fun calibrateBitbangClock(dev: FtdiDevice): Int {
+        val programmed = 9600
+        val samples = 12000
+        val wave = ByteArray(samples) { 0x11 }
+
+        val cap = dev.syncBitbangStream(wave, programmed, driverMask = 0x11, clockMultiplier = 1)
+        if (cap.samples.size < samples || cap.elapsedMs <= 0) {
+            log("  clock calibration inconclusive (${cap.samples.size} of $samples samples came " +
+                "back in ${cap.elapsedMs} ms); falling back to x4")
+            return 4
+        }
+
+        val rate = cap.samples.size * 1000.0 / cap.elapsedMs
+        val factor = Math.round(rate / programmed).toInt().coerceIn(1, 16)
+        log("  clock calibration: $samples samples, divisor set for $programmed, back in " +
+            "${cap.elapsedMs} ms")
+        log("  -> %.0f samples/s, so the bitbang clock is the programmed baud x%d".format(rate, factor))
+        return factor
+    }
+
+    /**
+     * One pulse-and-capture run at [sampleRate] samples per second, with [clockMultiplier] as
+     * measured by [calibrateBitbangClock].
+     *
+     * [assertPinLow] true drives the DTR pin low to assert it (FTDI's active-low DTR#, which is
+     * what `setModemControl(dtr = true)` does), false drives it high, and null holds the released
+     * state throughout - the control run that says whether any burst is really the pulse's doing.
+     */
+    private fun burstRun(
+        dev: FtdiDevice,
+        sampleRate: Int,
+        clockMultiplier: Int,
+        label: String,
+        assertPinLow: Boolean?,
+        pulseMs: Int = 100,
+        tailMs: Int = 30,
+    ) {
+        val usPerSample = 1_000_000.0 / sampleRate
+        val pulseSamples = if (assertPinLow == null) 0 else sampleRate * pulseMs / 1000
+        val tailSamples = sampleRate * tailMs / 1000
+
+        // bit 0 = TXD, held high so the transmit line stays idle; bit 4 = the DTR pin.
+        val released: Byte = if (assertPinLow == false) 0x01 else 0x11
+        val asserted: Byte = if (assertPinLow == false) 0x11 else 0x01
+        val wave = ByteArray(pulseSamples + tailSamples) { if (it < pulseSamples) asserted else released }
+
+        log("  --- $sampleRate samples/s (%.2f us/sample); $label ---".format(usPerSample))
+
+        val cap = dev.syncBitbangStream(wave, sampleRate, driverMask = 0x11, clockMultiplier = clockMultiplier)
+        log("    %d of %d samples back in %d ms (clock needs %.0f ms)%s".format(
+            cap.samples.size, wave.size, cap.elapsedMs, cap.expectedMs,
+            if (cap.stalled) "   <-- CLOCK STALLED, timings below mean nothing" else ""))
+
+        if (cap.samples.isEmpty()) { log("    nothing came back"); log(""); return }
+
+        val levels = IntArray(cap.samples.size) { (cap.samples[it].toInt() shr 1) and 1 }
+
+        // Both windows get the same treatment. The one with DTR asserted is not padding: it is the
+        // state in which the line is documented to fall completely silent, so it doubles as a
+        // control taken on the same clock, in the same run, within milliseconds of the measurement.
+        if (pulseSamples > 0) {
+            analyseWindow("DTR asserted", levels, 0, minOf(pulseSamples, levels.size), usPerSample)
+        }
+        if (levels.size > pulseSamples) {
+            val name = if (pulseSamples > 0) "after the release" else "DTR released throughout"
+            analyseWindow(name, levels, pulseSamples, levels.size, usPerSample)
+        } else {
+            log("    capture ended before the release edge")
+        }
+        log("")
+    }
+
+    /**
+     * Reports what the receive line did across `[from, to)` of a bitbang capture.
+     *
+     * The edge statistics are the whole point of the capture, so they are applied to every window
+     * rather than only to the one a burst is expected in - the run that found activity while DTR
+     * was held in the unexpected state would otherwise have been a bare sample count.
+     *
+     * Where the activity sits inside the window matters as much as how much there is: something
+     * that starts tens of milliseconds after a level change is a different phenomenon from
+     * something present throughout, and a count alone cannot tell them apart.
+     */
+    private fun analyseWindow(
+        name: String,
+        levels: IntArray,
+        from: Int,
+        to: Int,
+        usPerSample: Double,
+    ) {
+        val span = to - from
+        val low = (from until to).count { levels[it] == 0 }
+        log("    $name: $span samples (%.1f ms), RXD low in $low".format(span * usPerSample / 1000))
+        if (low == 0) {
+            log("      line idle high throughout")
+            return
+        }
+
+        // Split the window into separate events rather than quoting one first-to-last span. The
+        // repeat interval is the thing that distinguishes a module broadcasting on a schedule from
+        // a one-off, and a single span silently merges two events into one implausibly long one.
+        val gapSamples = (2000.0 / usPerSample).toInt().coerceAtLeast(2)
+        val events = ArrayList<IntArray>()
+        var i = from
+        while (i < to) {
+            if (levels[i] != 0) { i++; continue }
+            var end = i
+            var j = i + 1
+            var highRun = 0
+            while (j < to) {
+                if (levels[j] == 0) { end = j; highRun = 0 } else if (++highRun >= gapSamples) break
+                j++
+            }
+            events.add(intArrayOf(i, end))
+            i = j
+        }
+
+        log("      ${events.size} event(s), counting a gap of 2 ms of idle as a separation")
+        var prevEnd = -1
+        for ((k, ev) in events.withIndex()) {
+            val lowIn = (ev[0]..ev[1]).count { levels[it] == 0 }
+            val width = ev[1] - ev[0] + 1
+            log("      event ${k + 1}: starts %.2f ms in, lasts %.2f ms, %d%% low%s".format(
+                (ev[0] - from) * usPerSample / 1000, width * usPerSample / 1000,
+                lowIn * 100 / width,
+                if (prevEnd < 0) ""
+                else ", %.2f ms after the previous ended".format((ev[0] - prevEnd) * usPerSample / 1000)))
+            prevEnd = ev[1]
+        }
+
+        val target = events.maxByOrNull { it[1] - it[0] } ?: return
+        val runs = ArrayList<Int>()
+        var cur = levels[target[0]]
+        var n = 1
+        for (p in (target[0] + 1)..target[1]) {
+            if (levels[p] == cur) n++ else { runs.add(n); cur = levels[p]; n = 1 }
+        }
+        runs.add(n)
+
+        val hist = runs.groupingBy { it }.eachCount().toSortedMap()
+        log("      longest event: ${runs.size} level runs, lengths in samples " +
+            if (hist.size <= 20) "$hist" else "${hist.entries.take(20)} ... (${hist.size} distinct)")
+
+        // The earlier version took the shortest run as the bit time, which is vacuous the moment a
+        // one-sample run exists: every length is a whole multiple of one, so the test returned 100%
+        // regardless of what the signal was. Search the candidates instead and report the best fit.
+        val (unit, share) = bestBitGrid(runs, (target[1] - target[0] + 1) / 4)
+        if (unit == 0) {
+            log("      too few runs to test for a bit grid")
+            return
+        }
+        log("      best-fitting bit time over all candidates: $unit samples = %.1f us -> %d baud"
+            .format(unit * usPerSample, (1_000_000.0 / (unit * usPerSample)).toInt()))
+        log("      %d%% of runs are whole multiples of it".format(share))
+        log("      -> UART data sampled this far above its bit rate gives a run-length histogram")
+        log("         clustered at multiples of one bit and empty in between, i.e. well over 90%.")
+        log("         A smooth spread of lengths with no preferred spacing is a transient.")
+    }
+
+    /**
+     * Finds the candidate bit time that best explains [runs], and the share of runs it explains.
+     *
+     * Scoring every candidate rather than assuming the shortest run is one bit matters because the
+     * two hypotheses this project is trying to separate differ precisely here. Real UART data read
+     * well above its bit rate produces run lengths at whole multiples of the bit time and nothing
+     * between them, so some candidate scores near 100%. A transient produces a smooth spread, and
+     * then no candidate scores well - a result that only means something if we actually looked for
+     * the best one.
+     *
+     * Candidates start at two samples: one sample divides everything and says nothing.
+     */
+    private fun bestBitGrid(runs: List<Int>, maxUnit: Int): Pair<Int, Int> {
+        if (runs.size < 8 || maxUnit < 2) return 0 to 0
+        var bestUnit = 0
+        var bestHits = -1
+        for (unit in 2..maxUnit) {
+            val hits = runs.count { r ->
+                val m = r.toDouble() / unit
+                m >= 0.75 && kotlin.math.abs(m - kotlin.math.round(m)) < 0.2
+            }
+            if (hits > bestHits) { bestHits = hits; bestUnit = unit }
+        }
+        return bestUnit to (bestHits * 100 / runs.size)
     }
 
     /**

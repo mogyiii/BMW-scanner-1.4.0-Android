@@ -1,6 +1,7 @@
 # Handover — where this project stands
 
-Written 2026-10-19. Read this first; it is meant to be enough on its own.
+Written 2026-10-19, updated 2026-10-20 after runs 8 and 9. Read this first; it is meant to be
+enough on its own.
 
 ## The goal
 
@@ -14,9 +15,10 @@ not be implemented.**
 
 ## Current state in one line
 
-The Android software is finished and verified. **The cable does not talk to the car, and why is
-still not fully settled** — one session called it closed, a later one reopened a specific point.
-Two measurements remain, both cheap, both needing the car.
+The Android software is finished and verified. **The cable's K-line stage does not work, and as of
+run 9 that rests on a measurement that actually discriminates** — the ~14 ms burst is a transient,
+not a message. One measurement remains, and it concerns the nature of the fault rather than whether
+there is one.
 
 ## The hardware, established
 
@@ -53,13 +55,14 @@ SIO reset -> GET_MODEM_STATUS -> 19200 baud -> 8N1
 
 ## What the car measurements say
 
-Seven field runs are in `docs/field-logs/`. The important results:
+Nine field runs are in `docs/field-logs/`. The important results:
 
 - **Off the car: total silence**, 32 baud/parity combinations, RXD never moves while transmitting.
   This is the clean negative control — the cable invents nothing on its own, so there is no
   microcontroller chattering, no internal echo and no TX→RX crosstalk.
-- **On the car: bytes come back**, RXD is caught low while transmitting, and the DTR pulse produces
-  a **deterministic ~14 ms burst** that reproduces byte-for-byte across different days.
+- **On the car: bytes come back**, RXD is caught low while transmitting, and a **~14 ms burst**
+  reproduces byte-for-byte across different days. It was attributed to the DTR pulse until run 9
+  found it in a control run with no pulse at all.
 - **No valid DS2 frame has ever been decoded**, at any rate from 1200 to 230400, either parity, any
   DTR/RTS state, all 16 CBUS states (with the writes verified 16/16), with the vendor's own byte
   spacing, or after the vendor init sequence.
@@ -67,53 +70,62 @@ Seven field runs are in `docs/field-logs/`. The important results:
   near-identical sequences, and `0x00`, `0x44`, `0xA0`, `0xFF` all answer the same thing. **The
   reply carries no information from the request.**
 
-## The disagreement, stated fairly
+## The disagreement, and how run 9 settled it
 
 Commit `f8cab36` closed the diagnosis: *"The cable's K-line stage does not work, and nothing further
-is worth trying against this cable."*
+is worth trying against this cable."* Its strongest evidence — the data-independent replies — stands
+and is good.
 
-Its strongest evidence — the data-independent replies — stands and is good.
-
-But one of its arguments does not hold. It reasoned that because the byte count scales with the
+But one of its arguments did not hold. It reasoned that because the byte count scales with the
 sample rate while the duration stays near 14 ms, the burst must be an analogue event rather than a
 message. **Both hypotheses predict exactly that.** A real message read at the wrong rate also has a
-fixed physical duration and a byte count proportional to the sampling rate. The sound part is that
-none of 16 rates decoded cleanly — but 16 discrete points is not a proof.
+fixed physical duration and a byte count proportional to the sampling rate. Commit `2c61b66`
+reopened the point: nothing contradicted the conclusion, it was just not earned.
 
-Also untested: **the vendor software has never been run with the cable connected to the car.** In
-the VM it sat on a desk, where its automotive side is unpowered, so "Hardware faulty" from that run
-means little.
+**Run 9 earned it.** The edge measurement discriminates where byte counts cannot. Across fourteen
+events on the car, the best-fitting bit time searched over all candidates explains only 46–62 % of
+the level runs; real UART sampled thirteen times above its bit rate exceeds 90 %. The run lengths
+are a smooth spread with no preferred spacing. **The burst is a transient.** Full numbers and the
+three fixes that made the measurement valid are in `docs/findings.md`, section "Run 9".
 
-Commit `2c61b66` reopened this. Nothing contradicts the conclusion; it is just not yet earned.
+Run 9 also contradicted two things this document used to assert. The burst is **not** triggered by
+the DTR pulse — a control run with no pulse finds it every time — and the FT232R's bitbang clock
+runs at **four times** the baud rate the divisor encodes, so every bitbang timing taken before run 9
+was out by 4x.
 
-## The two measurements that are left
+Still untested, and still a loose end: **the vendor software has never been run with the cable
+connected to the car.** In the VM it sat on a desk, where its automotive side is unpowered, so
+"Hardware faulty" from that run means little.
 
-Both need the car, both have buttons in the app, neither needs wifi or a laptop.
+## The measurement that is left
 
-**1. RADIO BEACON** — the owner noticed the byte traffic as audible pulsing on an empty **FM**
-frequency. That is real radiation from the switching edges, and it answers whether the signal
-actually reaches the vehicle's wiring: a few centimetres of cable is a poor antenna, several metres
-of harness is a good one. The measurement is a **comparison** — listen with the cable in the OBD
-socket, then unplug it from the car mid-run while it keeps transmitting on the phone. Weaker or
-gone means the signal propagates through the car and the K-line pin is connected. Unchanged means
-nothing reaches the socket. One second on, one second off, twenty times.
+Needs the car, has a button in the app, needs no wifi or laptop.
 
-**2. BURST CAPTURE** — samples the receive line as **raw levels** after a DTR pulse and measures
-the intervals between edges. This is where the two hypotheses genuinely differ: UART data at any
-rate puts its edges on a consistent bit grid whose shortest interval is one bit time and whose
-others are whole multiples of it; a transient has no common divisor. Self-calibrating, because the
-burst's ~14 ms duration is already fixed by eight independent decodes. Both earlier bitbang
-attempts ran off the car and without a DTR pulse, so neither had anything to capture.
+**RADIO BEACON** — the owner noticed the byte traffic as audible pulsing on an empty **AM
+(medium-wave)** frequency. **Not FM.** An FM demodulator limits away amplitude noise and 9600 baud
+edges put no energy near 100 MHz, so an FM run tells us nothing either way; an AM receiver
+demodulates impulse noise straight into the audio. Run 8 was listened to on FM because this document
+said FM, and was void for that reason alone.
+
+The pulsing is real radiation from the switching edges, and it answers whether the signal reaches
+the vehicle's wiring: a few centimetres of cable is a poor antenna, several metres of harness is a
+good one. The measurement is a **comparison** — listen with the cable in the OBD socket, then unplug
+it from the car mid-run while it keeps transmitting on the phone. Weaker or gone means the signal
+propagates through the car and the K-line pin is connected. Unchanged means nothing reaches the
+socket. One second on, one second off, twenty cycles, alternating a 9600 baud 4.8 kHz whine with a
+1200 baud 600 Hz hum so there is a pattern to recognise rather than a level to judge.
 
 ## The hypothesis that currently fits everything
 
 If the radio test shows the signal does reach the harness, an open connection is ruled out and the
 likely remaining fault is **signal levels**. A K-line expects battery-voltage logic. A driver that
 only manages 5 V would be invisible to every module while still radiating, still disturbing our own
-receive line, and still producing exactly the data-independent reply that was measured.
+receive line, and still producing exactly the data-independent reply and the transient that were
+measured.
 
-This is a hypothesis, not a finding. It is written down because it fits all seven runs, not because
-it has been demonstrated.
+This is a hypothesis, not a finding. It is written down because it fits all nine runs, not because
+it has been demonstrated. It no longer decides whether the project continues — run 9 did that — only
+what to say in a warranty claim.
 
 ## The software
 
@@ -123,13 +135,20 @@ Finished and verified. 14 unit tests green, runs on the target phone.
 app/src/main/java/hu/bmwscanner/
   usb/FtdiDevice.kt   raw FTDI driver: control transfers, baud divisors (checked against all 15
                       published libftdi reference values), line settings, latency, modem control,
-                      CBUS GPIO, sync bitbang capture, EEPROM and pin reads
+                      CBUS GPIO, streaming sync bitbang capture, EEPROM and pin reads
   ds2/Ds2.kt          DS2 framing, XOR checksums, resynchronising frame recovery, bus scan
   MainActivity.kt     probe UI and every diagnostic described above
 tools/usbparse.py     decoder for VirtualBox USB captures
 docs/findings.md      the full evidence trail
-docs/field-logs/      seven runs, raw
+docs/field-logs/      nine runs, raw
 ```
+
+Two traps in `FtdiDevice`, both discovered the hard way in run 9 and both documented at their call
+sites: the bitbang sample clock is **four times** the baud the divisor encodes, and synchronous
+bitbang **stops its clock** when the TX FIFO runs dry rather than merely slowing down, so a capture
+that is not streamed on two threads silently loses time. `syncBitbangStream` handles both and
+reports elapsed against expected; the older `syncBitbangCapture` does neither and is kept only for
+the two callers that ask whether the line moves at all, not when.
 
 No third-party USB library. `usb-serial-for-android` was considered and rejected: the non-standard
 vendor id, the possible second channel, and the need for the raw line-status byte all want explicit
@@ -156,15 +175,23 @@ rather than have us guess.
 
 ## What to do next
 
-1. Take the phone and cable to the car, ignition in position 2.
-2. Press **RADIO BEACON**, listen on the FM frequency where the pulsing was heard, unplug from the
-   OBD socket mid-run, listen again. Report: weaker, gone, or unchanged.
-3. Plug back in, press **BURST CAPTURE**.
-4. Both save their logs automatically; pull them with
+One thing, and it needs ears rather than software.
+
+1. Phone and cable in the car, ignition in position 2, car radio on an empty **AM / medium-wave**
+   frequency — the band where the pulsing was originally noticed. Not FM.
+2. Press **RADIO BEACON**. Twenty cycles of one second on, one second off, alternating a high whine
+   with a low hum.
+3. Partway through, **unplug the cable from the OBD socket** while leaving it on the phone, and keep
+   listening.
+4. Report which of three things happened: the pulsing got **weaker**, went **away**, or was
+   **unchanged**. Weaker or gone means the signal reaches the harness and the K-line pin is
+   connected, which rules out an open connection and leaves signal levels as the fault. Unchanged
+   means nothing reaches the socket.
+5. The log saves itself; pull it with
    `adb shell cat /sdcard/Android/data/hu.bmwscanner/files/<newest>.log` or use SHARE LOG.
 
-If the edges fall on a bit grid, there is a protocol and the project continues. If they do not, the
-verdict is the same as `f8cab36` reached — but then it rests on the measurement that actually
-discriminates, which is worth having for a warranty claim as much as for the record.
+Nothing in the protocol approach depends on the answer any more. The burst capture is finished — see
+run 9 — and the verdict on the cable stands either way. This is for the warranty claim and for the
+record.
 
 Charge the phone first. OTG drains it and the single port cannot charge while the cable is attached.

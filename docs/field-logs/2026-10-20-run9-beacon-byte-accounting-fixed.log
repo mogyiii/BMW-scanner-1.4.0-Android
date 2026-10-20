@@ -1,0 +1,20 @@
+16:05:13.250  >>> remote command: beacon
+16:05:13.256  === RADIO BEACON ===
+16:05:13.260  Tune the car radio to an empty AM / medium-wave frequency. NOT FM - FM cannot
+16:05:13.262  show this, and an FM run tells us nothing either way.
+
+16:05:13.263  Alternating tones, so there is a pattern to recognise rather than a level to judge:
+16:05:13.267    odd cycles  9600 baud 0x55 -> a 4.8 kHz whine
+16:05:13.268    even cycles 1200 baud 0x55 -> a 600 Hz hum, ten times fewer edges so much fainter
+16:05:13.269  One second on, one second off, 4 cycles.
+
+16:05:14.290    cycle  1/4: ON at  9600 baud - 1045 bytes to the chip, the line carries 960
+16:05:15.295    cycle  1/4: off
+16:05:16.324    cycle  2/4: ON at  1200 baud - 190 bytes to the chip, the line carries 120
+16:05:17.327    cycle  2/4: off
+16:05:18.365    cycle  3/4: ON at  9600 baud - 1064 bytes to the chip, the line carries 960
+16:05:19.368    cycle  3/4: off
+16:05:20.401    cycle  4/4: ON at  1200 baud - 190 bytes to the chip, the line carries 120
+16:05:21.404    cycle  4/4: off
+16:05:21.408  === end radio beacon ===
+16:05:25.958  >>> remote command: save

@@ -233,6 +233,13 @@ class FtdiDevice private constructor(
      * question about protocol settings into a measurement of rise time.
      *
      * Bit 0 of each byte is TXD (driven), bit 1 is RXD (sampled).
+     *
+     * Two caveats, both measured after this was written and both reasons to prefer
+     * [syncBitbangStream] for anything timing-sensitive: [sampleBaud] is not the sample rate (the
+     * bitbang clock runs about four times faster - see [syncBitbangStream]), and the write/read
+     * ping-pong below cannot feed the chip fast enough at these rates, so the clock stalls and the
+     * samples either side of a gap are not a fixed time apart. The two callers left on this path
+     * use it to see *whether* the line moves, not to time anything.
      */
     fun syncBitbangCapture(
         outLevels: ByteArray,
@@ -270,6 +277,107 @@ class FtdiDevice private constructor(
         } finally {
             runCatching { setBitMode(0x00, BITMODE_RESET) }
         }
+    }
+
+    /**
+     * Result of [syncBitbangStream]. [elapsedMs] against [expectedMs] is what tells whether the
+     * sample clock ran continuously, which decides whether the timings mean anything at all.
+     */
+    class BitbangCapture(
+        val samples: ByteArray,
+        val elapsedMs: Long,
+        val expectedMs: Double,
+    ) {
+        /**
+         * Synchronous bitbang only advances when there is a byte to write, so a starved TX FIFO
+         * does not merely slow the transfer down - it stops the clock, and the samples either side
+         * of the gap are no longer a fixed time apart. Wall-clock time is the only way to detect
+         * that from the host, because the gap leaves no trace in the data.
+         */
+        val stalled: Boolean get() = elapsedMs > expectedMs * 1.3 + 20
+    }
+
+    /**
+     * Streams a synchronous-bitbang waveform out and the samples back at the same time, so the
+     * sample clock runs without gaps.
+     *
+     * [syncBitbangCapture] alternates a 48-byte write with a read on one thread. That caps the
+     * throughput at a few tens of kB/s, which is below the sample rates worth using here, so the
+     * chip's TX FIFO empties and the clock stalls - and a stalled clock silently destroys the edge
+     * timing this is built to measure. One large transfer per direction on two threads lets the
+     * host controller keep both FIFOs fed, which is no more than an ordinary serial port does at
+     * the same rate in both directions.
+     *
+     * Bit 0 is TXD and bit 4 is the DTR pin; with both in [driverMask] the whole stimulus lives in
+     * the waveform, on the same clock as the samples. That matters more than it sounds: a DTR pulse
+     * issued as a control transfer sits an unknown several milliseconds away from the first sample,
+     * which is most of a 14 ms burst.
+     *
+     * @param sampleRate wanted samples per second. The bitbang clock is *not* the baud rate the
+     *   divisor encodes - it runs [clockMultiplier] times faster, which is why libftdi scales the
+     *   requested rate before computing the divisor - so the divisor is set for
+     *   `sampleRate / clockMultiplier` and [BitbangCapture.expectedMs] is reckoned from
+     *   [sampleRate]. Measure the multiplier rather than trusting the default: a wrong factor
+     *   scales every bit time and every duration derived from the capture by exactly that much.
+     */
+    fun syncBitbangStream(
+        outLevels: ByteArray,
+        sampleRate: Int,
+        driverMask: Int,
+        clockMultiplier: Int = 4,
+    ): BitbangCapture {
+        require(clockMultiplier >= 1) { "clock multiplier must be at least 1" }
+        setBaudRate((sampleRate / clockMultiplier).coerceAtLeast(184))
+        purge()
+        setBitMode(driverMask, BITMODE_SYNC_BITBANG)
+        try {
+            val samples = ByteArray(outLevels.size)
+            val expectedMs = outLevels.size * 1000.0 / sampleRate
+            val deadline = System.currentTimeMillis() + (expectedMs * 4).toLong() + 2000
+            var read = 0
+
+            val reader = Thread { read = drainSamples(samples, deadline) }
+            val t0 = System.currentTimeMillis()
+            reader.start()
+
+            var off = 0
+            while (off < outLevels.size) {
+                val slice = if (off == 0) outLevels else outLevels.copyOfRange(off, outLevels.size)
+                val n = connection.bulkTransfer(epOut, slice, slice.size, 4000)
+                if (n < 0) throw IOException("bitbang bulk OUT failed at offset $off of ${outLevels.size}")
+                off += n
+            }
+
+            reader.join((deadline - System.currentTimeMillis()).coerceAtLeast(1))
+            val elapsed = System.currentTimeMillis() - t0
+            return BitbangCapture(samples.copyOf(read), elapsed, expectedMs)
+        } finally {
+            runCatching { setBitMode(0x00, BITMODE_RESET) }
+        }
+    }
+
+    /**
+     * Reads bulk IN into [target] until it is full or [deadlineMs] passes, stripping the two status
+     * bytes FTDI puts at the head of every packet. Deliberately self-contained: it runs on its own
+     * thread alongside a bulk OUT, so it must not touch [rawBuf] or [pending].
+     */
+    private fun drainSamples(target: ByteArray, deadlineMs: Long): Int {
+        val buf = ByteArray(maxPacketSize * 64)
+        var got = 0
+        while (got < target.size && System.currentTimeMillis() < deadlineMs) {
+            val n = connection.bulkTransfer(epIn, buf, buf.size, 50)
+            if (n <= 2) continue
+            var off = 0
+            while (off + 2 <= n && got < target.size) {
+                val packet = minOf(maxPacketSize, n - off)
+                for (i in (off + 2) until (off + packet)) {
+                    if (got >= target.size) break
+                    target[got++] = buf[i]
+                }
+                off += packet
+            }
+        }
+        return got
     }
 
     // ---------------------------------------------------------------- line probing

@@ -1,0 +1,50 @@
+15:34:01.780  BMW DS2 Probe 0.13-probe
+15:34:01.787  Looking for the cable: VID 0x0333 / PID 0x0137
+
+15:34:01.792  USB rescan: 1 device(s)
+15:34:01.794    /dev/bus/usb/001/002  0333:0137
+15:34:21.091  === RADIO BEACON ===
+15:34:21.092  Tune the car radio to an empty AM frequency and listen.
+15:34:21.092  One second of transmission, one second of silence, 20 times.
+
+15:34:22.114    cycle  1/20: ON  - 14848 bytes transmitted
+15:34:23.118    cycle  1/20: off
+15:34:24.121    cycle  2/20: ON  - 15104 bytes transmitted
+15:34:25.125    cycle  2/20: off
+15:34:26.128    cycle  3/20: ON  - 14976 bytes transmitted
+15:34:27.137    cycle  3/20: off
+15:34:28.138    cycle  4/20: ON  - 14912 bytes transmitted
+15:34:29.151    cycle  4/20: off
+15:34:30.154    cycle  5/20: ON  - 15232 bytes transmitted
+15:34:31.156    cycle  5/20: off
+15:34:32.158    cycle  6/20: ON  - 14784 bytes transmitted
+15:34:33.161    cycle  6/20: off
+15:34:34.162    cycle  7/20: ON  - 15040 bytes transmitted
+15:34:35.164    cycle  7/20: off
+15:34:36.165    cycle  8/20: ON  - 15424 bytes transmitted
+15:34:37.168    cycle  8/20: off
+15:34:38.172    cycle  9/20: ON  - 15040 bytes transmitted
+15:34:39.175    cycle  9/20: off
+15:34:40.178    cycle 10/20: ON  - 15168 bytes transmitted
+15:34:41.181    cycle 10/20: off
+15:34:42.184    cycle 11/20: ON  - 14720 bytes transmitted
+15:34:43.188    cycle 11/20: off
+15:34:44.192    cycle 12/20: ON  - 15104 bytes transmitted
+15:34:45.195    cycle 12/20: off
+15:34:46.198    cycle 13/20: ON  - 13952 bytes transmitted
+15:34:47.201    cycle 13/20: off
+15:34:48.204    cycle 14/20: ON  - 14912 bytes transmitted
+15:34:49.208    cycle 14/20: off
+15:34:50.213    cycle 15/20: ON  - 14912 bytes transmitted
+15:34:51.215    cycle 15/20: off
+15:34:52.256    cycle 16/20: ON  - 15232 bytes transmitted
+15:34:53.258    cycle 16/20: off
+15:34:54.268    cycle 17/20: ON  - 14784 bytes transmitted
+15:34:55.271    cycle 17/20: off
+15:34:56.274    cycle 18/20: ON  - 14976 bytes transmitted
+15:34:57.277    cycle 18/20: off
+15:34:58.278    cycle 19/20: ON  - 14912 bytes transmitted
+15:34:59.281    cycle 19/20: off
+15:35:00.286    cycle 20/20: ON  - 14912 bytes transmitted
+15:35:01.289    cycle 20/20: off
+15:35:01.292  === end radio beacon ===

@@ -1,0 +1,70 @@
+16:00:37.242  >>> remote command: burst
+16:00:37.247  === DTR BURST CAPTURE ===
+16:00:37.248  The DTR pulse is part of the bitbang waveform, so the capture is already
+16:00:37.249  running when DTR is released, and one sample is exactly 1/sample clock.
+16:00:37.251  Each run also reports whether the sample clock stalled - if it did, ignore it.
+
+16:00:37.599    clock calibration: 12000 samples, divisor set for 9600, back in 317 ms
+16:00:37.603    -> 37855 samples/s, so the bitbang clock is the programmed baud x4
+
+16:00:37.609    --- 115200 samples/s (8,68 us/sample); DTR# low = asserted, the FTDI convention ---
+16:00:37.757      14976 of 14976 samples back in 138 ms (clock needs 130 ms)
+16:00:37.761      DTR asserted: 11520 samples (100,0 ms), RXD low in 0
+16:00:37.764        line idle high throughout
+16:00:37.765      after the release: 3456 samples (30,0 ms), RXD low in 0
+16:00:37.767        line idle high throughout
+
+16:00:37.769    --- 115200 samples/s (8,68 us/sample); inverted, in case this cable's gate is the other way up ---
+16:00:37.909      14976 of 14976 samples back in 131 ms (clock needs 130 ms)
+16:00:37.912      DTR asserted: 11520 samples (100,0 ms), RXD low in 832
+16:00:37.913        1 event(s), counting a gap of 2 ms of idle as a separation
+16:00:37.914        event 1: starts 72,28 ms in, lasts 15,23 ms, 47% low
+16:00:37.917        longest event: 139 level runs, lengths in samples [1=5, 2=6, 3=5, 4=6, 5=8, 6=8, 7=5, 8=9, 9=10, 10=9, 11=6, 12=5, 13=9, 14=1, 15=5, 16=3, 17=3, 18=3, 19=3, 20=5] ... (34 distinct)
+16:00:37.927        best-fitting bit time over all candidates: 2 samples = 17,4 us -> 57600 baud
+16:00:37.929        47% of runs are whole multiples of it
+16:00:37.931        -> UART data sampled this far above its bit rate gives a run-length histogram
+16:00:37.932           clustered at multiples of one bit and empty in between, i.e. well over 90%.
+16:00:37.933           A smooth spread of lengths with no preferred spacing is a transient.
+16:00:37.934      after the release: 3456 samples (30,0 ms), RXD low in 0
+16:00:37.935        line idle high throughout
+
+16:00:37.936    --- 57600 samples/s (17,36 us/sample); DTR# low = asserted, the FTDI convention ---
+16:00:38.078      7488 of 7488 samples back in 132 ms (clock needs 130 ms)
+16:00:38.080      DTR asserted: 5760 samples (100,0 ms), RXD low in 0
+16:00:38.082        line idle high throughout
+16:00:38.083      after the release: 1728 samples (30,0 ms), RXD low in 0
+16:00:38.085        line idle high throughout
+
+16:00:38.087    --- 57600 samples/s (17,36 us/sample); inverted, in case this cable's gate is the other way up ---
+16:00:38.226      7488 of 7488 samples back in 129 ms (clock needs 130 ms)
+16:00:38.229      DTR asserted: 5760 samples (100,0 ms), RXD low in 355
+16:00:38.230        1 event(s), counting a gap of 2 ms of idle as a separation
+16:00:38.231        event 1: starts 76,04 ms in, lasts 14,34 ms, 42% low
+16:00:38.235        longest event: 147 level runs, lengths in samples {1=8, 2=32, 3=22, 4=16, 5=15, 6=8, 7=7, 8=8, 9=6, 10=8, 11=6, 12=3, 14=2, 15=1, 17=1, 18=1, 21=1, 22=1, 31=1}
+16:00:38.242        best-fitting bit time over all candidates: 2 samples = 34,7 us -> 28800 baud
+16:00:38.243        53% of runs are whole multiples of it
+16:00:38.244        -> UART data sampled this far above its bit rate gives a run-length histogram
+16:00:38.244           clustered at multiples of one bit and empty in between, i.e. well over 90%.
+16:00:38.245           A smooth spread of lengths with no preferred spacing is a transient.
+16:00:38.246      after the release: 1728 samples (30,0 ms), RXD low in 0
+16:00:38.246        line idle high throughout
+
+16:00:38.247    --- 115200 samples/s (8,68 us/sample); CONTROL: no pulse, DTR held released ---
+16:00:38.389      14976 of 14976 samples back in 133 ms (clock needs 130 ms)
+16:00:38.391      DTR released throughout: 14976 samples (130,0 ms), RXD low in 335
+16:00:38.393        1 event(s), counting a gap of 2 ms of idle as a separation
+16:00:38.394        event 1: starts 124,11 ms in, lasts 5,80 ms, 50% low
+16:00:38.397        longest event: 65 level runs, lengths in samples [1=3, 2=3, 3=3, 4=4, 5=1, 6=7, 7=2, 8=5, 9=5, 10=3, 11=3, 12=4, 13=5, 14=2, 15=3, 16=3, 18=1, 19=1, 20=2, 21=1] ... (23 distinct)
+16:00:38.400        best-fitting bit time over all candidates: 2 samples = 17,4 us -> 57600 baud
+16:00:38.401        56% of runs are whole multiples of it
+16:00:38.401        -> UART data sampled this far above its bit rate gives a run-length histogram
+16:00:38.402           clustered at multiples of one bit and empty in between, i.e. well over 90%.
+16:00:38.403           A smooth spread of lengths with no preferred spacing is a transient.
+
+16:00:38.404    --- 19200 samples/s (52,08 us/sample); LISTEN: 600 ms, DTR held released, coarse clock ---
+16:00:39.019      11520 of 11520 samples back in 604 ms (clock needs 600 ms)
+16:00:39.024      DTR released throughout: 11520 samples (600,0 ms), RXD low in 0
+16:00:39.025        line idle high throughout
+
+16:00:39.028  === end burst capture ===
+16:00:50.590  >>> remote command: save

@@ -430,11 +430,122 @@ verified), byte spacing (the vendor's own delay values), and finally the vendor'
 sequence, replayed on a live car. **The cable's K-line stage does not work.** The software cannot
 fix it, and nothing further is worth trying against this cable.
 
+## Run 8: two measurements that measured nothing
+
+Both field tests were run on the car, ignition on, and both came back negative. Neither result was
+usable, for reasons that had nothing to do with the cable.
+(`field-logs/2026-10-20-run8-beacon-on-fm-void.log`, `-run8-burst-old-code-void.log`)
+
+**The radio beacon was listened to on FM.** `HANDOVER.md` said FM; the code and the original
+observation both said AM. FM cannot show this effect in either direction — an FM demodulator limits
+away amplitude noise, and 9600 baud switching edges put no energy anywhere near 100 MHz, whereas an
+AM receiver demodulates impulse noise straight into the audio. Hearing nothing on FM is not
+evidence. The band in the handover was simply wrong.
+
+**And the beacon was barely transmitting.** Its loop purged the TX FIFO after every 64-byte write,
+so the chip was handed roughly 15 000 bytes per second while the line at 9600 8N1 can carry 960.
+The log is explicit about it — *"14848 bytes transmitted"* in a one-second window — and that number
+was counting USB writes, not anything that reached the wire. All but a fraction were discarded from
+the FIFO before being shifted out.
+
+**The burst capture looked too late.** It pulsed DTR with a control transfer and then set up the
+capture: a baud change, two purges and a bitmode change, four control transfers plus a bulk write,
+all between releasing DTR and the first sample. Over OTG that is comfortably longer than the 14 ms
+the burst lasts. The code comment claimed the gap was "one control transfer". `0 of 2400 samples`
+was a measurement of the host's USB latency.
+
+## Run 9: the burst is a transient, measured on the timebase that proves it
+
+Rewritten capture, on the car, 2026-10-20. Five sessions, fourteen independent events.
+(`field-logs/2026-10-20-run9-burst-*.log`)
+
+Three changes made the measurement mean something:
+
+**The pulse moved inside the waveform.** Synchronous bitbang drives every pin from the bytes
+written, so bit 4 carries the DTR pin and bit 0 holds TXD idle: the release edge is now
+sample-accurate and the capture is already running when it happens. Driving the stimulus and
+sampling the response off one clock removes the host latency from the measurement entirely.
+
+**Both directions stream at once.** The old path alternated a 48-byte write with a read on one
+thread, which cannot feed the chip at these rates — and a starved TX FIFO does not slow synchronous
+bitbang down, it *stops the clock*, leaving the samples either side of the gap an unknown time
+apart. One large transfer per direction on two threads keeps both FIFOs fed, and every run now
+reports elapsed against expected so a stall cannot pass unnoticed. All runs come back within 5 ms
+of their nominal duration.
+
+**The sample clock was being mis-stated by a factor of four.** The rewrite caught it immediately:
+14 976 samples requested at 115 200 came back in 43 ms, where 115 200 samples per second needs 130.
+The FT232R's bitbang clock runs at four times the baud rate the divisor encodes — libftdi scales
+the requested rate for exactly this reason. Measured directly: 12 000 samples with the divisor set
+for 9600 come back in ~317 ms, i.e. 38 000 samples/s, **x4**, reproduced in all five sessions.
+
+> Every bitbang timing taken in this project before run 9 was therefore wrong by 4x, and the old
+> capture's window was 5.2 ms rather than the 20.8 ms it assumed — a second, independent reason it
+> could not have caught a 14 ms burst.
+
+### What the fourteen events say
+
+| | |
+|---|---|
+| Duration | 13.6 – 15.2 ms, mean ~14.4 ms |
+| Low duty | 40 – 50 % |
+| Level runs per event | 125 – 151 |
+| Distinct run lengths | 17 – 37, smoothly spread, no preferred spacing |
+| Best-fitting bit time, searched over **all** candidates | explains only **46 – 62 %** of runs |
+
+The last row is the measurement the diagnosis was missing. UART data sampled thirteen times above
+its bit rate puts every level run at a whole multiple of one bit time and nothing in between, so
+some candidate scores well over 90 %. Nothing here comes close, at either sample rate, in any
+session. **The burst is a transient, not a message.**
+
+The earlier version of this test could not have reached that conclusion: it took the shortest run
+as the bit time, which is vacuous as soon as a one-sample run exists — every length is a whole
+multiple of one, so it reported 100 % whatever the signal was. Searching the candidates is what
+makes a low score meaningful.
+
+### Three further results from the same captures
+
+**The DTR pin gates the line completely.** With the pin driven low — what
+`setModemControl(dtr = true)` does, FTDI's active-low DTR# — the receive line is low in **0 of
+11 520 samples**, in ten separate 100 ms windows across two sample rates and five sessions. With it
+driven high, the event appears. This confirms the gating reported in the remote car session, now
+with an exact timebase and a within-run control.
+
+**The DTR pulse does not trigger the burst.** A matched control run with no pulse at all, DTR held
+released for 130 ms, finds the same ~14 ms event every time. The deterministic "announcement after
+the vendor's DTR pulse" that seven earlier runs were decoding is not caused by the pulse.
+
+**Nor is it the car talking on a schedule.** A 600 ms window with the gate open, at a coarse clock,
+is low in **0 of 11 520 samples** — in all five sessions. The event is sporadic, not a module
+broadcasting periodically. Its trigger is not identified; its position is reproducible within a
+given run of the sequence, which points at something our own sequence does rather than at the
+vehicle, but that is an observation and not a finding.
+
+### Conclusion
+
+`f8cab36` called the diagnosis closed and `2c61b66` reopened one of its arguments: that a fixed
+~14 ms duration with a byte count proportional to the sample rate proves an analogue event. That
+objection was correct — both hypotheses predict exactly that, so the argument was not sound even
+though the conclusion was.
+
+The edge measurement discriminates where the byte counts could not, and it agrees with the
+conclusion. The burst is a transient. Taken with the data-independent replies from the 256-address
+scan, **the cable's K-line stage does not work**, and that now rests on the measurement that
+actually separates the two possibilities.
+
 ## Still open
 
-Nothing about the protocol approach. The remaining question is purely about the hardware: whether
-this cable can be returned or repaired. Opening it to inspect the transceiver stage is the only
-diagnostic left that software cannot reach.
+One measurement, and it is about the fault rather than the protocol: **the radio beacon, on AM.**
+It answers a different question from everything above — not whether anything comes back, but
+whether our transmission reaches the vehicle's wiring at all. A few centimetres of cable under the
+dash is a poor antenna; several metres of harness is a good one, so comparing the pulsing with the
+cable in the socket against unplugged mid-run separates an open connection from a driver that
+radiates but cannot reach battery-voltage logic levels. That distinction decides what to say in a
+warranty claim; it no longer decides whether the project continues.
+
+Otherwise the remaining question is purely about the hardware: whether this cable can be returned or
+repaired. Opening it to inspect the transceiver stage is the only diagnostic left that software
+cannot reach.
 
 ## The Windows software
 
