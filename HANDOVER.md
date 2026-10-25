@@ -117,7 +117,36 @@ while transmitting, `probeLineState` prints:
 RXD high in 94% of samples - UNSTABLE - what an unconnected, undriven input looks like
 ```
 
-### The test, two minutes, no modification, no soldering
+### The test, in software, no multimeter: LOOPBACK
+
+A K-line is a **single wire**, so whatever the transmitter pulls onto it is what the receiver sees.
+Driving a known square wave on TXD and sampling RXD **on the same bitbang clock** therefore answers
+whether the line pin is on a live bus, with a number instead of a judgement. Press **LOOPBACK** in
+the car, ignition in position 2. Four edge rates from 2 ms per level down to 50 µs, plus a control
+run with the gate shut.
+
+| What the log says | What it means |
+|---|---|
+| match **≥ 90 %** at a small lag | RXD follows TXD. The pin is on a live bus and the driver works — **the hardware is fine and the protocol was the problem**, which is wide open because no initialisation has ever been sent |
+| match **65–90 %**, collapsing as the edges speed up | the driver follows but cannot keep up: too slow or too weak, and that predicts every unreadable byte we have |
+| **RXD never moved**, or match **< 65 % at every rate** | RXD is not seeing TXD at all — the unconnected-pin case, and the 7↔8 jumper is the fix |
+| the gate-shut control **also** matches | the echo is not coming through the transceiver, so none of the above applies and the measurement needs rethinking |
+
+Why the existing logs cannot already answer this: off the car the receive line never moves while
+transmitting, on the car it does, which looks like a clean comparison and is not. The cable's
+automotive side is **powered from the OBD socket**, so the desk run tests an *unpowered*
+transceiver. Both hypotheses predict silence off the car and something on it. Only the shape of the
+relationship, measured in the car, separates them.
+
+### If you would rather not measure at all
+
+The 7↔8 jumper costs nothing and needs no multimeter. Bridge **pin 7 to pin 8 inside the cable's own
+OBD plug** — count the moulded numbers, and note that the plug's numbering is **mirrored** relative
+to the car's socket, which is the usual way to get this wrong. Never bridge either of them to pin 16,
+which is battery positive. The car's socket is not modified. If the cable then finds modules, the
+question is answered retrospectively.
+
+### The multimeter version, if one turns up
 
 Ignition in position 2, multimeter on DC volts, black probe on OBD pin **4 or 5** (ground):
 

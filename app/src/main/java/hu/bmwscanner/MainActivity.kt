@@ -123,7 +123,9 @@ class MainActivity : AppCompatActivity() {
 
             val device = cableDevice()
             if (device == null && what != "save" && what != "clear") {
-                log("    no cable present"); return
+                log("    no cable present")
+                reportUnrecognisedDevices()
+                return
             }
             if (device != null && !usbManager.hasPermission(device)) {
                 log("    no USB permission - requesting; re-send the command after granting")
@@ -148,6 +150,7 @@ class MainActivity : AppCompatActivity() {
                 "cbusverify" -> guarded(what) { cbusVerify(device!!) }
                 "vendorinit" -> guarded(what) { vendorInit(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
+                "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "ledslow" -> {
                     val block = intent.getIntExtra("block", 6000)
                     val rounds = intent.getIntExtra("rounds", 4)
@@ -441,6 +444,8 @@ class MainActivity : AppCompatActivity() {
         // The two field tests, reachable without a laptop or wifi.
         row(button("RADIO BEACON") { withCable("beacon") { d -> radioBeacon(d) } },
             button("BURST CAPTURE") { withCable("burst") { d -> burstCapture(d) } })
+
+        row(button("LOOPBACK  <-- do this one") { withCable("loopback") { d -> loopbackCheck(d) } })
 
         row(button("ORANGE LED") { withCable("ledslow") { d -> ledRhythm(d) } },
             button("LED WALK") { withCable("ledwalk") { d -> ledWalk(d) } })
@@ -1375,6 +1380,131 @@ class MainActivity : AppCompatActivity() {
             runCatching { dev?.close() }
         }
         log("=== end LED walk ===")
+    }
+
+    /**
+     * Asks whether the receive line follows the transmit line, and how closely.
+     *
+     * This is the measurement the project should have made first and never made at all. A K-line is
+     * a **single wire**: whatever the transmitter pulls onto it is what the receiver sees. So
+     * driving a known square wave on TXD and sampling RXD on the same clock answers, with a number
+     * rather than a judgement, whether the cable's line pin is on a live bus — and it needs no
+     * multimeter, no listening, and no second car.
+     *
+     * Why the existing evidence cannot answer it. Off the car the receive line never moves while
+     * transmitting; on the car it does. That looks like a clean comparison and is not, because the
+     * cable's automotive side is powered from the OBD socket: the desk run tests an *unpowered*
+     * transceiver, so it cannot separate "the line pin is not connected" from "the driver is dead".
+     * Both hypotheses predict silence off the car and something on it.
+     *
+     * What separates them is the *shape* of the relationship, measured in the car:
+     *
+     *  - **A clean echo**, RXD mirroring TXD at a fixed small lag, means the pin is on a live bus and
+     *    the line driver works. Then nothing is wrong with the hardware and the protocol was the
+     *    problem all along — which would be very good news, because no initialisation sequence has
+     *    ever been sent (see `docs/findings.md`, "Reopened").
+     *  - **A smeared echo**, following TXD but with edges displaced by tens of microseconds, is a
+     *    driver too slow or too weak for the rate, and predicts exactly the unreadable bytes that
+     *    every baud sweep has produced.
+     *  - **No relationship at all** means RXD is not seeing TXD, which is what an unconnected line
+     *    pin looks like — and `probeLineState` has been printing *"what an unconnected, undriven
+     *    input looks like"* on every car run since the first one.
+     *
+     * Four edge rates, from 2 ms per level down to 50 us. A bandwidth problem shows up as a match
+     * that is high when the edges are slow and collapses as they speed up; an unconnected pin is
+     * equally dead at every rate. The slowest rate is repeated with the gate shut as a control: an
+     * echo that survives DTR assertion is not coming through the transceiver at all.
+     */
+    private fun loopbackCheck(device: UsbDevice) {
+        log("=== TXD -> RXD LOOPBACK ===")
+        log("A K-line is one wire, so what we drive is what we should hear. Driving a square")
+        log("wave on TXD and sampling RXD on the same clock says whether our line pin is on a")
+        log("live bus - with a number, and without a multimeter.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            val mult = calibrateBitbangClock(dev)
+            log("")
+
+            for (levelUs in listOf(2000, 500, 100, 50)) {
+                if (stopRequested) { log("stopped"); return }
+                loopbackRun(dev, levelUs, mult, gateShut = false)
+            }
+            if (!stopRequested) {
+                log("  CONTROL, gate shut: an echo that survives this is not coming via the bus")
+                loopbackRun(dev, 2000, mult, gateShut = true)
+            }
+        } catch (e: Throwable) {
+            log("  loopback failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end loopback ===")
+    }
+
+    /**
+     * One loopback run: a square wave of [levelUs] per level on TXD, RXD sampled on the same clock.
+     *
+     * [gateShut] drives the DTR pin low for the whole run, which run 9 showed silences the line
+     * completely, so it serves as the control.
+     */
+    private fun loopbackRun(dev: FtdiDevice, levelUs: Int, clockMultiplier: Int, gateShut: Boolean) {
+        val sampleRate = 115200
+        val usPerSample = 1_000_000.0 / sampleRate
+        val perLevel = (sampleRate.toLong() * levelUs / 1_000_000).toInt().coerceAtLeast(4)
+        val levels = (6000 / perLevel).coerceIn(8, 400)
+
+        // bit 4 is the DTR pin: high releases the gate, low asserts it. bit 0 is TXD.
+        val gateBit = if (gateShut) 0x00 else 0x10
+        val wave = ByteArray(levels * perLevel) { i ->
+            val high = (i / perLevel) % 2 == 1
+            (gateBit or if (high) 0x01 else 0x00).toByte()
+        }
+
+        val cap = dev.syncBitbangStream(wave, sampleRate, driverMask = 0x11, clockMultiplier = clockMultiplier)
+        val tag = "%4d us/level (%d samples), %d levels".format(levelUs, perLevel, levels)
+        if (cap.stalled || cap.samples.size < wave.size / 2) {
+            log("  $tag: capture unusable (${cap.samples.size} of ${wave.size} in ${cap.elapsedMs} ms)")
+            return
+        }
+
+        val n = cap.samples.size
+        val txd = IntArray(n) { wave[it].toInt() and 1 }
+        val rxd = IntArray(n) { (cap.samples[it].toInt() shr 1) and 1 }
+
+        val lows = rxd.count { it == 0 }
+        if (lows == 0 || lows == n) {
+            log("  $tag: RXD never moved (constant ${if (lows == 0) "high" else "low"})")
+            return
+        }
+
+        // Cross-correlate against the wave we drove, allowing for transceiver delay, and against
+        // its inverse, because a transceiver may well invert.
+        val maxLag = (perLevel * 2).coerceAtMost(n / 4)
+        var bestLag = 0
+        var bestHits = -1
+        var bestInverted = false
+        for (lag in 0..maxLag) {
+            var same = 0
+            for (i in lag until n) if (rxd[i] == txd[i - lag]) same++
+            val span = n - lag
+            if (same > bestHits) { bestHits = same; bestLag = lag; bestInverted = false }
+            if (span - same > bestHits) { bestHits = span - same; bestLag = lag; bestInverted = true }
+        }
+        val pct = bestHits * 100 / (n - bestLag)
+
+        log("  $tag:")
+        log("    RXD low in $lows of $n samples; best match %d%% at a lag of %d samples (%.1f us)%s"
+            .format(pct, bestLag, bestLag * usPerSample, if (bestInverted) ", INVERTED" else ""))
+        log("    " + when {
+            pct >= 90 -> "-> RXD follows TXD. The line pin is on a live bus and the driver works."
+            pct >= 65 -> "-> follows TXD but smeared: the driver cannot keep up with this edge rate."
+            else -> "-> no relationship. RXD is not seeing TXD at this rate."
+        })
     }
 
     /**
