@@ -2285,5 +2285,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.18-probe"
+    const val NAME = "0.19-probe"
 }

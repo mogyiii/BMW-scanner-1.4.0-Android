@@ -550,11 +550,17 @@ The three runs are interchangeable:
 | Passive listen, 3 s at 9600 and 10400 | silent | silent | silent |
 | 256-address scan | 0 valid frames, 256 replies | 0 valid frames | 0 valid frames |
 
-**Engine running is the condition that mattered, and it changed nothing.** The alternator puts the
-bus at ~14 V instead of a resting battery's 12, and every module is awake and chattering. Three
-seconds of passive listening at both DS2 rates still hears **nothing**, which closes two
-explanations that had never been properly excluded: that the modules were asleep, and that the
-supply was too low for the transceiver. Neither is true.
+**Engine running changed nothing — but the inference drawn from that was wrong, and is retracted.**
+The original text read: *"Three seconds of passive listening at both DS2 rates still hears nothing,
+which closes two explanations that had never been properly excluded: that the modules were asleep,
+and that the supply was too low for the transceiver."*
+
+The diagnostic K-line is a **request–response** line. Control modules do not broadcast on it; it is
+silent by design until a tester addresses one. (The BMW I-bus/K-bus does carry continuous traffic,
+but it is a different physical bus and not the pin this cable uses.) So three seconds of passive
+silence is exactly what a perfectly good connection produces, and it excludes nothing. What the run
+*does* still show is that the active probing is unaffected by engine running, which is worth having —
+but the passive listen was never evidence and should not have been presented as any.
 
 The reply is still the same data-independent artefact. Every one of the 256 addresses answers with a
 `C4`-prefixed sequence drawn from a handful of variants — `C4 08 58 CC FF`, `C4 28 58 CC FF`,
@@ -634,7 +640,65 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
-## Nothing is still open on the software side
+## Reopened: three things that were never tried
+
+Written after the owner pushed back on the verdict, which was the right call. The diagnosis assumed
+a dead line driver. These were never tested, and the first two could each produce every measurement
+in this document with an intact cable.
+
+### 1. Pin 7 versus pin 8 — never checked, and there is a documented fix
+
+BMW OBD-II sockets carry **more than one K-line**, and which group of modules sits on pin 7 versus
+pin 8 varies by chassis and year. This project assumed the cable reaches whatever the car uses, and
+never verified which pin it is wired to or which pin this car answers on.
+
+For this cable specifically, **bridging pin 7 to pin 8 is a widely reported fix** that makes it find
+the DME and other units on cars where it otherwise finds nothing
+([e46fanatics](https://www.e46fanatics.com/threads/bmw-scanner-1-4-pa-soft.1282756/),
+[bimmerfest](https://www.bimmerfest.com/threads/fixed-bmw-scanner-1-4-dme-not-found.745541/)). The
+cable is also documented as supporting 1999–2006 E46, so this car is in range and "wrong era" is not
+the explanation.
+
+**This project's own measurement already pointed at it and it was not followed up.**
+`probeLineState` prints, on the car, while transmitting:
+
+```
+RXD high in 94% of samples - UNSTABLE - what an unconnected, undriven input looks like
+```
+
+An intact cable connected to a pin this car does not use would produce every result in this
+document: a resting line held high by the cable's own pull-up, a receive line that twitches only
+from the adjacent transmit pin, a reply that carries no information because nothing is replying, and
+a scan in which all 256 addresses behave identically because none of them is reachable.
+
+Separating the two hypotheses needs a multimeter, not software, and no modification: measure pin 7
+and pin 8 against ground with the ignition on. A live K-line idles at battery voltage.
+
+### 2. No initialisation sequence has ever been sent
+
+`FtdiDevice.setBreak` exists, carries a comment saying it is *"needed if a module turns out to want
+the classic 5-baud / break-based wake-up rather than plain DS2 framing"* — and **is never called
+from anywhere**. Every request this project has ever sent was a bare DS2 frame with no wake-up.
+
+Untried in consequence: ISO 14230 **fast init** (K low 25 ms, high 25 ms, then `StartCommunication`
+at 10400), ISO 9141 **5-baud slow init** (address `0x33` clocked out at 5 baud, then the `0x55` sync
+byte), and KWP2000 framing of any kind. A `0x55` sync byte coming back from a slow init would be
+unmistakable, and would mean the cable works and the protocol was the problem all along.
+
+### 3. The read window closes 40–80 ms after the first byte
+
+`Ds2Link.sendRaw` uses `readUntilQuiet(quietMs = 40)`, and the artefact arrives immediately, so
+every read returns about 40 ms after transmission regardless of the overall timeout. A genuine reply
+arriving later than that has never been visible. KWP2000 permits a response-pending negative reply
+that legitimately pushes an answer out by seconds.
+
+### What still stands regardless
+
+The run-9 edge measurement — fourteen events, best-fitting bit time explaining 46–62 % of level runs
+where real UART exceeds 90 % — says the ~14 ms burst is a transient and not a message. That is
+unaffected by any of the above: it describes what the signal *is*, not why nothing answers.
+
+## What was thought to be closed on the software side
 
 Eleven runs. There is no measurement left that is both clean and capable of changing the verdict,
 and the two that remained — the radio beacon and the LED comparison — both read out as a human

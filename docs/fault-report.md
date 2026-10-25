@@ -71,20 +71,33 @@ bit period, searched over every candidate, accounts for only 46–62 % of the tr
 transition lengths form a smooth spread with no preferred spacing. This is the signature of a
 circuit transient.
 
-**3. The bus is silent with the engine running.** With the engine running, every control module is
-awake and transmitting and the bus sits at alternator voltage. Three seconds of passive listening —
-the cable receiving only, transmitting nothing — detects no activity whatsoever, at either DS2 rate.
-A correctly connected K-line interface on a running vehicle is not silent. This rules out the two
-remaining benign explanations: that the modules were asleep, and that the supply voltage was
-insufficient for the transceiver.
+**3. ~~The bus is silent with the engine running.~~ RETRACTED — this was never evidence.**
 
-## What this leaves
+> The original wording claimed that a correctly connected K-line interface on a running vehicle is
+> not silent, and used three seconds of silence to rule out sleeping modules and low supply voltage.
+> **That reasoning is wrong.** The diagnostic K-line is a request–response line: control modules do
+> not broadcast on it, and it is silent by design until a tester addresses one. (The BMW I-bus/K-bus
+> does carry continuous traffic, but that is a different physical bus and not the pin this cable
+> uses.) Silence while listening passively is the expected behaviour of a perfectly good connection,
+> so it says nothing either way. The measurement stands; the inference drawn from it does not.
 
-The fault is in the cable's vehicle-side line driver or its connection to the OBD-II K-line pin. A
-driver unable to reach the battery-voltage logic levels a K-line requires would be invisible to
-every control module while still coupling enough energy into the cable's own receive line to
-produce exactly the transient that was measured. That specific mechanism is a hypothesis; the
-failure of the vehicle-side stage is not.
+## What this leaves — and one lead that was never checked
+
+The fault is on the cable's vehicle side, between the FT232R's TXD pin and the car. **Which** part
+is not established, and one possibility was never tested at all: **that the cable is wired to a pin
+this car does not use for the modules being addressed.**
+
+BMW OBD-II sockets carry more than one K-line, with pin 7 and pin 8 serving different groups of
+modules depending on chassis and year. For this cable specifically, bridging **pin 7 to pin 8** is a
+widely reported fix that makes it find the DME and other units on cars where it otherwise finds
+nothing. That is consistent with what this project measured and never followed up:
+`probeLineState` reports the receive line as *"UNSTABLE — what an unconnected, undriven input looks
+like"* while transmitting, and the reply pattern is what an unterminated line does when the
+transmit pin switches next to it.
+
+So the hypothesis of a dead line driver is **not** the only one left standing. An intact cable
+connected to an unused pin would produce the same measurements. The two can be separated without
+modifying anything: see `HANDOVER.md`, "The pin 7 / pin 8 question".
 
 ## Note on the supplied Windows software
 

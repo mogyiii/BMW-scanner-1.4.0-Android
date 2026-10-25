@@ -98,7 +98,43 @@ Still untested, and still a loose end: **the vendor software has never been run 
 connected to the car.** In the VM it sat on a desk, where its automotive side is unpowered, so
 "Hardware faulty" from that run means little.
 
-## Nothing is left to measure
+## The pin 7 / pin 8 question — do this first, it needs a multimeter and nothing else
+
+**The verdict below was reached too early.** It assumed the cable's line driver is dead. There is a
+second hypothesis that produces every single measurement in this project with an **intact** cable,
+and it was never tested: that the cable is wired to a pin this car does not use for the modules
+being addressed.
+
+BMW OBD-II sockets carry more than one K-line, and which modules sit on pin 7 versus pin 8 varies by
+chassis and year. For this cable in particular, **bridging pin 7 to pin 8 is a widely reported fix**
+that makes it find the DME and other units on cars where it otherwise finds nothing. The cable is
+documented as covering 1999–2006 E46, so this car is in range.
+
+And this project's own diagnostic said so, in those words, and it was not followed up. On the car,
+while transmitting, `probeLineState` prints:
+
+```
+RXD high in 94% of samples - UNSTABLE - what an unconnected, undriven input looks like
+```
+
+### The test, two minutes, no modification, no soldering
+
+Ignition in position 2, multimeter on DC volts, black probe on OBD pin **4 or 5** (ground):
+
+| Measure | Reading | Meaning |
+|---|---|---|
+| pin 7 | ~12 V | a live K-line is here |
+| pin 8 | ~12 V | a live K-line is here too |
+| either | ~0 V or drifting | nothing on that pin |
+
+A K-line idles pulled up to battery voltage. **If pin 7 reads ~0 V and pin 8 reads ~12 V, the cable
+is fine and has been talking to a dead pin all along.**
+
+Then, and only then, the fix: a jumper from pin 7 to pin 8 **inside the cable's own OBD plug** — not
+in the car's socket, which should not be modified. It ties the two diagnostic buses together, which
+is what the forum fix does and why it works.
+
+## What was thought to be left to measure
 
 Eleven runs. Both of the tests that remained — the radio beacon and the orange-LED comparison — turn
 out to read out as a human judgement about a faint, fast signal, and neither can carry a conclusion.
