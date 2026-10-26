@@ -1458,6 +1458,23 @@ class MainActivity : AppCompatActivity() {
                     if (reportWindow(dev.readTimed(600), tag)) anyLate = true
                 }
             }
+            log("")
+            log("  --- part 3: each CBUS state, DTR pulse, 1.2 s listen ---")
+            log("  CBUS0-3 are IOMODE in the EEPROM, i.e. software GPIO. On a board with an MCU")
+            log("  between the FTDI and the transceiver, the obvious things to wire them to are")
+            log("  the MCU's RESET and FLMD0. A state that releases the part would show up here.")
+            for (values in 0..15) {
+                if (stopRequested) { log("  stopped"); return }
+                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.setCbus(directions = 0x0F, values = values)
+                Thread.sleep(40)
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(100)
+                dev.purge()
+                dev.setModemControl(dtr = false, rts = null)
+                val tag = "CBUS=%X%s pulse".format(values, if (values == 0) " (all low)" else "")
+                if (reportWindow(dev.readTimed(1200), tag)) anyLate = true
+            }
         } catch (e: Throwable) {
             log("  late-reply hunt failed: ${e.javaClass.simpleName}: ${e.message}")
         } finally {
@@ -2530,5 +2547,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.20-probe"
+    const val NAME = "0.21-probe"
 }

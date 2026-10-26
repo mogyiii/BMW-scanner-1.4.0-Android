@@ -46,15 +46,20 @@ instrument being spoken to in the wrong language. Full reasoning in `docs/findin
 
 ### What to do, cheapest first
 
-1. **Run the late-reply hunt on the desk, tonight, not just in the car.** A 78K0S runs from 2 V and
-   may be powered from the FT232R's own supply. Every read in this project closed 40–150 ms after
-   transmission; an MCU boots, thinks and answers late. Costs nothing: plug the cable into the
-   phone and the run can be driven over adb.
-2. **Capture the vendor software talking to a *powered* cable.** The experiment never performed. It
-   hands over the command protocol outright. Needs 12 V on the plug's pin 16 and pin 4/5, or the car.
-3. **Flash programming mode.** If CBUS0–3 go to `FLMD0` and `RESET`, the 78K0S can be put into its
-   documented UART bootloader entirely in software, from the existing app. Even a silicon-signature
-   reply would prove U1 is alive and listening.
+1. ~~Run the late-reply hunt on the desk.~~ **Done, run 15: 52 listening windows, 0 bytes.** The MCU
+   is on the vehicle rail, not USB, so nothing on the desk can reach it. That closes the desk for
+   probing, for flash-mode entry via CBUS, and for a vendor capture alike.
+2. **Run the late-reply hunt in the car** — `latehunt`, or the top button. This is the live version
+   of run 15, with the MCU actually powered. Every read in this project has closed 40–150 ms after
+   transmission while a microcontroller boots, thinks and answers late, so this is the first time
+   anything has listened long enough to see a reply. The log says plainly whether anything arrived
+   after 25 ms.
+3. **Capture the vendor software talking to a powered cable.** The experiment never performed, and
+   it hands over the command protocol outright. Needs 12 V on the plug's pin 16 and pin 4/5 — or the
+   PC and the car in the same place.
+4. **Flash programming mode.** If CBUS0–3 go to `FLMD0` and `RESET`, the 78K0S can be put into its
+   documented UART bootloader from the existing app. Run 15 showed the CBUS sweep does nothing on
+   USB alone, as expected; it is still worth repeating in the car, where the part is awake.
 
 ## Current state in one line
 

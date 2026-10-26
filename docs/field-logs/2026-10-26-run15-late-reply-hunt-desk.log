@@ -1,0 +1,72 @@
+22:18:55.413  >>> remote command: latehunt
+22:18:55.435  === LATE-REPLY HUNT ===
+22:18:55.438  Listening for a fixed window with no early exit, and timestamping what arrives.
+22:18:55.439  The transmission artefact is immediate, so ANYTHING after 25 ms is something else.
+
+22:18:55.445    --- part 1: DTR pulse, then 1.2 s of silence ---
+22:18:55.446    If DTR resets the part, a boot message can arrive long after we stopped looking.
+22:18:56.769        9600 NONE pulse: 0 byte(s) immediately, nothing after 25 ms
+22:18:58.093        9600 EVEN pulse: 0 byte(s) immediately, nothing after 25 ms
+22:18:59.417       10400 NONE pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:00.744       10400 EVEN pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:02.069       19200 NONE pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:03.393       19200 EVEN pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:04.717       38400 NONE pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:06.046       38400 EVEN pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:07.369       57600 NONE pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:08.694       57600 EVEN pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:10.020      115200 NONE pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:11.345      115200 EVEN pulse: 0 byte(s) immediately, nothing after 25 ms
+
+22:19:11.351    --- part 2: a probe, then 600 ms of listening ---
+22:19:11.353    In case it only speaks when spoken to. Probes are deliberately varied.
+22:19:11.976        9600 probe1 00: 0 byte(s) immediately, nothing after 25 ms
+22:19:12.600        9600 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+22:19:13.225        9600 probe3 81 11 F1 81 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:13.848        9600 probe4 00 04 00 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:14.471       10400 probe1 00: 0 byte(s) immediately, nothing after 25 ms
+22:19:15.093       10400 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+22:19:15.716       10400 probe3 81 11 F1 81 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:16.339       10400 probe4 00 04 00 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:16.961       19200 probe1 00: 0 byte(s) immediately, nothing after 25 ms
+22:19:17.581       19200 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+22:19:18.202       19200 probe3 81 11 F1 81 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:18.823       19200 probe4 00 04 00 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:19.443       38400 probe1 00: 0 byte(s) immediately, nothing after 25 ms
+22:19:20.065       38400 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+22:19:20.688       38400 probe3 81 11 F1 81 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:21.309       38400 probe4 00 04 00 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:21.931       57600 probe1 00: 0 byte(s) immediately, nothing after 25 ms
+22:19:22.553       57600 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+22:19:23.177       57600 probe3 81 11 F1 81 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:23.801       57600 probe4 00 04 00 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:24.422      115200 probe1 00: 0 byte(s) immediately, nothing after 25 ms
+22:19:25.045      115200 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+22:19:25.667      115200 probe3 81 11 F1 81 04: 0 byte(s) immediately, nothing after 25 ms
+22:19:26.290      115200 probe4 00 04 00 04: 0 byte(s) immediately, nothing after 25 ms
+
+22:19:26.295    --- part 3: each CBUS state, DTR pulse, 1.2 s listen ---
+22:19:26.296    CBUS0-3 are IOMODE in the EEPROM, i.e. software GPIO. On a board with an MCU
+22:19:26.299    between the FTDI and the transceiver, the obvious things to wire them to are
+22:19:26.300    the MCU's RESET and FLMD0. A state that releases the part would show up here.
+22:19:27.667      CBUS=0 (all low) pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:29.032      CBUS=1 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:30.399      CBUS=2 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:31.763      CBUS=3 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:33.129      CBUS=4 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:34.493      CBUS=5 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:35.860      CBUS=6 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:37.224      CBUS=7 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:38.591      CBUS=8 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:39.954      CBUS=9 pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:41.319      CBUS=A pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:42.683      CBUS=B pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:44.049      CBUS=C pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:45.414      CBUS=D pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:46.778      CBUS=E pulse: 0 byte(s) immediately, nothing after 25 ms
+22:19:48.143      CBUS=F pulse: 0 byte(s) immediately, nothing after 25 ms
+
+22:19:48.154  Nothing arrived later than 25 ms anywhere. Every byte was the immediate artefact.
+22:19:48.156  === end late-reply hunt ===
+22:19:48.171  log saved: /storage/emulated/0/Android/data/hu.bmwscanner/files/ds2probe-20261026-221948.log
+22:20:15.689  >>> remote command: save

@@ -640,6 +640,33 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 15: on USB alone the microcontroller is dead, in 52 windows
+
+Desk, cable on the phone, no car. The late-reply hunt in full — fixed listening windows, no early
+exit, arrival times recorded. (`field-logs/2026-10-26-run15-late-reply-hunt-desk.log`)
+
+| Part | Windows | Result |
+|---|---|---|
+| DTR pulse, then 1.2 s of silence | 6 rates × 2 parities = 12 | **0 bytes** |
+| A probe, then 600 ms | 6 rates × 4 probes = 24 | **0 bytes** |
+| Each CBUS state, DTR pulse, 1.2 s | 16 | **0 bytes** |
+
+Fifty-two windows, roughly fifty seconds of listening, and **not one byte** — not even the immediate
+artefact, which only ever appears on the car.
+
+This is a clean negative and it settles the power question raised in run 14. The µPD78F9234 runs
+from 2 V and could in principle have been fed from the FT232R's own supply; it is not. **The MCU is
+on the vehicle rail**, with the Si9241A's `VBB`, both from OBD pin 16.
+
+Which closes the desk for every remaining idea at once. No probing, no flash-programming-mode entry
+via CBUS, and no vendor-software capture — none of them can work with the cable on USB alone,
+because there is nothing awake at the other end of the UART. The probes and the CBUS sweep were
+worth running precisely to establish that rather than assume it.
+
+**It also retrospectively excuses every desk measurement in this project.** "Off the car: total
+silence, 32 baud/parity combinations" was never evidence about the cable's health. It was a
+measurement of an unpowered microcontroller.
+
 ## Run 14: the parts are identified, and the premise of this whole project was wrong
 
 A 16320 × 12240 photograph of the component side, pulled off the phone over adb and cropped at
