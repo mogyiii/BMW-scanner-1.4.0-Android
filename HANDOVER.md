@@ -13,6 +13,49 @@ Wanted features: fault codes read/clear (airbag included — that is why a gener
 do), live values, service reset, module identification. **Odometer writing is out of scope and will
 not be implemented.**
 
+## Run 14: the premise was wrong, and the cable is probably fine
+
+**Read this first. It supersedes every verdict below it.**
+
+A 200-megapixel photograph of the component side identified both unknown parts:
+
+```
+USB  ->  FT232RL (U4)  ->  NEC uPD78F9234 MCU (U1)  ->  Si9241A (U3) + Q1A/Q2A  ->  OBD pins
+```
+
+- **U1 = NEC µPD78F9234** — an 8-bit flash microcontroller, 78K0S/KB1+ family, 8 KB flash, 30-pin
+  SSOP. The pin count matches exactly.
+- **U3 = Vishay Siliconix Si9241A** — an ISO 9141 K-line / L-line interface IC. The correct part,
+  properly specified.
+
+**This is a microcontroller-based instrument, not a USB-serial adapter with a transceiver on the
+end.** Every byte this project has ever sent went into an MCU running the vendor's firmware, waiting
+for its own command protocol. The DS2 frames never reached the K-line and never could have — on a
+perfectly healthy cable.
+
+Every finding now has one explanation: no echo because an MCU does not echo; identical replies from
+all 256 addresses because nothing was replying; RXD not following TXD because there is an MCU
+between them; silence off the car because the MCU and the Si9241A's `VBB` come from OBD pin 16; and
+the vendor software's "Hardware faulty" because it pulses DTR and waits for the cable to *announce
+itself*, which an unpowered MCU cannot do. Even the FT232R's CBUS0–3 being set to IOMODE fits — the
+obvious thing to wire them to is the MCU's `RESET` and `FLMD0`, the two pins that put a 78K0S into
+flash programming mode.
+
+**So the cable is most likely not faulty.** Three sessions of diagnosis measured a working
+instrument being spoken to in the wrong language. Full reasoning in `docs/findings.md`, "Run 14".
+
+### What to do, cheapest first
+
+1. **Run the late-reply hunt on the desk, tonight, not just in the car.** A 78K0S runs from 2 V and
+   may be powered from the FT232R's own supply. Every read in this project closed 40–150 ms after
+   transmission; an MCU boots, thinks and answers late. Costs nothing: plug the cable into the
+   phone and the run can be driven over adb.
+2. **Capture the vendor software talking to a *powered* cable.** The experiment never performed. It
+   hands over the command protocol outright. Needs 12 V on the plug's pin 16 and pin 4/5, or the car.
+3. **Flash programming mode.** If CBUS0–3 go to `FLMD0` and `RESET`, the 78K0S can be put into its
+   documented UART bootloader entirely in software, from the existing app. Even a silicon-signature
+   reply would prove U1 is alive and listening.
+
 ## Current state in one line
 
 Finished. The Android software works and is verified; **the cable's vehicle-side line driver does

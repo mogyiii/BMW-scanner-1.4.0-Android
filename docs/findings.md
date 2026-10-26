@@ -640,6 +640,64 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 14: the parts are identified, and the premise of this whole project was wrong
+
+A 16320 × 12240 photograph of the component side, pulled off the phone over adb and cropped at
+native resolution (`photos/2026-10-26-pcb-component-side.jpg`; the full-resolution original is not
+checked in). Both unknown parts read cleanly.
+
+| Ref | Marking | What it is |
+|---|---|---|
+| **U1** | `NEC CHINA / F9234 Z5 / 023EB733`, 30-pin SSOP | **NEC µPD78F9234** — an 8-bit flash microcontroller, 78K0S/KB1+ family, 8 KB flash, 2–5.5 V, 30-pin SSOP. The pin count matches exactly, 15 a side |
+| **U3** | `9241A / ⟨Vishay logo⟩ BV △ / T824`, SOIC-8 | **Vishay Siliconix Si9241A** — an ISO 9141 dual K-line / L-line interface IC |
+| U4 | `FTDI 2523-C / G0370111 / FT232RL` | the USB UART, proved healthy over twelve runs |
+
+So the signal path is:
+
+```
+USB  ->  FT232RL (U4)  ->  µPD78F9234 MCU (U1)  ->  Si9241A (U3) + Q1A/Q2A  ->  OBD pins
+```
+
+**This cable is a microcontroller-based instrument, not a USB-serial adapter with a transceiver on
+the end.** Every byte this project has ever sent went into an 8-bit MCU running the vendor's
+firmware, which was waiting for its own command protocol. The DS2 frames never reached the K-line
+and never could have.
+
+### Everything now has one explanation
+
+| Observation | Why |
+|---|---|
+| No echo, ever, at any rate | a microcontroller does not echo |
+| All 256 addresses answer identically, carrying no information from the request | nothing was replying; the bytes were the transmission artefact |
+| RXD does not follow TXD (run 12) | there is an MCU between them, not a wire |
+| Off the car, total silence | the MCU and the Si9241A's `VBB` come from OBD pin 16 |
+| The vendor software's *"Hardware faulty"* on a desk, after pulsing DTR and waiting for the cable to **announce itself** | it was waiting for the MCU's sign-on from an unpowered MCU |
+| Zero bulk bytes in the whole VM capture | the conversation never got past the sign-on, so the command protocol was never transmitted |
+| The FT232R's CBUS0–3 set to IOMODE in EEPROM | software-driven GPIO, and the obvious thing to wire them to is the MCU's `RESET` and `FLMD0` — the two pins that put a 78K0S into flash programming mode |
+
+That last row reframes the CBUS hunt. Those pins were almost certainly never a bus control; they are
+how the vendor reflashes the MCU in circuit.
+
+**The cable is most likely not faulty at all.** Every measurement in this document is what a working
+microcontroller-based interface looks like when you speak the wrong language to it. The run-9
+transient, the run-12 loopback and the data-independent replies are all consistent with intact
+hardware and a wrong premise.
+
+### What would make it usable
+
+Knowing what U1 expects on its UART. Three routes, in order of cost:
+
+1. **Listen longer.** Every read in this project closed 40–150 ms after transmission (see
+   "Reopened", item 3). A microcontroller boots, thinks, and answers late. The late-reply hunt in
+   v0.20 is the free attempt, and it is worth running **on the desk as well as in the car**, because
+   a 78K0S runs from 2 V and may well be powered from the FT232R's own supply.
+2. **Capture the vendor software talking to a powered cable.** The one experiment never performed.
+   It hands over the protocol outright.
+3. **Flash programming mode.** The 78K0S enters it via `FLMD0` and `RESET`, and talks a documented
+   UART protocol afterwards. If CBUS0–3 are wired to those pins, it is reachable entirely in
+   software from the existing app, and even a silicon-signature response would be definitive proof
+   that U1 is alive and listening.
+
 ## Run 13: the cable was opened, and it is not a transparent adapter
 
 2026-10-26. The owner opened the housing and photographed the component side
