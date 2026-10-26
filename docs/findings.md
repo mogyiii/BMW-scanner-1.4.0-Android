@@ -640,6 +640,67 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 13: the cable was opened, and it is not a transparent adapter
+
+2026-10-26. The owner opened the housing and photographed the component side
+(`photos/2026-10-26-pcb-component-side.jpg`). The connector pins are soldered straight into the
+board, so the solder side cannot be seen without destroying it — and does not need to be.
+
+Board: `BQ1006050`, silkscreened `BMW1.4-20100622B`, so a 2010 design.
+
+| Ref | Part | Where it sits |
+|---|---|---|
+| **U4** | `FTDI 2523-C / G0370111 / **FT232RL**` | next to the USB-B connector |
+| **U1** | `NEC CHINA / FB234 Z5 / 023EB733`, ~28-pin SSOP | **between the OBD side and U4** |
+| U3 | SOIC-8, marking unread | by the OBD connector |
+| Q1A, Q2A | SOT-23 transistors with R12A/R13A/R15A/R16A | by the OBD connector |
+| D1 | `M7` (SMD 1N4007) | reverse protection on the 12 V from pin 16 |
+| DS1 / DS3 | yellow and green LEDs | by the USB connector |
+
+**A transparent USB-to-K-line adapter needs an FTDI, a transceiver and passives. It does not need a
+28-pin NEC part in the middle of the signal path.** U3 and the Q1A/Q2A pair by the connector are
+already enough to be the line driver; U1 is something else, and its position — fed from the OBD side,
+feeding U4 — is where a **microcontroller** goes.
+
+### This invalidates the run-12 verdict
+
+Run 12 found that RXD does not follow TXD and concluded the receive line is floating. **That
+inference assumed a wire between them.** With a microcontroller in the path, TXD and RXD would never
+correlate *on a perfectly healthy cable either* — the FT232R's transmit line goes to the MCU's
+receive pin, and nothing echoes. The measurement stands exactly as recorded; the conclusion drawn
+from it does not, and is withdrawn.
+
+The same applies, more broadly, to the whole approach. Writing raw DS2 frames into the FT232R and
+expecting them on the K-line only works if the chip's TXD *is* the K-line path. If U1 is an MCU, the
+frames have been going into a microcontroller that is waiting for its own command protocol, and no
+amount of baud, parity, CBUS or handshake sweeping would ever have produced an answer. **A healthy
+cable would have behaved exactly as this one has.**
+
+### It also explains the desk/car asymmetry that nothing else did
+
+The green LED shows the automotive side is powered from OBD pin 16, not from USB. If U1 is powered
+from that rail then **on the desk the MCU is simply switched off**. That accounts for:
+
+- *"Off the car: total silence, RXD never moves"* — nothing is driving RXD because the MCU is dead.
+- The vendor software reporting **"Hardware faulty"** in the VM, where the cable sat on a desk. Its
+  start-up pulses DTR and then *waits for the cable to announce itself*; an unpowered MCU cannot
+  announce anything. That result was always treated as meaningless. It was worse than meaningless —
+  it was the expected outcome, and it was pointing at this the whole time.
+- The owner's report that the **orange LED blinks on the desk but not in the car**, which has been
+  recorded as an unexplained oddity since run 11.
+
+### What has not changed
+
+The ~14 ms burst is still a transient and still not an MCU sign-on. Re-reading run 7 with fresh eyes
+confirms it: the byte count scales with the sample rate — 12–14 bytes at 9600, 25–27 at 19200, 46–50
+at 38400 — which is a fixed-duration analogue event sampled faster, not a message. The run-9 edge
+analysis said the same thing by a different route.
+
+### Next
+
+Identify U1, and capture what the vendor software actually says to it. The capture needs the
+automotive side **powered**, which the previous VM capture never had — see `HANDOVER.md`.
+
 ## Run 12: the receive line is not connected to what the transmit line drives
 
 2026-10-26, on the car. Four loopback runs plus a line-state probe, minutes apart.

@@ -98,7 +98,57 @@ Still untested, and still a loose end: **the vendor software has never been run 
 connected to the car.** In the VM it sat on a desk, where its automotive side is unpowered, so
 "Hardware faulty" from that run means little.
 
-## Run 12 answered it: the receive line is floating
+## Run 13: the cable was opened, and there is a third chip in the path
+
+**Read this before anything below it. It withdraws the run-12 verdict and reframes the project.**
+
+The owner opened the housing (`docs/photos/2026-10-26-pcb-component-side.jpg`). Board `BQ1006050`,
+silkscreened `BMW1.4-20100622B`. Three active parts, not two:
+
+- **U4** — `FTDI 2523-C / FT232RL`, by the USB connector. The part we have proved healthy.
+- **U1** — `NEC CHINA / FB234 Z5 / 023EB733`, ~28-pin SSOP, **sitting between the OBD side and U4**.
+- **U3** plus the **Q1A/Q2A** transistor pair, by the OBD connector — enough on their own to be the
+  K-line driver.
+
+A transparent USB-to-K-line adapter does not need a 28-pin part in the middle. U1's position is
+where a **microcontroller** goes, and if that is what it is, then **this cable has never been a
+transparent adapter** and every raw DS2 frame we have sent went into an MCU waiting for a different
+command protocol. A perfectly healthy cable would have behaved exactly as this one has.
+
+It also explains, at last, the desk/car asymmetry: the automotive side is powered from OBD pin 16,
+so **on the desk the MCU is switched off**. Hence total silence off the car, hence the vendor
+software's "Hardware faulty" in the VM — its start-up pulses DTR and waits for the cable to
+*announce itself*, which an unpowered MCU cannot do — and hence the orange LED behaving differently
+in the car.
+
+### Do not do these
+
+- **Do not break the board** to see the solder side. The connector pins are soldered into it, and
+  nothing needed is over there.
+- **Do not do the pin 7 ↔ pin 8 jumper yet.** If an MCU is in the path, the OBD pin is not the
+  problem, and the jumper would be modifying a cable that may be fine.
+
+### What to do instead: capture the vendor software with the cable powered
+
+The one experiment never performed. The VM capture of `BMWScan140.exe` was taken with the cable on a
+desk, where its MCU had no power, so it only ever recorded a failed handshake and **zero bulk
+bytes**. Repeat it with the automotive side powered and the capture hands us the MCU's command
+protocol outright.
+
+Two ways to get there, neither needing a laptop:
+
+1. **Bench power, no car at all.** Feed 12 V into the cable's own OBD plug — **pin 16 positive, pin
+   4 or 5 ground** — from any 12 V supply (an old router or LED-strip brick). The MCU powers up next
+   to the PC, the vendor software completes its handshake, and the USB capture records the whole
+   conversation. The K-line will not be connected, which does not matter: we are after the protocol,
+   not a diagnosis. Check polarity twice; D1 (`M7`) gives some reverse protection but do not rely on
+   it.
+2. **A long USB extension** to reach the car from the PC. Active USB 2.0 extenders run to 10 m and
+   chain.
+
+Also worth doing: a sharp close-up of **U1** and of **U3**, so both can be identified by part number.
+
+## Run 12, now demoted: RXD does not follow TXD — but that no longer means what it said
 
 **Measured on the car, 2026-10-26, four reproducible runs.** The loopback test below was built to
 ask whether the receive line follows the transmit line, and the answer is no — decisively.
