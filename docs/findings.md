@@ -640,6 +640,79 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 12: the receive line is not connected to what the transmit line drives
+
+2026-10-26, on the car. Four loopback runs plus a line-state probe, minutes apart.
+(`field-logs/2026-10-26-run12-*.log`)
+
+**The cable was on the car, confirmed by measurement rather than by report.** The line-state probe
+reads, while transmitting, `0xFE` 10 %, `0xFD` 6 %, `0xFC` 2 % — the receive line goes low 8 % of the
+time. The desk control of run 3 shows `0xFE` 13 % and **no `0xFD` at all**, with the log's own note
+*"bit0 = TXD, seen going low as we transmit; RXD never followed"*. So RXD does respond to something
+on the car that is absent on the desk.
+
+### The loopback result
+
+A square wave on TXD, RXD sampled on the same bitbang clock, cross-correlated against the wave
+actually driven:
+
+| Edge rate | RXD | Match against TXD |
+|---|---|---|
+| 2000 µs/level | **never moved**, 5980 samples | — |
+| 500 µs/level | **never moved** | — |
+| 100 µs/level | **never moved** | — |
+| 50 µs/level | active, low in 39–55 % of samples | **51 %** — a coin flip |
+| 2000 µs/level, gate shut (control) | never moved | — |
+
+Four runs, reproducible. One run showed 4 low samples out of 5980 at 2000 µs; that is noise.
+
+**This is capacitive crosstalk, not a conducted echo**, and the two look nothing alike once you
+measure them:
+
+- Crosstalk couples the *rate of change*, so it needs fast edges. At 2 ms, 500 µs and 100 µs per
+  level the coupling never crosses the input threshold and the line is flat. At 50 µs it does, and
+  the line twitches.
+- It is **uncorrelated** — 51 % is chance — because what couples is a brief spike at each edge, not a
+  copy of the level.
+- A real single-wire echo would be near 100 % correlated at **every** rate and *cleanest at the
+  slowest*. Instead the slowest rate is where RXD is deadest. At 2 ms per level no transceiver
+  bandwidth limit on earth could hide an echo.
+
+### This explains every observation in the project
+
+The receive line is a **floating input picking up its neighbour**, which is what `probeLineState`
+has printed on every car run since the first one and nobody followed up:
+
+```
+RXD high in 91% of samples - UNSTABLE - what an unconnected, undriven input looks like
+```
+
+Once that is the premise, the baud sweep stops being mysterious and becomes a prediction:
+
+| Rate | Edge spacing | Measured | Crosstalk predicts |
+|---|---|---|---|
+| 1200 | 833 µs | **silence** | edges far too slow to couple — nothing |
+| 9600 | 104 µs | garbage, always starting `C4` | near the coupling threshold: sporadic spikes misread as bytes, and the first spike after idle always has the same shape, so the first byte is always the same |
+| 230400 | 4.3 µs | `00 00 00 …` | coupling so strong the line is held down |
+
+And the data-independence falls out for free: **nothing was ever replying.** The "replies" were our
+own transmission's crosstalk being decoded as data, which is why all 256 addresses answered
+identically and why `0x00` and `0xFF` gave the same thing.
+
+### What it does not settle
+
+Whether the **transmit** side reaches the bus. A disconnected line pin and a dead transceiver both
+produce a floating receive input, and this measurement cannot separate them. The free thing to try
+is the documented pin 7 ↔ pin 8 jumper; if the loopback result is unchanged after it, the
+transceiver is the fault.
+
+### One unresolved discrepancy, stated rather than smoothed over
+
+At 100 µs per level the loopback sees nothing, while 9600 baud UART — edges every 104 µs, the same
+rate — makes RXD low 8 % of the time in the line-state probe. Sampling duration explains part of it
+(650 ms of `readPins` against 38 ms of bitbang) but not all. It does not affect the conclusion, which
+rests on the 2 ms result, but it is not explained.
+
 ## Reopened: three things that were never tried
 
 Written after the owner pushed back on the verdict, which was the right call. The diagnosis assumed

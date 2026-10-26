@@ -1,0 +1,16 @@
+16:11:37.025  >>> remote command: loopback
+16:11:37.038  === TXD -> RXD LOOPBACK ===
+16:11:37.040  A K-line is one wire, so what we drive is what we should hear. Driving a square
+16:11:37.041  wave on TXD and sampling RXD on the same clock says whether our line pin is on a
+16:11:37.043  live bus - with a number, and without a multimeter.
+
+16:11:37.389    clock calibration: 12000 samples, divisor set for 9600, back in 312 ms
+16:11:37.392    -> 38462 samples/s, so the bitbang clock is the programmed baud x4
+
+16:11:37.481    2000 us/level (230 samples), 26 levels: RXD never moved (constant high)
+16:11:37.567     500 us/level (57 samples), 105 levels: RXD never moved (constant high)
+16:11:37.626     100 us/level (11 samples), 400 levels: RXD never moved (constant high)
+16:11:37.665      50 us/level (5 samples), 400 levels: RXD never moved (constant high)
+16:11:37.666    CONTROL, gate shut: an echo that survives this is not coming via the bus
+16:11:37.728    2000 us/level (230 samples), 26 levels: RXD never moved (constant high)
+16:11:37.730  === end loopback ===

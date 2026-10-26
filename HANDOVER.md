@@ -98,7 +98,35 @@ Still untested, and still a loose end: **the vendor software has never been run 
 connected to the car.** In the VM it sat on a desk, where its automotive side is unpowered, so
 "Hardware faulty" from that run means little.
 
-## The pin 7 / pin 8 question — do this first, it needs a multimeter and nothing else
+## Run 12 answered it: the receive line is floating
+
+**Measured on the car, 2026-10-26, four reproducible runs.** The loopback test below was built to
+ask whether the receive line follows the transmit line, and the answer is no — decisively.
+
+| Edge rate | RXD | Match |
+|---|---|---|
+| 2000 µs/level | **never moved**, 5980 samples | — |
+| 500 µs | never moved | — |
+| 100 µs | never moved | — |
+| 50 µs | low in 39–55 % of samples | **51 %, a coin flip** |
+
+That is capacitive crosstalk from the adjacent transmit pin, not an echo. Crosstalk needs fast
+edges, so it appears only at 50 µs and is uncorrelated; a real single-wire echo would be near 100 %
+at every rate and **best at the slowest**, and the slowest is where RXD is deadest. At 2 ms per level
+no transceiver bandwidth limit could hide an echo.
+
+So `probeLineState` was right all along, in its own words: *"what an unconnected, undriven input
+looks like"*. And it explains the whole baud sweep — 1200 silent because the edges are too slow to
+couple, 9600 producing sporadic spikes misread as bytes with the same first byte every time,
+230400 pinning the line low. **Nothing was ever replying.** The replies were our own crosstalk.
+
+Full reasoning and the table of predictions in `docs/findings.md`, "Run 12".
+
+**What it does not settle:** whether the *transmit* side reaches the bus. A disconnected line pin and
+a dead transceiver both leave the receive input floating. The free thing to try is the pin 7 ↔ pin 8
+jumper; if the loopback is unchanged after it, the transceiver is the fault and software is finished.
+
+## The pin 7 / pin 8 question — what is left of it
 
 **The verdict below was reached too early.** It assumed the cable's line driver is dead. There is a
 second hypothesis that produces every single measurement in this project with an **intact** cable,

@@ -1,0 +1,18 @@
+16:14:42.146  >>> remote command: loopback
+16:14:42.153  === TXD -> RXD LOOPBACK ===
+16:14:42.154  A K-line is one wire, so what we drive is what we should hear. Driving a square
+16:14:42.155  wave on TXD and sampling RXD on the same clock says whether our line pin is on a
+16:14:42.157  live bus - with a number, and without a multimeter.
+
+16:14:42.512    clock calibration: 12000 samples, divisor set for 9600, back in 317 ms
+16:14:42.514    -> 37855 samples/s, so the bitbang clock is the programmed baud x4
+
+16:14:42.582    2000 us/level (230 samples), 26 levels: RXD never moved (constant high)
+16:14:42.650     500 us/level (57 samples), 105 levels: RXD never moved (constant high)
+16:14:42.700     100 us/level (11 samples), 400 levels: RXD never moved (constant high)
+16:14:42.731      50 us/level (5 samples), 400 levels: RXD never moved (constant high)
+16:14:42.732    CONTROL, gate shut: an echo that survives this is not coming via the bus
+16:14:42.796    2000 us/level (230 samples), 26 levels: RXD never moved (constant high)
+16:14:42.800  === end loopback ===
+16:14:42.807  log saved: /storage/emulated/0/Android/data/hu.bmwscanner/files/ds2probe-20261026-161442.log
+16:14:53.064  >>> remote command: save
