@@ -151,6 +151,7 @@ class MainActivity : AppCompatActivity() {
                 "vendorinit" -> guarded(what) { vendorInit(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
+                "latehunt" -> guarded(what) { mcuHunt(device!!) }
                 "ledslow" -> {
                     val block = intent.getIntExtra("block", 6000)
                     val rounds = intent.getIntExtra("rounds", 4)
@@ -445,7 +446,9 @@ class MainActivity : AppCompatActivity() {
         row(button("RADIO BEACON") { withCable("beacon") { d -> radioBeacon(d) } },
             button("BURST CAPTURE") { withCable("burst") { d -> burstCapture(d) } })
 
-        row(button("LOOPBACK  <-- do this one") { withCable("loopback") { d -> loopbackCheck(d) } })
+        row(button("LATE-REPLY HUNT  <-- do this one") { withCable("latehunt") { d -> mcuHunt(d) } })
+
+        row(button("LOOPBACK") { withCable("loopback") { d -> loopbackCheck(d) } })
 
         row(button("ORANGE LED") { withCable("ledslow") { d -> ledRhythm(d) } },
             button("LED WALK") { withCable("ledwalk") { d -> ledWalk(d) } })
@@ -1380,6 +1383,118 @@ class MainActivity : AppCompatActivity() {
             runCatching { dev?.close() }
         }
         log("=== end LED walk ===")
+    }
+
+    /**
+     * Listens far longer than anything before it, looking for a reply that is separated in time
+     * from the transmission artefact.
+     *
+     * Run 13 opened the cable and found a ~28-pin NEC part sitting between the OBD side and the
+     * FT232R, where a microcontroller goes. If it is one, nothing we have ever sent was addressed to
+     * anything that could answer — and, more usefully, a microcontroller takes time. It boots after
+     * a reset, it thinks before replying, and it answers whenever it is ready rather than inside the
+     * window a K-line transaction would use.
+     *
+     * Every read in this project has closed far too early to see that. `Ds2Link.sendRaw` stops 40 ms
+     * after the line falls quiet, `vendorInit` stops 150 ms after, and on this cable the first thing
+     * to arrive is *always* the artefact — so the quiet timer has been starting immediately and
+     * every read has ended a few tens of milliseconds after transmission. A reply at 300 ms has
+     * never once been visible. That is a flaw in the measurements, not in the cable.
+     *
+     * So: fixed windows, no early exit, arrival times recorded. The artefact is immediate and fixed
+     * in duration, which makes the discriminator simple — **anything arriving after the first 25 ms
+     * is not the artefact**, whatever it contains. That is the thing to look for, and it needs no
+     * equipment beyond the phone and the car.
+     *
+     * Two halves. A silent listen after a DTR pulse, in case DTR resets the part and it announces
+     * itself late; and a probe-then-listen, in case it answers only when spoken to.
+     */
+    private fun mcuHunt(device: UsbDevice) {
+        log("=== LATE-REPLY HUNT ===")
+        log("Listening for a fixed window with no early exit, and timestamping what arrives.")
+        log("The transmission artefact is immediate, so ANYTHING after 25 ms is something else.")
+        log("")
+
+        val rates = listOf(9600, 10400, 19200, 38400, 57600, 115200)
+        var anyLate = false
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            log("  --- part 1: DTR pulse, then 1.2 s of silence ---")
+            log("  If DTR resets the part, a boot message can arrive long after we stopped looking.")
+            for (baud in rates) {
+                for (parity in listOf(FtdiDevice.Parity.NONE, FtdiDevice.Parity.EVEN)) {
+                    if (stopRequested) { log("  stopped"); return }
+                    dev.configure(baudRate = baud, parity = parity, latencyMs = 1)
+                    dev.setModemControl(dtr = true, rts = null)
+                    Thread.sleep(100)
+                    dev.purge()
+                    dev.setModemControl(dtr = false, rts = null)
+                    if (reportWindow(dev.readTimed(1200), "%6d %-4s pulse".format(baud, parity.name))) {
+                        anyLate = true
+                    }
+                }
+            }
+
+            log("")
+            log("  --- part 2: a probe, then 600 ms of listening ---")
+            log("  In case it only speaks when spoken to. Probes are deliberately varied.")
+            val probes = listOf(
+                byteArrayOf(0x00),
+                byteArrayOf(0xFF.toByte()),
+                byteArrayOf(0x81.toByte(), 0x11, 0xF1.toByte(), 0x81.toByte(), 0x04),
+                Ds2.frame(0x00, byteArrayOf(0x00)),
+            )
+            for (baud in rates) {
+                for ((i, probe) in probes.withIndex()) {
+                    if (stopRequested) { log("  stopped"); return }
+                    dev.configure(baudRate = baud, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                    dev.setModemControl(dtr = false, rts = null)
+                    dev.purge()
+                    dev.write(probe)
+                    val tag = "%6d probe%d %s".format(baud, i + 1, Ds2.hex(probe))
+                    if (reportWindow(dev.readTimed(600), tag)) anyLate = true
+                }
+            }
+        } catch (e: Throwable) {
+            log("  late-reply hunt failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+
+        log("")
+        log(if (anyLate) {
+            "SOMETHING ANSWERED LATE. Those lines are the first real result in this project - " +
+                "they cannot be the artefact, which is immediate."
+        } else {
+            "Nothing arrived later than 25 ms anywhere. Every byte was the immediate artefact."
+        })
+        log("=== end late-reply hunt ===")
+    }
+
+    /**
+     * Prints one listening window, split at 25 ms, and says whether anything came in late.
+     *
+     * The split is the whole point. Early bytes are the transmission artefact and have been
+     * accounted for since run 9; late bytes cannot be, so they are reported in full regardless of
+     * whether they parse as anything.
+     */
+    private fun reportWindow(batches: List<Pair<Long, ByteArray>>, tag: String): Boolean {
+        val early = batches.filter { it.first < 25 }.sumOf { it.second.size }
+        val late = batches.filter { it.first >= 25 }
+        val lateBytes = late.sumOf { it.second.size }
+
+        if (lateBytes == 0) {
+            log("    $tag: $early byte(s) immediately, nothing after 25 ms")
+            return false
+        }
+        log("    $tag: $early immediate, then $lateBytes LATE byte(s)  <<<<<<")
+        for ((at, chunk) in late) {
+            log("        at %4d ms: %s".format(at, Ds2.hex(chunk.copyOfRange(0, minOf(32, chunk.size)))))
+        }
+        return true
     }
 
     /**
@@ -2415,5 +2530,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.19-probe"
+    const val NAME = "0.20-probe"
 }

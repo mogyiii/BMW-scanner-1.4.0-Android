@@ -197,6 +197,38 @@ class FtdiDevice private constructor(
         return out.toByteArray()
     }
 
+    /**
+     * Collects everything that arrives over a fixed [windowMs], tagging each batch with how long
+     * after the call it turned up. Never returns early.
+     *
+     * [readUntilQuiet] cannot be used to look for a late reply, and that blind spot shaped most of
+     * this project. It stops once the line has been quiet for a moment, and on this cable the first
+     * thing to arrive is always the transmission artefact — so every read has been ending a few tens
+     * of milliseconds after transmission, and anything arriving later was invisible. A device that
+     * needs to boot, or a protocol that permits a response-pending reply, answers far outside that
+     * window.
+     *
+     * The timestamps are what make the result interpretable: the artefact is immediate and fixed in
+     * duration, so bytes separated from it in time are a different phenomenon whatever they contain.
+     */
+    fun readTimed(windowMs: Int): List<Pair<Long, ByteArray>> {
+        val out = ArrayList<Pair<Long, ByteArray>>()
+        val start = System.currentTimeMillis()
+        val deadline = start + windowMs
+        while (System.currentTimeMillis() < deadline) {
+            pump(20)
+            if (pending.isEmpty()) continue
+            val at = System.currentTimeMillis() - start
+            val chunk = ByteArray(pending.size) { pending.removeFirst() }
+            out.add(at to chunk)
+        }
+        if (pending.isNotEmpty()) {
+            val at = System.currentTimeMillis() - start
+            out.add(at to ByteArray(pending.size) { pending.removeFirst() })
+        }
+        return out
+    }
+
     // ---------------------------------------------------------------- CBUS GPIO
 
     /**
