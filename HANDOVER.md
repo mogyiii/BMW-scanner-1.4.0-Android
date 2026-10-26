@@ -123,8 +123,44 @@ couple, 9600 producing sporadic spikes misread as bytes with the same first byte
 Full reasoning and the table of predictions in `docs/findings.md`, "Run 12".
 
 **What it does not settle:** whether the *transmit* side reaches the bus. A disconnected line pin and
-a dead transceiver both leave the receive input floating. The free thing to try is the pin 7 ↔ pin 8
-jumper; if the loopback is unchanged after it, the transceiver is the fault and software is finished.
+a dead transceiver both leave the receive input floating.
+
+### The baseline, for comparison after the jumper
+
+The pin 7 ↔ pin 8 jumper has **not** been done. Run 12 is therefore the "before" measurement, and it
+is a good one — flat, reproducible, four runs:
+
+```
+2000 us/level (230 samples), 26 levels: RXD never moved (constant high)     <-- the row that matters
+ 500 us/level: RXD never moved
+ 100 us/level: RXD never moved
+  50 us/level: RXD low in 39-55% of samples, best match 51% (chance)
+```
+
+After the jumper, press **LOOPBACK** again, on the car, and read one line: the **2000 µs row**.
+
+- still `RXD never moved` → the jumper changed nothing. The transmit side does not reach the bus
+  either, the transceiver is the fault, and the software side is finished for good.
+- a match of 90 % or more → **the cable works.** It was wired to a pin this car does not use. The
+  project resumes at the protocol, which is wide open, because no initialisation sequence has ever
+  been sent (`docs/findings.md`, "Reopened", item 2).
+
+### Doing the jumper
+
+It has to go **inside the cable's own OBD plug** — the plug is male, so there is nowhere to push a
+wire in from the front, and the car's socket is not to be modified. Opening the housing is a bonus
+in itself: it shows which pin positions actually have wires on them, and an unwired pin 7 would
+answer the whole question by eye.
+
+Four things to get right:
+
+1. **Unplug it from the car first.** Pin 16 is live whenever the cable is in the socket.
+2. **Trust the moulded pin numbers, not the positions.** The numbering on a male plug is mirrored
+   left-to-right relative to the car's socket, and that is the usual way to get this wrong.
+3. **Pin 8 sits directly above pin 16, which is battery positive.** A solder bridge from 8 to 16
+   would put 12 V onto the K-line. Inspect for stray solder before plugging it back in.
+4. While the case is open, **note the markings on the chip between the FT232R and the connector** —
+   an L9637D or similar. That is the suspect part, and knowing which it is makes it replaceable.
 
 ## The pin 7 / pin 8 question — what is left of it
 
