@@ -1412,7 +1412,9 @@ class MainActivity : AppCompatActivity() {
     private fun mcuHunt(device: UsbDevice) {
         log("=== LATE-REPLY HUNT ===")
         log("Listening for a fixed window with no early exit, and timestamping what arrives.")
-        log("The transmission artefact is immediate, so ANYTHING after 25 ms is something else.")
+        log("The burst is NOT immediate - it lands ~125 ms after a DTR release - so timing alone")
+        log("cannot tell it from a reply. What can: it is byte-identical every single time, so")
+        log("windows are compared against the fingerprint recorded in run 7.")
         log("")
 
         val rates = listOf(9600, 10400, 19200, 38400, 57600, 115200)
@@ -1432,9 +1434,8 @@ class MainActivity : AppCompatActivity() {
                     Thread.sleep(100)
                     dev.purge()
                     dev.setModemControl(dtr = false, rts = null)
-                    if (reportWindow(dev.readTimed(1200), "%6d %-4s pulse".format(baud, parity.name))) {
-                        anyLate = true
-                    }
+                    val tag = "%6d %-4s pulse".format(baud, parity.name)
+                    if (reportWindow(dev.readTimed(1200), tag, knownBurst[baud])) anyLate = true
                 }
             }
 
@@ -1473,7 +1474,7 @@ class MainActivity : AppCompatActivity() {
                 dev.purge()
                 dev.setModemControl(dtr = false, rts = null)
                 val tag = "CBUS=%X%s pulse".format(values, if (values == 0) " (all low)" else "")
-                if (reportWindow(dev.readTimed(1200), tag)) anyLate = true
+                if (reportWindow(dev.readTimed(1200), tag, knownBurst[19200])) anyLate = true
             }
         } catch (e: Throwable) {
             log("  late-reply hunt failed: ${e.javaClass.simpleName}: ${e.message}")
@@ -1483,35 +1484,62 @@ class MainActivity : AppCompatActivity() {
 
         log("")
         log(if (anyLate) {
-            "SOMETHING ANSWERED LATE. Those lines are the first real result in this project - " +
-                "they cannot be the artefact, which is immediate."
+            "SOMETHING DIFFERED from the known burst - see the lines marked <<<<<<. " +
+                "That is the first thing in this project that is not the burst."
         } else {
-            "Nothing arrived later than 25 ms anywhere. Every byte was the immediate artefact."
+            "Every window was either silent or the known burst, byte for byte. Nothing new."
         })
         log("=== end late-reply hunt ===")
     }
 
     /**
-     * Prints one listening window, split at 25 ms, and says whether anything came in late.
+     * The DTR-pulse burst exactly as recorded on 2026-10-19 (run 7), keyed by baud rate.
      *
-     * The split is the whole point. Early bytes are the transmission artefact and have been
-     * accounted for since run 9; late bytes cannot be, so they are reported in full regardless of
-     * whether they parse as anything.
+     * Run 16 reproduced both of these **byte for byte, eight days later**, and then reproduced the
+     * 19200 one sixteen more times across every CBUS state in a single sitting. That is not a
+     * fingerprint of a reply; it is a fingerprint of a fixed, deterministic event in the cable's own
+     * circuitry, and having it written down is what lets the tool say "this again" instead of
+     * leaving a person to compare hex by eye.
      */
-    private fun reportWindow(batches: List<Pair<Long, ByteArray>>, tag: String): Boolean {
-        val early = batches.filter { it.first < 25 }.sumOf { it.second.size }
-        val late = batches.filter { it.first >= 25 }
-        val lateBytes = late.sumOf { it.second.size }
+    private val knownBurst: Map<Int, String> = mapOf(
+        9600 to "4B EF 4F AC 2B E6 05 41 03 46 EE 6C 2F F7",
+        19200 to "9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B",
+    )
 
-        if (lateBytes == 0) {
-            log("    $tag: $early byte(s) immediately, nothing after 25 ms")
+    /**
+     * Prints one listening window and says whether it contained anything genuinely unaccounted for.
+     *
+     * The first version of this split the window at 25 ms and called everything later a late reply.
+     * That was wrong, and it produced a false alarm loud enough to be embarrassing: the burst is not
+     * immediate, it arrives **about 125 ms after a DTR release** and about 90 ms after a chip reset,
+     * so every window tripped the flag. Timing alone cannot separate the burst from a reply, because
+     * the burst is itself late.
+     *
+     * What does separate them is that the burst is byte-identical every time. So where a fingerprint
+     * is known, the window is compared against it, and only a mismatch is worth anyone's attention.
+     */
+    private fun reportWindow(
+        batches: List<Pair<Long, ByteArray>>,
+        tag: String,
+        fingerprint: String? = null,
+    ): Boolean {
+        if (batches.isEmpty()) {
+            log("    $tag: silence for the whole window")
             return false
         }
-        log("    $tag: $early immediate, then $lateBytes LATE byte(s)  <<<<<<")
-        for ((at, chunk) in late) {
-            log("        at %4d ms: %s".format(at, Ds2.hex(chunk.copyOfRange(0, minOf(32, chunk.size)))))
+        val all = batches.flatMap { it.second.asIterable() }.toByteArray()
+        val hex = Ds2.hex(all)
+        val span = "%d-%d ms".format(batches.first().first, batches.last().first)
+
+        if (fingerprint != null && hex == fingerprint) {
+            log("    $tag: ${all.size} bytes at $span - the known burst, byte-identical to run 7")
+            return false
         }
-        return true
+
+        val verdict = if (fingerprint == null) "" else "   <<<<<< DIFFERS from the known burst"
+        log("    $tag: ${all.size} bytes at $span$verdict")
+        log("        ${if (hex.length <= 180) hex else hex.take(180) + " ..."}")
+        return fingerprint != null
     }
 
     /**
@@ -2547,5 +2575,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.21-probe"
+    const val NAME = "0.22-probe"
 }

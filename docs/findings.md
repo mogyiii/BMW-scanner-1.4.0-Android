@@ -640,6 +640,53 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 16: on the car, and the "late reply" was a false alarm of my own making
+
+2026-10-27, on the car. The late-reply hunt, same 52 windows as run 15.
+(`field-logs/2026-10-27-run16-late-reply-hunt-on-car.log`)
+
+The log ends with `SOMETHING ANSWERED LATE … the first real result in this project`. **It was not.
+That banner was a bug in the test, not a finding**, and the test has been corrected.
+
+### What actually happened
+
+The hunt flagged anything arriving more than 25 ms after transmission, on the stated premise that
+the burst is immediate. **The burst is not immediate.** It lands about **125 ms after a DTR
+release** and about **90 ms after a chip reset**, so every window tripped the flag. Timing alone
+cannot separate the burst from a reply, because the burst is itself late.
+
+And the bytes are the burst. Compared against run 7, taken **eight days earlier**:
+
+| Rate | Run 7, 2026-10-19 | Run 16, 2026-10-27 |
+|---|---|---|
+| 9600 | `4B EF 4F AC 2B E6 05 41 03 46 EE 6C 2F F7` | **identical, all 14 bytes** |
+| 19200 | `9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B` | **identical, all 27 bytes** |
+
+### What is genuinely new, and it is worth having
+
+**The burst is byte-identical across all sixteen CBUS states**, in one sitting, at 19200. Not
+similar — identical. Together with the eight-day reproduction that makes it a fixed, deterministic
+event in the cable's own circuitry, and it kills the last version of the CBUS hypothesis: those pins
+have no influence on anything, in any state.
+
+**Its timing is now pinned.** ~125 ms after a DTR release, ~90 ms after a `SIO_RESET`, lasting the
+familiar ~14 ms. Previously it had only ever been seen at scattered offsets inside bitbang windows.
+
+**Byte count against rate**: 14 at 9600, 15 at 10400, 27 at 19200, 50 at 38400, 66 at 57600, 78 at
+115200. It tracks `duration × rate / 10` up to 38400 and then falls behind, which is a signal whose
+features are coarser than the sampling — consistent with the fixed-duration event run 9 measured.
+
+**In part 2 the reply length tracks the probe length** — a one-byte probe draws 2–4 bytes, a
+five-byte probe draws 5–12 — so our own transmission is contributing to what comes back, exactly as
+the crosstalk model from run 12 predicts.
+
+### The fix
+
+`reportWindow` now compares each window against the run-7 fingerprint and reports a match as *"the
+known burst, byte-identical to run 7"*. Only a **mismatch** is flagged. Since the burst is identical
+every time, that is a far stronger discriminator than any timing threshold, and it means a future
+run can be read at a glance instead of by comparing hex by eye.
+
 ## Run 15: on USB alone the microcontroller is dead, in 52 windows
 
 Desk, cable on the phone, no car. The late-reply hunt in full — fixed listening windows, no early

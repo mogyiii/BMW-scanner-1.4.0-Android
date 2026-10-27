@@ -1,0 +1,598 @@
+09:09:59.145  BMW DS2 Probe 0.20-probe
+09:09:59.153  Looking for the cable: VID 0x0333 / PID 0x0137
+
+09:09:59.159  USB rescan: 1 device(s)
+09:09:59.161    /dev/bus/usb/001/002  0333:0137
+09:10:21.515  === LATE-REPLY HUNT ===
+09:10:21.515  Listening for a fixed window with no early exit, and timestamping what arrives.
+09:10:21.516  The transmission artefact is immediate, so ANYTHING after 25 ms is something else.
+
+09:10:21.519    --- part 1: DTR pulse, then 1.2 s of silence ---
+09:10:21.519    If DTR resets the part, a boot message can arrive long after we stopped looking.
+09:10:22.845        9600 NONE pulse: 0 immediate, then 14 LATE byte(s)  <<<<<<
+09:10:22.847          at  125 ms: 4B EF 4F
+09:10:22.848          at  125 ms: AC
+09:10:22.849          at  126 ms: 2B
+09:10:22.850          at  132 ms: E6
+09:10:22.851          at  134 ms: 05 41 03 46
+09:10:22.851          at  134 ms: EE 6C
+09:10:22.852          at  136 ms: 2F
+09:10:22.852          at  137 ms: F7
+09:10:24.175        9600 EVEN pulse: 0 immediate, then 12 LATE byte(s)  <<<<<<
+09:10:24.176          at  125 ms: 4B
+09:10:24.177          at  126 ms: F8
+09:10:24.178          at  128 ms: F6
+09:10:24.179          at  129 ms: 6D
+09:10:24.180          at  130 ms: 30
+09:10:24.181          at  132 ms: 05
+09:10:24.181          at  133 ms: 10
+09:10:24.184          at  134 ms: 20
+09:10:24.185          at  135 ms: E3
+09:10:24.186          at  136 ms: 87
+09:10:24.187          at  138 ms: C3
+09:10:24.187          at  139 ms: DC
+09:10:25.510       10400 NONE pulse: 0 immediate, then 15 LATE byte(s)  <<<<<<
+09:10:25.524          at  125 ms: 73
+09:10:25.524          at  126 ms: 7F
+09:10:25.525          at  127 ms: 37
+09:10:25.525          at  128 ms: 79
+09:10:25.526          at  129 ms: BC
+09:10:25.527          at  130 ms: 11
+09:10:25.528          at  131 ms: BD
+09:10:25.528          at  132 ms: F0
+09:10:25.529          at  134 ms: 68
+09:10:25.529          at  134 ms: 40
+09:10:25.530          at  135 ms: 2D
+09:10:25.530          at  136 ms: 5E
+09:10:25.531          at  137 ms: AF
+09:10:25.531          at  138 ms: 73
+09:10:25.532          at  139 ms: 88
+09:10:26.855       10400 EVEN pulse: 0 immediate, then 14 LATE byte(s)  <<<<<<
+09:10:26.856          at  125 ms: 73
+09:10:26.857          at  126 ms: 7F
+09:10:26.858          at  127 ms: BF
+09:10:26.859          at  128 ms: 1C
+09:10:26.860          at  129 ms: FB
+09:10:26.861          at  131 ms: D6
+09:10:26.862          at  132 ms: BD
+09:10:26.863          at  133 ms: 51
+09:10:26.863          at  134 ms: 13
+09:10:26.864          at  135 ms: 36
+09:10:26.865          at  136 ms: 5E
+09:10:26.865          at  137 ms: 74
+09:10:26.866          at  138 ms: 7F
+09:10:26.867          at  139 ms: F7
+09:10:28.192       19200 NONE pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:10:28.193          at  125 ms: 9B CD
+09:10:28.194          at  126 ms: AA AF
+09:10:28.195          at  127 ms: AF D9
+09:10:28.196          at  128 ms: F5 A2
+09:10:28.197          at  129 ms: 9B 17
+09:10:28.197          at  130 ms: 28
+09:10:28.198          at  131 ms: FE 72
+09:10:28.199          at  132 ms: D1 17
+09:10:28.200          at  133 ms: 4C 5E
+09:10:28.201          at  134 ms: 80 38
+09:10:28.201          at  135 ms: 09 ED
+09:10:28.202          at  136 ms: 2E B5
+09:10:28.203          at  137 ms: CF
+09:10:28.203          at  138 ms: AA 07
+09:10:28.204          at  139 ms: 2B
+09:10:29.535       19200 EVEN pulse: 0 immediate, then 25 LATE byte(s)  <<<<<<
+09:10:29.536          at  125 ms: 9B
+09:10:29.537          at  125 ms: CD
+09:10:29.538          at  126 ms: AA
+09:10:29.539          at  127 ms: ED 2D
+09:10:29.539          at  128 ms: 57 A2
+09:10:29.540          at  129 ms: 9B
+09:10:29.541          at  130 ms: 17
+09:10:29.542          at  130 ms: 2C
+09:10:29.543          at  131 ms: FF B9
+09:10:29.543          at  133 ms: 74 11
+09:10:29.544          at  133 ms: CA
+09:10:29.545          at  134 ms: 05
+09:10:29.546          at  134 ms: 86
+09:10:29.546          at  135 ms: 4A
+09:10:29.547          at  135 ms: 6A
+09:10:29.547          at  136 ms: 2E
+09:10:29.548          at  137 ms: B5 CF
+09:10:29.548          at  138 ms: A5 D0
+09:10:29.549          at  139 ms: F9
+09:10:30.885       38400 NONE pulse: 0 immediate, then 50 LATE byte(s)  <<<<<<
+09:10:30.886          at  124 ms: 9E
+09:10:30.887          at  125 ms: 78
+09:10:30.888          at  125 ms: F3 F8
+09:10:30.889          at  126 ms: 98 E6 FE E6
+09:10:30.891          at  127 ms: FE E6 86 7E
+09:10:30.892          at  128 ms: 33
+09:10:30.892          at  129 ms: 18 CC
+09:10:30.893          at  129 ms: 9E 78
+09:10:30.893          at  129 ms: 3F
+09:10:30.894          at  130 ms: 60
+09:10:30.895          at  130 ms: C0 86 F8
+09:10:30.896          at  131 ms: 18
+09:10:30.897          at  131 ms: 3F 06
+09:10:30.897          at  132 ms: F3 7E 03 E0
+09:10:30.898          at  133 ms: 98 F8 66
+09:10:30.898          at  134 ms: 00
+09:10:30.899          at  134 ms: 80 98
+09:10:30.899          at  135 ms: 18
+09:10:30.900          at  135 ms: 30 9E
+09:10:30.900          at  136 ms: F8 86 66
+09:10:30.900          at  136 ms: CF
+09:10:30.901          at  137 ms: FE F8 98
+09:10:30.901          at  138 ms: E6 7E
+09:10:30.902          at  138 ms: 00 9E
+09:10:30.902          at  139 ms: 86
+09:10:32.238       38400 EVEN pulse: 0 immediate, then 46 LATE byte(s)  <<<<<<
+09:10:32.240          at  124 ms: 9E
+09:10:32.241          at  126 ms: 78 1E 98
+09:10:32.242          at  126 ms: E6
+09:10:32.243          at  126 ms: FE F3
+09:10:32.244          at  127 ms: FF F3 C3 7E
+09:10:32.245          at  128 ms: E6 18
+09:10:32.246          at  128 ms: E6
+09:10:32.247          at  129 ms: 9E 78 06
+09:10:32.248          at  130 ms: 80
+09:10:32.248          at  130 ms: 86 F8
+09:10:32.249          at  131 ms: 18 66
+09:10:32.250          at  131 ms: 98
+09:10:32.251          at  132 ms: 7E 60
+09:10:32.251          at  132 ms: 78
+09:10:32.252          at  133 ms: 66 FF
+09:10:32.252          at  135 ms: 33
+09:10:32.253          at  137 ms: 00 80 98 18 98
+09:10:32.253          at  138 ms: 9F F8 86 66 9E F8 98 E6 7F C0
+09:10:32.254          at  139 ms: CF C3
+09:10:33.590       57600 NONE pulse: 0 immediate, then 66 LATE byte(s)  <<<<<<
+09:10:33.592          at  130 ms: FC FC E0 1C E0 E0 1C FC FC 1C FC 1C 1C FC FC 1C FC E0
+09:10:33.594          at  131 ms: 00 FC FC FC E0 FC 1C E0 00 1C 1C FC
+09:10:33.595          at  131 ms: E0 E0
+09:10:33.596          at  131 ms: 1C 00
+09:10:33.597          at  132 ms: FC FC 1C
+09:10:33.598          at  133 ms: E0 00
+09:10:33.599          at  133 ms: E0 1C FC 1C
+09:10:33.600          at  133 ms: 00
+09:10:33.601          at  134 ms: 00 E0
+09:10:33.601          at  134 ms: 1C
+09:10:33.602          at  135 ms: 1C 80 1C FC E0
+09:10:33.603          at  136 ms: 1C
+09:10:33.604          at  136 ms: 1C 1C FC
+09:10:33.604          at  137 ms: FC E0 E0 1C FC
+09:10:33.605          at  138 ms: FC 00
+09:10:33.605          at  139 ms: FC 1C
+09:10:33.605          at  139 ms: E0
+09:10:34.941       57600 EVEN pulse: 0 immediate, then 66 LATE byte(s)  <<<<<<
+09:10:34.943          at  124 ms: FC
+09:10:34.944          at  125 ms: 7E F8
+09:10:34.945          at  125 ms: 0E E0 E0
+09:10:34.946          at  126 ms: 8E FC
+09:10:34.947          at  126 ms: FE
+09:10:34.948          at  132 ms: 1C FC
+09:10:34.949          at  133 ms: 1C 1C 7E FF 0E FC E0 80 FC 7E 3F FE FF 1C 70 00 1C 0E FF E0 F0 1C 00 FC FC 1C 70 C0 E0 0E
+09:10:34.950          at  134 ms: FF 1C 00
+09:10:34.951          at  134 ms: 00
+09:10:34.952          at  134 ms: E0
+09:10:34.953          at  135 ms: 0E 07
+09:10:34.953          at  136 ms: F0 C7 FC E0
+09:10:34.954          at  137 ms: 1C
+09:10:34.955          at  137 ms: 8E 1C FC FE E0 E0 8E
+09:10:34.955          at  138 ms: FC FE
+09:10:34.956          at  138 ms: 00
+09:10:34.956          at  138 ms: FC
+09:10:34.957          at  138 ms: 8E
+09:10:34.957          at  139 ms: E0
+09:10:36.331      115200 NONE pulse: 0 immediate, then 78 LATE byte(s)  <<<<<<
+09:10:36.334          at  124 ms: E0 E0 00
+09:10:36.335          at  125 ms: E0
+09:10:36.336          at  125 ms: E0 00
+09:10:36.337          at  126 ms: 00 E0 E0 E0
+09:10:36.338          at  127 ms: E0 E0 E0 E0 E0 E0
+09:10:36.339          at  128 ms: E0 00
+09:10:36.339          at  128 ms: E0 E0 E0 E0
+09:10:36.340          at  128 ms: 00 00
+09:10:36.340          at  131 ms: E0 E0 E0
+09:10:36.341          at  132 ms: 00 E0 E0 00 00 E0 00 00 00 00 E0 E0 00 E0 E0 E0 00 00
+09:10:36.342          at  133 ms: 00 E0 00
+09:10:36.343          at  133 ms: E0 E0 00
+09:10:36.343          at  135 ms: 00 00 E0 00 00
+09:10:36.344          at  136 ms: E0 E0 E0 00
+09:10:36.344          at  136 ms: E0 00 E0
+09:10:36.345          at  137 ms: E0 E0 E0 E0
+09:10:36.345          at  138 ms: 00
+09:10:36.346          at  138 ms: 00 E0 E0 E0 E0 00
+09:10:36.347          at  139 ms: E0 E0 E0 00
+09:10:37.697      115200 EVEN pulse: 0 immediate, then 78 LATE byte(s)  <<<<<<
+09:10:37.699          at  124 ms: E0 E0 00
+09:10:37.700          at  125 ms: E0
+09:10:37.701          at  125 ms: E0 00
+09:10:37.702          at  126 ms: 00 E0 E0 E0
+09:10:37.703          at  127 ms: E0 E0 E0 E0 E0 E0
+09:10:37.704          at  127 ms: E0 00
+09:10:37.705          at  128 ms: E0 E0 E0 E0
+09:10:37.705          at  128 ms: 00
+09:10:37.707          at  129 ms: 00 E0 E0 E0
+09:10:37.707          at  129 ms: 00
+09:10:37.708          at  130 ms: E0 E0 00 00
+09:10:37.708          at  130 ms: E0 00 00
+09:10:37.708          at  131 ms: 00
+09:10:37.709          at  131 ms: 00
+09:10:37.709          at  132 ms: E0 E0 00 E0 E0
+09:10:37.710          at  132 ms: E0 00
+09:10:37.710          at  133 ms: 00 00 E0
+09:10:37.711          at  133 ms: 00
+09:10:37.711          at  134 ms: E0 E0 00
+09:10:37.712          at  134 ms: 00
+09:10:37.712          at  135 ms: 00 E0 00 00
+09:10:37.713          at  136 ms: E0 E0 E0 00 E0
+09:10:37.713          at  136 ms: 00 E0
+09:10:37.714          at  137 ms: E0 E0 E0 E0
+09:10:37.714          at  137 ms: 00
+09:10:37.715          at  138 ms: 00 E0 E0 E0 E0
+09:10:37.715          at  138 ms: 00
+09:10:37.716          at  139 ms: E0 E0 E0 00
+
+09:10:37.716    --- part 2: a probe, then 600 ms of listening ---
+09:10:37.717    In case it only speaks when spoken to. Probes are deliberately varied.
+09:10:38.353        9600 probe1 00: 0 byte(s) immediately, nothing after 25 ms
+09:10:38.975        9600 probe2 FF: 0 immediate, then 2 LATE byte(s)  <<<<<<
+09:10:38.977          at   91 ms: C4
+09:10:38.978          at   92 ms: 41
+09:10:39.631        9600 probe3 81 11 F1 81 04: 0 immediate, then 5 LATE byte(s)  <<<<<<
+09:10:39.632          at   96 ms: C4 A1
+09:10:39.633          at   98 ms: A7
+09:10:39.634          at   98 ms: 6D
+09:10:39.635          at  100 ms: FA
+09:10:40.268        9600 probe4 00 04 00 04: 0 immediate, then 4 LATE byte(s)  <<<<<<
+09:10:40.269          at   94 ms: C4
+09:10:40.270          at   95 ms: A1
+09:10:40.272          at   96 ms: 43
+09:10:40.272          at   97 ms: FC
+09:10:40.907       10400 probe1 00: 0 immediate, then 3 LATE byte(s)  <<<<<<
+09:10:40.908          at   91 ms: FC
+09:10:40.909          at   93 ms: 81
+09:10:40.910          at   94 ms: FE
+09:10:41.539       10400 probe2 FF: 0 immediate, then 3 LATE byte(s)  <<<<<<
+09:10:41.540          at   91 ms: FC
+09:10:41.541          at   91 ms: 01
+09:10:41.542          at   93 ms: FE
+09:10:42.174       10400 probe3 81 11 F1 81 04: 0 immediate, then 6 LATE byte(s)  <<<<<<
+09:10:42.175          at   95 ms: FC 81
+09:10:42.176          at   96 ms: 9B
+09:10:42.177          at   97 ms: 57
+09:10:42.178          at   98 ms: DD
+09:10:42.179          at   99 ms: FF
+09:10:42.808       10400 probe4 00 04 00 04: 0 immediate, then 4 LATE byte(s)  <<<<<<
+09:10:42.809          at   93 ms: F4
+09:10:42.810          at   95 ms: 81
+09:10:42.811          at   96 ms: FA
+09:10:42.812          at   97 ms: B2
+09:10:43.440       19200 probe1 00: 0 immediate, then 4 LATE byte(s)  <<<<<<
+09:10:43.441          at   90 ms: 65
+09:10:43.442          at   91 ms: 3D 02
+09:10:43.443          at   92 ms: A3
+09:10:44.069       19200 probe2 FF: 0 immediate, then 4 LATE byte(s)  <<<<<<
+09:10:44.070          at   91 ms: 65 3D
+09:10:44.071          at   92 ms: 02 11
+09:10:44.694       19200 probe3 81 11 F1 81 04: 0 immediate, then 8 LATE byte(s)  <<<<<<
+09:10:44.695          at   92 ms: 65
+09:10:44.696          at   93 ms: 3D 02
+09:10:44.697          at   94 ms: B8 95
+09:10:44.698          at   96 ms: 3E 9B
+09:10:44.699          at   96 ms: 61
+09:10:45.326       19200 probe4 00 04 00 04: 0 immediate, then 7 LATE byte(s)  <<<<<<
+09:10:45.328          at   94 ms: 65 3D 02 B0 FF
+09:10:45.329          at   94 ms: 46
+09:10:45.330          at   95 ms: 95
+09:10:46.006       38400 probe1 00: 0 immediate, then 8 LATE byte(s)  <<<<<<
+09:10:46.007          at   90 ms: 66
+09:10:46.008          at   91 ms: 3C E6 18
+09:10:46.009          at   92 ms: 03 60 18 C3
+09:10:46.642       38400 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+09:10:47.291       38400 probe3 81 11 F1 81 04: 0 immediate, then 11 LATE byte(s)  <<<<<<
+09:10:47.292          at   90 ms: 66
+09:10:47.293          at   91 ms: 3C
+09:10:47.294          at   92 ms: E6 18
+09:10:47.295          at   92 ms: 03 60
+09:10:47.296          at   93 ms: 06 CF FE
+09:10:47.297          at   93 ms: 1E
+09:10:47.297          at   94 ms: 30
+09:10:47.920       38400 probe4 00 04 00 04: 0 immediate, then 10 LATE byte(s)  <<<<<<
+09:10:47.921          at   90 ms: 66
+09:10:47.922          at   91 ms: 3C E6 18
+09:10:47.924          at   92 ms: 03 60 00
+09:10:47.931          at   92 ms: 61
+09:10:47.931          at   93 ms: CF FE
+09:10:48.561       57600 probe1 00: 0 immediate, then 10 LATE byte(s)  <<<<<<
+09:10:48.562          at   90 ms: 1C E0
+09:10:48.563          at   90 ms: 1C FC E0
+09:10:48.566          at   91 ms: E0 00
+09:10:48.566          at   91 ms: E0
+09:10:48.567          at   92 ms: 00 FC
+09:10:49.189       57600 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+09:10:49.823       57600 probe3 81 11 F1 81 04: 0 immediate, then 12 LATE byte(s)  <<<<<<
+09:10:49.824          at   92 ms: 1C
+09:10:49.825          at   92 ms: E0 1C FC E0 E0 00 FC 00
+09:10:49.826          at   92 ms: E0
+09:10:49.827          at   93 ms: E0 00
+09:10:50.461       57600 probe4 00 04 00 04: 0 immediate, then 13 LATE byte(s)  <<<<<<
+09:10:50.463          at   91 ms: 1C E0 1C
+09:10:50.463          at   91 ms: FC E0
+09:10:50.464          at   91 ms: E0 00
+09:10:50.465          at   92 ms: FC FC 1C
+09:10:50.466          at   93 ms: FC FC F0
+09:10:51.091      115200 probe1 00: 0 immediate, then 12 LATE byte(s)  <<<<<<
+09:10:51.091          at   90 ms: E0 E0 00
+09:10:51.092          at   90 ms: E0 E0 E0
+09:10:51.092          at   90 ms: 00
+09:10:51.092          at   91 ms: 00 00 00
+09:10:51.092          at   92 ms: E0 E0
+09:10:51.714      115200 probe2 FF: 0 byte(s) immediately, nothing after 25 ms
+09:10:52.344      115200 probe3 81 11 F1 81 04: 0 immediate, then 11 LATE byte(s)  <<<<<<
+09:10:52.345          at   90 ms: E0 E0 00
+09:10:52.347          at   90 ms: E0
+09:10:52.348          at   91 ms: E0 E0 00
+09:10:52.349          at   91 ms: 00 00
+09:10:52.349          at   92 ms: E0 E0
+09:10:52.985      115200 probe4 00 04 00 04: 0 immediate, then 13 LATE byte(s)  <<<<<<
+09:10:52.986          at   90 ms: E0 E0
+09:10:52.987          at   90 ms: 00
+09:10:52.988          at   91 ms: E0 E0 E0 00 00
+09:10:52.988          at   91 ms: 00
+09:10:52.989          at   92 ms: 00 E0 00 E0
+
+09:10:52.991    --- part 3: each CBUS state, DTR pulse, 1.2 s listen ---
+09:10:52.991    CBUS0-3 are IOMODE in the EEPROM, i.e. software GPIO. On a board with an MCU
+09:10:52.992    between the FTDI and the transceiver, the obvious things to wire them to are
+09:10:52.992    the MCU's RESET and FLMD0. A state that releases the part would show up here.
+09:10:54.359      CBUS=0 (all low) pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:10:54.360          at  125 ms: 9B CD
+09:10:54.361          at  126 ms: AA
+09:10:54.361          at  127 ms: AF AF
+09:10:54.362          at  128 ms: D9 F5
+09:10:54.362          at  129 ms: A2 9B
+09:10:54.363          at  130 ms: 17 28
+09:10:54.363          at  131 ms: FE 72
+09:10:54.363          at  132 ms: D1 17
+09:10:54.364          at  133 ms: 4C 5E
+09:10:54.364          at  134 ms: 80
+09:10:54.364          at  135 ms: 38 09
+09:10:54.365          at  136 ms: ED 2E
+09:10:54.365          at  137 ms: B5 CF
+09:10:54.365          at  138 ms: AA 07
+09:10:54.366          at  139 ms: 2B
+09:10:55.736      CBUS=1 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:10:55.737          at  125 ms: 9B CD
+09:10:55.738          at  126 ms: AA AF
+09:10:55.739          at  128 ms: AF D9
+09:10:55.740          at  128 ms: F5 A2
+09:10:55.740          at  129 ms: 9B
+09:10:55.744          at  130 ms: 17 28
+09:10:55.745          at  136 ms: FE 72
+09:10:55.745          at  136 ms: D1 17 4C 5E 80 38 09 ED 2E
+09:10:55.745          at  136 ms: B5
+09:10:55.746          at  137 ms: CF
+09:10:55.746          at  138 ms: AA 07
+09:10:55.746          at  140 ms: 2B
+09:10:57.110      CBUS=2 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:10:57.111          at  126 ms: 9B CD
+09:10:57.112          at  127 ms: AA AF
+09:10:57.112          at  129 ms: AF D9
+09:10:57.113          at  129 ms: F5 A2 9B
+09:10:57.113          at  130 ms: 17 28
+09:10:57.114          at  131 ms: FE 72
+09:10:57.114          at  132 ms: D1 17
+09:10:57.115          at  135 ms: 4C 5E
+09:10:57.115          at  135 ms: 80 38 09
+09:10:57.115          at  135 ms: ED
+09:10:57.116          at  136 ms: 2E
+09:10:57.116          at  137 ms: B5 CF
+09:10:57.116          at  138 ms: AA 07
+09:10:57.116          at  140 ms: 2B
+09:10:58.492      CBUS=3 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:10:58.493          at  128 ms: 9B CD AA AF AF
+09:10:58.494          at  129 ms: D9 F5 A2
+09:10:58.495          at  129 ms: 9B
+09:10:58.496          at  130 ms: 17 28
+09:10:58.497          at  131 ms: FE 72
+09:10:58.498          at  132 ms: D1 17
+09:10:58.499          at  133 ms: 4C 5E
+09:10:58.499          at  134 ms: 80 38
+09:10:58.500          at  136 ms: 09 ED
+09:10:58.500          at  136 ms: 2E B5
+09:10:58.501          at  141 ms: CF
+09:10:58.502          at  142 ms: AA 07 2B
+09:10:59.879      CBUS=4 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:10:59.880          at  125 ms: 9B CD
+09:10:59.881          at  126 ms: AA AF
+09:10:59.882          at  127 ms: AF D9
+09:10:59.883          at  128 ms: F5 A2
+09:10:59.884          at  129 ms: 9B
+09:10:59.885          at  130 ms: 17 28
+09:10:59.886          at  131 ms: FE 72
+09:10:59.886          at  132 ms: D1 17
+09:10:59.887          at  133 ms: 4C 5E
+09:10:59.888          at  134 ms: 80 38
+09:10:59.889          at  135 ms: 09 ED
+09:10:59.890          at  136 ms: 2E
+09:10:59.891          at  137 ms: B5 CF
+09:10:59.891          at  138 ms: AA 07
+09:10:59.892          at  139 ms: 2B
+09:11:01.267      CBUS=5 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:01.268          at  125 ms: 9B CD
+09:11:01.269          at  126 ms: AA AF
+09:11:01.270          at  127 ms: AF D9
+09:11:01.271          at  128 ms: F5 A2
+09:11:01.272          at  129 ms: 9B 17
+09:11:01.272          at  130 ms: 28
+09:11:01.273          at  131 ms: FE 72
+09:11:01.274          at  132 ms: D1 17
+09:11:01.275          at  133 ms: 4C 5E
+09:11:01.275          at  134 ms: 80 38
+09:11:01.276          at  135 ms: 09 ED
+09:11:01.276          at  136 ms: 2E B5
+09:11:01.276          at  137 ms: CF
+09:11:01.277          at  138 ms: AA 07
+09:11:01.277          at  139 ms: 2B
+09:11:02.656      CBUS=6 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:02.658          at  125 ms: 9B CD
+09:11:02.659          at  126 ms: AA AF
+09:11:02.660          at  127 ms: AF D9
+09:11:02.661          at  128 ms: F5 A2
+09:11:02.661          at  129 ms: 9B 17
+09:11:02.662          at  130 ms: 28
+09:11:02.663          at  131 ms: FE 72
+09:11:02.664          at  133 ms: D1 17
+09:11:02.664          at  133 ms: 4C 5E
+09:11:02.665          at  136 ms: 80 38
+09:11:02.666          at  136 ms: 09 ED 2E B5
+09:11:02.667          at  137 ms: CF AA
+09:11:02.667          at  139 ms: 07
+09:11:02.668          at  139 ms: 2B
+09:11:04.059      CBUS=7 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:04.060          at  125 ms: 9B CD
+09:11:04.061          at  126 ms: AA AF
+09:11:04.063          at  127 ms: AF D9
+09:11:04.064          at  128 ms: F5 A2
+09:11:04.065          at  129 ms: 9B
+09:11:04.066          at  130 ms: 17 28
+09:11:04.067          at  131 ms: FE 72
+09:11:04.067          at  132 ms: D1 17
+09:11:04.068          at  133 ms: 4C 5E
+09:11:04.069          at  134 ms: 80 38
+09:11:04.069          at  135 ms: 09 ED
+09:11:04.070          at  136 ms: 2E B5
+09:11:04.070          at  137 ms: CF
+09:11:04.071          at  138 ms: AA 07
+09:11:04.071          at  139 ms: 2B
+09:11:05.477      CBUS=8 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:05.478          at  125 ms: 9B CD
+09:11:05.479          at  126 ms: AA
+09:11:05.479          at  127 ms: AF AF
+09:11:05.481          at  128 ms: D9 F5
+09:11:05.482          at  129 ms: A2 9B
+09:11:05.483          at  130 ms: 17 28
+09:11:05.484          at  131 ms: FE 72
+09:11:05.485          at  132 ms: D1 17
+09:11:05.485          at  133 ms: 4C 5E
+09:11:05.486          at  134 ms: 80
+09:11:05.487          at  135 ms: 38 09
+09:11:05.488          at  136 ms: ED 2E
+09:11:05.488          at  137 ms: B5 CF
+09:11:05.489          at  138 ms: AA 07
+09:11:05.490          at  139 ms: 2B
+09:11:06.928      CBUS=9 pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:06.929          at  125 ms: 9B CD
+09:11:06.930          at  126 ms: AA AF
+09:11:06.931          at  127 ms: AF
+09:11:06.932          at  128 ms: D9 F5
+09:11:06.933          at  129 ms: A2 9B
+09:11:06.933          at  130 ms: 17 28
+09:11:06.934          at  131 ms: FE 72
+09:11:06.935          at  132 ms: D1 17
+09:11:06.936          at  133 ms: 4C 5E
+09:11:06.937          at  134 ms: 80
+09:11:06.937          at  135 ms: 38 09
+09:11:06.938          at  136 ms: ED 2E
+09:11:06.939          at  137 ms: B5 CF
+09:11:06.939          at  138 ms: AA 07
+09:11:06.940          at  139 ms: 2B
+09:11:08.317      CBUS=A pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:08.318          at  125 ms: 9B CD
+09:11:08.319          at  126 ms: AA AF
+09:11:08.320          at  127 ms: AF
+09:11:08.321          at  128 ms: D9 F5
+09:11:08.322          at  129 ms: A2 9B
+09:11:08.322          at  130 ms: 17 28
+09:11:08.323          at  131 ms: FE 72
+09:11:08.324          at  132 ms: D1 17
+09:11:08.325          at  133 ms: 4C 5E
+09:11:08.335          at  134 ms: 80 38
+09:11:08.335          at  135 ms: 09
+09:11:08.335          at  136 ms: ED 2E
+09:11:08.336          at  137 ms: B5 CF
+09:11:08.336          at  138 ms: AA 07
+09:11:08.336          at  139 ms: 2B
+09:11:09.699      CBUS=B pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:09.700          at  125 ms: 9B CD
+09:11:09.701          at  126 ms: AA AF
+09:11:09.702          at  127 ms: AF D9
+09:11:09.703          at  128 ms: F5
+09:11:09.703          at  129 ms: A2 9B
+09:11:09.704          at  130 ms: 17 28
+09:11:09.705          at  131 ms: FE 72
+09:11:09.706          at  132 ms: D1 17
+09:11:09.706          at  133 ms: 4C 5E
+09:11:09.707          at  134 ms: 80 38
+09:11:09.707          at  135 ms: 09
+09:11:09.709          at  136 ms: ED 2E
+09:11:09.709          at  138 ms: B5 CF
+09:11:09.710          at  138 ms: AA 07
+09:11:09.711          at  139 ms: 2B
+09:11:11.087      CBUS=C pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:11.088          at  125 ms: 9B CD
+09:11:11.089          at  126 ms: AA AF
+09:11:11.089          at  127 ms: AF D9
+09:11:11.090          at  128 ms: F5
+09:11:11.091          at  129 ms: A2 9B
+09:11:11.092          at  130 ms: 17 28
+09:11:11.093          at  131 ms: FE 72
+09:11:11.093          at  132 ms: D1 17
+09:11:11.094          at  133 ms: 4C 5E
+09:11:11.095          at  134 ms: 80 38
+09:11:11.096          at  135 ms: 09
+09:11:11.096          at  136 ms: ED 2E
+09:11:11.097          at  137 ms: B5 CF
+09:11:11.098          at  138 ms: AA 07
+09:11:11.099          at  139 ms: 2B
+09:11:12.481      CBUS=D pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:12.482          at  125 ms: 9B CD
+09:11:12.482          at  126 ms: AA AF
+09:11:12.484          at  127 ms: AF D9
+09:11:12.484          at  128 ms: F5
+09:11:12.485          at  129 ms: A2 9B
+09:11:12.486          at  130 ms: 17 28
+09:11:12.487          at  131 ms: FE 72
+09:11:12.488          at  132 ms: D1 17
+09:11:12.489          at  133 ms: 4C 5E
+09:11:12.490          at  134 ms: 80 38
+09:11:12.490          at  135 ms: 09
+09:11:12.491          at  136 ms: ED 2E
+09:11:12.491          at  137 ms: B5 CF
+09:11:12.492          at  138 ms: AA 07
+09:11:12.492          at  139 ms: 2B
+09:11:13.855      CBUS=E pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:13.856          at  125 ms: 9B CD
+09:11:13.857          at  126 ms: AA AF
+09:11:13.858          at  127 ms: AF D9
+09:11:13.859          at  128 ms: F5 A2
+09:11:13.860          at  129 ms: 9B
+09:11:13.860          at  130 ms: 17 28
+09:11:13.861          at  131 ms: FE 72
+09:11:13.862          at  132 ms: D1 17
+09:11:13.863          at  133 ms: 4C 5E
+09:11:13.864          at  134 ms: 80 38
+09:11:13.865          at  135 ms: 09 ED
+09:11:13.866          at  136 ms: 2E B5
+09:11:13.866          at  137 ms: CF
+09:11:13.867          at  138 ms: AA 07
+09:11:13.867          at  139 ms: 2B
+09:11:15.228      CBUS=F pulse: 0 immediate, then 27 LATE byte(s)  <<<<<<
+09:11:15.229          at  125 ms: 9B CD
+09:11:15.230          at  126 ms: AA AF
+09:11:15.231          at  127 ms: AF D9
+09:11:15.232          at  128 ms: F5 A2
+09:11:15.233          at  129 ms: 9B 17
+09:11:15.234          at  130 ms: 28
+09:11:15.234          at  131 ms: FE 72
+09:11:15.235          at  132 ms: D1 17
+09:11:15.236          at  133 ms: 4C 5E
+09:11:15.237          at  135 ms: 80 38
+09:11:15.238          at  135 ms: 09 ED
+09:11:15.239          at  136 ms: 2E B5
+09:11:15.240          at  137 ms: CF AA
+09:11:15.240          at  138 ms: 07
+09:11:15.241          at  139 ms: 2B
+
+09:11:15.244  SOMETHING ANSWERED LATE. Those lines are the first real result in this project - they cannot be the artefact, which is immediate.
+09:11:15.244  === end late-reply hunt ===
