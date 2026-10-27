@@ -258,9 +258,9 @@ static DWORD nextCandidateIndex(void)
             idx = idx * 10 + (DWORD)(buf[i] - '0');
         }
     }
-    if (idx >= CANDIDATE_COUNT) idx = 0;
+    if (idx >= CANDIDATE_COUNT + 256) idx = 0;
 
-    n = (DWORD)wsprintfA(buf, "%u", (idx + 1) % CANDIDATE_COUNT);
+    n = (DWORD)wsprintfA(buf, "%u", (idx + 1) % (CANDIDATE_COUNT + 256));
     h = CreateFileA(g_statePath, GENERIC_WRITE, 0, NULL,
                     CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h != INVALID_HANDLE_VALUE) {
@@ -271,9 +271,18 @@ static DWORD nextCandidateIndex(void)
     return idx;
 }
 
+/*
+ * How many repeats of a swept byte to queue.
+ *
+ * The point of serving more than one is the measurement. The software reads a single byte at a
+ * time, which says it checks as it goes: a wrong first byte and it gives up, a right one and it
+ * asks for another. So the number of bytes it *consumes* is the signal, and queuing a long run
+ * means a correct first byte has somewhere to go. One byte would make a hit look like a miss.
+ */
+#define SWEEP_REPEATS 64
+
 static void loadCandidate(void)
 {
-    const Candidate *c;
     DWORD i;
 
     if (g_rxLen > 0) {
@@ -281,15 +290,42 @@ static void loadCandidate(void)
         return;
     }
     g_candIndex = nextCandidateIndex();
-    c = &g_candidates[g_candIndex];
-    for (i = 0; i < c->len && i < sizeof(g_rx); i++) g_rx[i] = c->data[i];
-    g_rxLen = c->len;
     g_rxPos = 0;
 
-    shimLog("CANDIDATE %u of %u: %s  (%u byte(s))",
-            g_candIndex + 1, (DWORD)CANDIDATE_COUNT, c->name, c->len);
-    if (c->len) logBytes("will answer with", g_rx, g_rxLen);
+    if (g_candIndex < CANDIDATE_COUNT) {
+        const Candidate *c = &g_candidates[g_candIndex];
+        for (i = 0; i < c->len && i < sizeof(g_rx); i++) g_rx[i] = c->data[i];
+        g_rxLen = c->len;
+        shimLog("CANDIDATE %u of %u: %s  (%u byte(s))",
+                g_candIndex + 1, (DWORD)CANDIDATE_COUNT, c->name, c->len);
+        if (c->len) logBytes("will answer with", g_rx, g_rxLen);
+    } else {
+        /* Past the named guesses, sweep the first byte through every value it could be. */
+        BYTE value = (BYTE)((g_candIndex - CANDIDATE_COUNT) & 0xFF);
+        for (i = 0; i < SWEEP_REPEATS; i++) g_rx[i] = value;
+        g_rxLen = SWEEP_REPEATS;
+        shimLog("SWEEP: first byte 0x%02X, %u copies queued", value, (DWORD)SWEEP_REPEATS);
+    }
     shimLog("close the program and start it again to try the next one");
+}
+
+/*
+ * Re-arms the queued announcement when DTR is released.
+ *
+ * Without this every candidate looks like the baseline, and the first attempt did. The software
+ * purges the receive buffer *before* pulsing DTR, and FT_Purge below honours that by dropping
+ * whatever is queued - which is what a real chip does, and costs nothing on real hardware because
+ * the cable has not spoken yet. The announcement arrives *after* the pulse. Loading the candidate
+ * at DLL load time put it on the wrong side of that purge, so it was thrown away every time and
+ * all eleven candidates would have produced identical logs.
+ *
+ * Re-arming on DTR release models the cable correctly: it answers once the pulse has been given.
+ */
+static void rearmCandidate(void)
+{
+    if (g_rxLen == 0) return;
+    g_rxPos = 0;
+    shimLog("   re-armed %u byte(s), as the cable would answer after the pulse", g_rxLen);
 }
 
 /* ------------------------------------------------------------------ lifecycle */
@@ -472,7 +508,14 @@ FT_STATUS WINAPI FT_Close(FT_HANDLE h)
 {
     (void)h;
     flushEmptyReads();
-    shimLog("FT_Close");
+    /*
+     * The headline measurement. A wrong announcement is rejected after the software has read a
+     * single byte; a right one makes it ask for more. So the consumed count, printed once per
+     * close, is what separates a hit from a miss without anyone reading hex by eye.
+     */
+    shimLog("FT_Close   -- the software consumed %u of %u queued byte(s)%s",
+            g_rxPos, g_rxLen,
+            (g_rxLen > 1 && g_rxPos > 1) ? "   <<<<<< MORE THAN ONE - look here" : "");
     return FT_OK;
 }
 
@@ -642,7 +685,13 @@ FT_STATUS WINAPI FT_CyclePort(FT_HANDLE h) { (void)h; shimLog("FT_CyclePort"); r
 /* ------------------------------------------------------------------ handshake lines */
 
 FT_STATUS WINAPI FT_SetDtr(FT_HANDLE h) { (void)h; shimLog("FT_SetDtr      <-- DTR asserted"); return FT_OK; }
-FT_STATUS WINAPI FT_ClrDtr(FT_HANDLE h) { (void)h; shimLog("FT_ClrDtr      <-- DTR released"); return FT_OK; }
+FT_STATUS WINAPI FT_ClrDtr(FT_HANDLE h)
+{
+    (void)h;
+    shimLog("FT_ClrDtr      <-- DTR released");
+    rearmCandidate();
+    return FT_OK;
+}
 FT_STATUS WINAPI FT_SetRts(FT_HANDLE h) { (void)h; shimLog("FT_SetRts"); return FT_OK; }
 FT_STATUS WINAPI FT_ClrRts(FT_HANDLE h) { (void)h; shimLog("FT_ClrRts"); return FT_OK; }
 
@@ -890,6 +939,7 @@ BOOL WINAPI FT_W32_EscapeCommFunction(HANDLE h, DWORD func)
     /* SETDTR 5, CLRDTR 6, SETRTS 3, CLRRTS 4 */
     shimLog("FT_W32_EscapeCommFunction(%u)%s", func,
          func == 5 ? "  <-- DTR asserted" : (func == 6 ? "  <-- DTR released" : ""));
+    if (func == 6) rearmCandidate();
     return TRUE;
 }
 
