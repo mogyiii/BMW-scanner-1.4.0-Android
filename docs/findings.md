@@ -640,6 +640,62 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## The way in: replace the library, not the cable
+
+The owner's idea, and it is the right one: *make the vendor software think a device is attached, and
+watch how it tries to talk to it.* The only question was at which level to fake it.
+
+**USB emulation is the expensive version.** A virtual USB device means either a kernel driver on the
+host — which wants test-signing mode and Secure Boot off, the very thing already argued against in
+this project — or rebuilding QEMU's FTDI device model.
+
+**One level up is free.** `BMWScan140.exe` does not talk to USB. It talks to `FTD2XX.DLL`, FTDI's
+ordinary userspace library, which ships in the package at `Drivers/FTD2XX.DLL` — 81 920 bytes,
+32-bit PE32, **73 exported functions**, the standard D2XX API:
+
+```
+FT_Open  FT_OpenEx  FT_Close  FT_Read  FT_Write  FT_Purge  FT_ResetDevice
+FT_SetBaudRate  FT_SetDataCharacteristics  FT_SetFlowControl  FT_SetTimeouts
+FT_SetDtr  FT_ClrDtr  FT_SetRts  FT_ClrRts  FT_GetModemStatus  FT_SetBitMode
+FT_ReadEE  FT_EE_Read  FT_GetQueueStatus  FT_ListDevices  ... and 52 more
+```
+
+Windows loads a DLL from the application's own directory before the system one, so a replacement
+dropped next to the executable is loaded instead. **No driver, no USB, no kernel, nothing signed.**
+
+And it is better than a USB capture would have been, because the calls carry meaning.
+`FT_SetBaudRate(19200)` and `FT_Write(5 bytes)` record what the software *meant*; a bulk transfer
+only records what came out.
+
+The shim is in `tools/ftd2xx-shim/`. It reports one device with the cable's real identity, serves
+the **real EEPROM** — all 64 words as dumped in run 2, because the start-up reads the whole thing
+and the strings in it are what the software displays — logs every call and every transmitted byte,
+and feeds `FT_Read` from a hex file that is re-read whenever it changes.
+
+### The experiment it enables
+
+1. **Empty reply file.** The log then shows the exact call sequence and every byte the software
+   wants to send. That is already further than the run-6 USB capture reached: it recorded *zero*
+   bulk bytes, which told us the software gave up, but never what it was waiting for.
+2. **Then feed a sign-on.** The start-up pulses DTR and waits for the cable to announce itself. The
+   strongest clue is in the software's own shipped session log from 2009, which prints
+   **`HW: V144Bn9`** — a string the host cannot have invented, so the announcement almost certainly
+   carries it. Candidates go in the hex file; each attempt costs a button press rather than a trip
+   to the car.
+3. **Once it proceeds, the log *is* the protocol** — every command meant for the µPD78F9234, in
+   order, with the baud rate and line settings used to send it.
+
+### Blocked on a compiler, and only that
+
+The DLL must be 32-bit, because the executable is 32-bit Delphi. The machine has Visual Studio
+Community 2026 but **without the C++ workload** — `VC\Tools\MSVC\14.51.36231` exists with no
+`cl.exe` and no `vcvarsall.bat` — and no other compiler anywhere. Docker is installed but its
+daemon is not running.
+
+Source, export definition and build script are written and committed. Any one of: the C++ workload
+in the existing Visual Studio, a running Docker daemon for a mingw-w64 cross-build, or a portable
+mingw-w64, unblocks it.
+
 ## Run 16: on the car, and the "late reply" was a false alarm of my own making
 
 2026-10-27, on the car. The late-reply hunt, same 52 windows as run 15.
