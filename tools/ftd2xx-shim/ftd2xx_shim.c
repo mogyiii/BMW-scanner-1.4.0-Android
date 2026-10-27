@@ -100,6 +100,16 @@ static void shimLog(const CHAR *fmt, ...)
     logRaw(line, n);
 }
 
+static DWORD g_emptyReads = 0;
+
+/* Prints how many empty polls went by, so a burst of them costs one line instead of thousands. */
+static void flushEmptyReads(void)
+{
+    if (!g_emptyReads) return;
+    shimLog("   ... %u empty read(s) while waiting", g_emptyReads);
+    g_emptyReads = 0;
+}
+
 /* Hex for a byte buffer, chunked so one enormous write cannot overflow the line buffer. */
 static void logBytes(const CHAR *prefix, const BYTE *data, DWORD len)
 {
@@ -170,6 +180,118 @@ static void refreshRx(void)
     shimLog("rx file reloaded: %u byte(s) queued", g_rxLen);
 }
 
+/* ------------------------------------------------------------------ the search */
+
+/*
+ * Candidate announcements, tried one per program launch.
+ *
+ * The first log told us exactly what the software is waiting for: after setting 19200 8N1,
+ * purging, and pulsing DTR for 100 ms, it calls FT_Read for **one byte at a time**, forever. It is
+ * waiting for the cable to speak first and we do not know what it wants to hear.
+ *
+ * Editing a hex file by hand inside an isolated VM, once per guess, would make that search
+ * miserable. So the shim keeps an index in ftd2xx-state.txt, serves the next candidate on each
+ * load, and logs which one it used. The search becomes: start the program, close it, start it
+ * again. An explicit ftd2xx-rx.hex still wins if it has content, so a hand-made guess can jump the
+ * queue.
+ *
+ * The ordering is deliberate. First the bytes the *real cable* produces - captured on the car at
+ * 19200 after exactly this DTR pulse, reproduced byte-for-byte eight days apart in runs 7 and 16.
+ * Run 9 concluded that burst is an analogue transient rather than a message, on the strength of its
+ * edge timing; if the vendor software accepts it as a sign-on, that conclusion was about the wrong
+ * question and this is the fastest way to find out. Then the hardware string the software prints in
+ * its own 2009 session log, "V144Bn9", which it cannot have invented, in the obvious framings.
+ */
+typedef struct {
+    const CHAR *name;
+    const BYTE *data;
+    DWORD len;
+} Candidate;
+
+/* 19200 NONE, after the vendor's own DTR pulse - runs 7 and 16, identical. */
+static const BYTE cand_burst[] = {
+    0x9B, 0xCD, 0xAA, 0xAF, 0xAF, 0xD9, 0xF5, 0xA2, 0x9B, 0x17, 0x28, 0xFE, 0x72, 0xD1,
+    0x17, 0x4C, 0x5E, 0x80, 0x38, 0x09, 0xED, 0x2E, 0xB5, 0xCF, 0xAA, 0x07, 0x2B,
+};
+static const BYTE cand_hw[] = { 'V','1','4','4','B','n','9' };
+static const BYTE cand_hwCrLf[] = { 'V','1','4','4','B','n','9', 0x0D, 0x0A };
+static const BYTE cand_hwLen[] = { 0x07, 'V','1','4','4','B','n','9' };
+static const BYTE cand_hwNul[] = { 'V','1','4','4','B','n','9', 0x00 };
+static const BYTE cand_sync55[] = { 0x55 };
+static const BYTE cand_syncAA[] = { 0xAA };
+static const BYTE cand_ack[] = { 0x06 };
+static const BYTE cand_desc[] = { 'B','M','W',' ','S','c','a','n','n','e','r',' ','v','1','4','x' };
+static const BYTE cand_v14[] = { 'V','1','4','4' };
+
+static const Candidate g_candidates[] = {
+    { "(nothing - the baseline)",            NULL,         0 },
+    { "the real cable's burst at 19200",     cand_burst,   sizeof(cand_burst) },
+    { "\"V144Bn9\"",                         cand_hw,      sizeof(cand_hw) },
+    { "\"V144Bn9\" + CR LF",                 cand_hwCrLf,  sizeof(cand_hwCrLf) },
+    { "length byte 07 + \"V144Bn9\"",        cand_hwLen,   sizeof(cand_hwLen) },
+    { "\"V144Bn9\" + NUL",                   cand_hwNul,   sizeof(cand_hwNul) },
+    { "\"V144\"",                            cand_v14,     sizeof(cand_v14) },
+    { "0x55 sync byte",                      cand_sync55,  sizeof(cand_sync55) },
+    { "0xAA",                                cand_syncAA,  sizeof(cand_syncAA) },
+    { "0x06 ACK",                            cand_ack,     sizeof(cand_ack) },
+    { "\"BMW Scanner v14x\"",                cand_desc,    sizeof(cand_desc) },
+};
+#define CANDIDATE_COUNT (sizeof(g_candidates) / sizeof(g_candidates[0]))
+
+static CHAR g_statePath[MAX_PATH];
+static DWORD g_candIndex = 0;
+
+/* Reads the index, uses it, writes back the next one. A missing or unreadable file means zero. */
+static DWORD nextCandidateIndex(void)
+{
+    HANDLE h;
+    CHAR buf[32];
+    DWORD got = 0, i, idx = 0, n;
+
+    h = CreateFileA(g_statePath, GENERIC_READ, FILE_SHARE_READ, NULL,
+                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h != INVALID_HANDLE_VALUE) {
+        ReadFile(h, buf, sizeof(buf) - 1, &got, NULL);
+        CloseHandle(h);
+        for (i = 0; i < got; i++) {
+            if (buf[i] < '0' || buf[i] > '9') break;
+            idx = idx * 10 + (DWORD)(buf[i] - '0');
+        }
+    }
+    if (idx >= CANDIDATE_COUNT) idx = 0;
+
+    n = (DWORD)wsprintfA(buf, "%u", (idx + 1) % CANDIDATE_COUNT);
+    h = CreateFileA(g_statePath, GENERIC_WRITE, 0, NULL,
+                    CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h != INVALID_HANDLE_VALUE) {
+        DWORD wrote;
+        WriteFile(h, buf, n, &wrote, NULL);
+        CloseHandle(h);
+    }
+    return idx;
+}
+
+static void loadCandidate(void)
+{
+    const Candidate *c;
+    DWORD i;
+
+    if (g_rxLen > 0) {
+        shimLog("ftd2xx-rx.hex has %u byte(s), so it wins over the built-in candidates", g_rxLen);
+        return;
+    }
+    g_candIndex = nextCandidateIndex();
+    c = &g_candidates[g_candIndex];
+    for (i = 0; i < c->len && i < sizeof(g_rx); i++) g_rx[i] = c->data[i];
+    g_rxLen = c->len;
+    g_rxPos = 0;
+
+    shimLog("CANDIDATE %u of %u: %s  (%u byte(s))",
+            g_candIndex + 1, (DWORD)CANDIDATE_COUNT, c->name, c->len);
+    if (c->len) logBytes("will answer with", g_rx, g_rxLen);
+    shimLog("close the program and start it again to try the next one");
+}
+
 /* ------------------------------------------------------------------ lifecycle */
 
 BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
@@ -189,11 +311,13 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
 
         wsprintfA(g_logPath, "%s\\ftd2xx-shim.log", g_dir);
         wsprintfA(g_rxPath, "%s\\ftd2xx-rx.hex", g_dir);
+        wsprintfA(g_statePath, "%s\\ftd2xx-state.txt", g_dir);
 
         logRaw("\r\n", 2);
         shimLog("================ shim loaded ================");
         shimLog("directory: %s", g_dir);
         refreshRx();
+        loadCandidate();
         DisableThreadLibraryCalls(inst);
     } else if (reason == DLL_PROCESS_DETACH && g_lockReady) {
         shimLog("================ shim unloaded ==============");
@@ -347,6 +471,7 @@ FT_STATUS WINAPI FT_OpenEx(PVOID arg1, DWORD flags, FT_HANDLE *handle)
 FT_STATUS WINAPI FT_Close(FT_HANDLE h)
 {
     (void)h;
+    flushEmptyReads();
     shimLog("FT_Close");
     return FT_OK;
 }
@@ -356,6 +481,7 @@ FT_STATUS WINAPI FT_Close(FT_HANDLE h)
 FT_STATUS WINAPI FT_Write(FT_HANDLE h, LPVOID buffer, DWORD count, LPDWORD written)
 {
     (void)h;
+    flushEmptyReads();
     shimLog("FT_Write(%u byte(s))  [%u baud, %u%c%u]", count, g_baud, g_bits,
          g_parity == 0 ? 'N' : (g_parity == 1 ? 'O' : (g_parity == 2 ? 'E' : '?')),
          g_stop == 0 ? 1 : 2);
@@ -381,8 +507,22 @@ FT_STATUS WINAPI FT_Read(FT_HANDLE h, LPVOID buffer, DWORD count, LPDWORD return
     }
     LeaveCriticalSection(&g_lock);
 
+    /*
+     * The software polls one byte at a time while it waits, which in the first run produced
+     * thousands of identical lines and buried everything else. Empty reads are counted and
+     * summarised instead; anything that actually happens flushes the counter first, so the
+     * interesting lines keep their place in the sequence.
+     */
+    if (give == 0) {
+        g_emptyReads++;
+        if (g_emptyReads == 1)
+            shimLog("FT_Read(asked %u) -> 0   (polling; further empty reads are counted)", count);
+        if (returned) *returned = 0;
+        return FT_OK;
+    }
+    flushEmptyReads();
     shimLog("FT_Read(asked %u) -> %u", count, give);
-    if (give) logBytes("RX", (const BYTE *)buffer, give);
+    logBytes("RX", (const BYTE *)buffer, give);
     if (returned) *returned = give;
     return FT_OK;
 }
