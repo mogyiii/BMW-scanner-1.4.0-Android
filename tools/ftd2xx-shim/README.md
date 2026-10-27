@@ -55,11 +55,20 @@ that is acceptable.
 
 ## Building
 
-Needs the 32-bit MSVC toolchain — the executable is 32-bit Delphi, so the DLL must be too.
+The DLL must be 32-bit, because the executable is 32-bit Delphi.
 
 ```
-build.cmd
+build-docker.cmd     <- the one that works here
+build.cmd            <- MSVC, if the C++ workload ever gets installed
 ```
 
-It locates a Visual Studio install, sets up the x86 environment, and produces `FTD2XX.DLL`.
-Copy that next to `BMWScan140.exe`, keeping the original somewhere safe.
+This machine has Visual Studio Community 2026 **without** the C++ workload — `VC\Tools\MSVC`
+exists with no `cl.exe` — so the build goes through a mingw-w64 cross-compiler in a container.
+The toolchain is baked into an image rather than installed per run, because searching for the
+sign-on means rebuilding repeatedly.
+
+Verified against the real library: the shim exports **exactly the same 73 names**, and is likewise
+PE32. Its imports are KERNEL32, USER32 and msvcrt, all of which ship with Windows XP.
+
+Copy `FTD2XX.DLL` and `ftd2xx-rx.hex` next to `BMWScan140.exe`, keeping the original DLL somewhere
+safe. The log appears beside them as `ftd2xx-shim.log`.

@@ -1,0 +1,5 @@
+FTD2XX.DLL
+*.obj
+*.exp
+*.lib
+ftd2xx-shim.log

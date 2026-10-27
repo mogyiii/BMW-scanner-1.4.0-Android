@@ -5,10 +5,12 @@
  * ordinary userspace library, and Windows loads a DLL from the application directory before the
  * system one, so replacing it needs no driver, no USB and nothing signed.
  *
- * Deliberately written against the Win32 API alone, with no C runtime. That keeps the DLL loadable
- * on Windows XP - where the isolated VM lives, and where the vendor software is known to run - and
- * it removes any question of a CRT initialisation order problem inside a packed executable's
- * start-up. The cost is doing our own formatting, which is a few lines.
+ * Written against the Win32 API alone - no stdio, no malloc, no C string functions. Formatting goes
+ * through wsprintfA from user32 and files through CreateFileA, so the import list is KERNEL32,
+ * USER32 and msvcrt (the last only for mingw's own start-up glue). All three ship with Windows XP,
+ * where the isolated VM lives and where the vendor software is known to run, and keeping the
+ * library surface that small means a packed executable's start-up is not the place to discover a
+ * runtime initialisation problem. The cost is doing our own formatting, which is a few lines.
  */
 
 #include <windows.h>
@@ -80,7 +82,7 @@ static void logRaw(const CHAR *text, int len)
 }
 
 /* wsprintfA lives in user32 and has no CRT dependency; it is enough for what we print. */
-static void logf(const CHAR *fmt, ...)
+static void shimLog(const CHAR *fmt, ...)
 {
     CHAR buf[1024];
     CHAR line[1100];
@@ -165,7 +167,7 @@ static void refreshRx(void)
         if (hi < 0) hi = v;
         else { g_rx[g_rxLen++] = (BYTE)((hi << 4) | v); hi = -1; }
     }
-    logf("rx file reloaded: %u byte(s) queued", g_rxLen);
+    shimLog("rx file reloaded: %u byte(s) queued", g_rxLen);
 }
 
 /* ------------------------------------------------------------------ lifecycle */
@@ -189,12 +191,12 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
         wsprintfA(g_rxPath, "%s\\ftd2xx-rx.hex", g_dir);
 
         logRaw("\r\n", 2);
-        logf("================ shim loaded ================");
-        logf("directory: %s", g_dir);
+        shimLog("================ shim loaded ================");
+        shimLog("directory: %s", g_dir);
         refreshRx();
         DisableThreadLibraryCalls(inst);
     } else if (reason == DLL_PROCESS_DETACH && g_lockReady) {
-        logf("================ shim unloaded ==============");
+        shimLog("================ shim unloaded ==============");
     }
     return TRUE;
 }
@@ -203,7 +205,7 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
 
 FT_STATUS WINAPI FT_ListDevices(PVOID pArg1, PVOID pArg2, DWORD flags)
 {
-    logf("FT_ListDevices(flags=0x%08X)", flags);
+    shimLog("FT_ListDevices(flags=0x%08X)", flags);
     /* FT_LIST_NUMBER_ONLY = 0x80000000 */
     if ((flags & 0x80000000) && pArg1) {
         *(DWORD *)pArg1 = 1;
@@ -222,7 +224,7 @@ FT_STATUS WINAPI FT_ListDevices(PVOID pArg1, PVOID pArg2, DWORD flags)
 
 FT_STATUS WINAPI FT_CreateDeviceInfoList(LPDWORD count)
 {
-    logf("FT_CreateDeviceInfoList -> 1");
+    shimLog("FT_CreateDeviceInfoList -> 1");
     if (count) *count = 1;
     return FT_OK;
 }
@@ -253,7 +255,7 @@ static void fillNode(FT_DEVICE_LIST_INFO_NODE *n)
 
 FT_STATUS WINAPI FT_GetDeviceInfoList(FT_DEVICE_LIST_INFO_NODE *dest, LPDWORD count)
 {
-    logf("FT_GetDeviceInfoList");
+    shimLog("FT_GetDeviceInfoList");
     if (count) *count = 1;
     if (dest) fillNode(dest);
     return FT_OK;
@@ -264,7 +266,7 @@ FT_STATUS WINAPI FT_GetDeviceInfoDetail(DWORD index, LPDWORD flags, LPDWORD type
 {
     FT_DEVICE_LIST_INFO_NODE n;
     int i;
-    logf("FT_GetDeviceInfoDetail(index=%u)", index);
+    shimLog("FT_GetDeviceInfoDetail(index=%u)", index);
     if (index != 0) return FT_DEVICE_NOT_FOUND;
     fillNode(&n);
     if (flags) *flags = n.Flags;
@@ -282,7 +284,7 @@ FT_STATUS WINAPI FT_GetDeviceInfo(FT_HANDLE h, LPDWORD type, LPDWORD id,
 {
     int i;
     (void)h; (void)dummy;
-    logf("FT_GetDeviceInfo");
+    shimLog("FT_GetDeviceInfo");
     if (type) *type = 5;
     if (id) *id = (0x0333u << 16) | 0x0137u;
     if (serial) for (i = 0; (serial[i] = g_serial[i]) != 0; i++) {}
@@ -294,7 +296,7 @@ FT_STATUS WINAPI FT_GetDeviceInfo(FT_HANDLE h, LPDWORD type, LPDWORD id,
 
 FT_STATUS WINAPI FT_Open(int device, FT_HANDLE *handle)
 {
-    logf("FT_Open(device=%d)", device);
+    shimLog("FT_Open(device=%d)", device);
     if (!handle) return FT_INVALID_HANDLE;
     *handle = SHIM_HANDLE;
     refreshRx();
@@ -304,8 +306,8 @@ FT_STATUS WINAPI FT_Open(int device, FT_HANDLE *handle)
 FT_STATUS WINAPI FT_OpenEx(PVOID arg1, DWORD flags, FT_HANDLE *handle)
 {
     /* flags: 1 = by serial, 2 = by description, 4 = by location */
-    if (flags & 3) logf("FT_OpenEx(flags=0x%X, \"%s\")", flags, (CHAR *)arg1);
-    else logf("FT_OpenEx(flags=0x%X)", flags);
+    if (flags & 3) shimLog("FT_OpenEx(flags=0x%X, \"%s\")", flags, (CHAR *)arg1);
+    else shimLog("FT_OpenEx(flags=0x%X)", flags);
     if (!handle) return FT_INVALID_HANDLE;
     *handle = SHIM_HANDLE;
     refreshRx();
@@ -315,7 +317,7 @@ FT_STATUS WINAPI FT_OpenEx(PVOID arg1, DWORD flags, FT_HANDLE *handle)
 FT_STATUS WINAPI FT_Close(FT_HANDLE h)
 {
     (void)h;
-    logf("FT_Close");
+    shimLog("FT_Close");
     return FT_OK;
 }
 
@@ -324,7 +326,7 @@ FT_STATUS WINAPI FT_Close(FT_HANDLE h)
 FT_STATUS WINAPI FT_Write(FT_HANDLE h, LPVOID buffer, DWORD count, LPDWORD written)
 {
     (void)h;
-    logf("FT_Write(%u byte(s))  [%u baud, %u%c%u]", count, g_baud, g_bits,
+    shimLog("FT_Write(%u byte(s))  [%u baud, %u%c%u]", count, g_baud, g_bits,
          g_parity == 0 ? 'N' : (g_parity == 1 ? 'O' : (g_parity == 2 ? 'E' : '?')),
          g_stop == 0 ? 1 : 2);
     if (buffer && count) logBytes("TX", (const BYTE *)buffer, count);
@@ -349,7 +351,7 @@ FT_STATUS WINAPI FT_Read(FT_HANDLE h, LPVOID buffer, DWORD count, LPDWORD return
     }
     LeaveCriticalSection(&g_lock);
 
-    logf("FT_Read(asked %u) -> %u", count, give);
+    shimLog("FT_Read(asked %u) -> %u", count, give);
     if (give) logBytes("RX", (const BYTE *)buffer, give);
     if (returned) *returned = give;
     return FT_OK;
@@ -363,7 +365,7 @@ FT_STATUS WINAPI FT_GetQueueStatus(FT_HANDLE h, LPDWORD rx)
     avail = g_rxLen - g_rxPos;
     if (rx) *rx = avail;
     /* Logged only when non-zero: the software polls this in a tight loop. */
-    if (avail) logf("FT_GetQueueStatus -> %u", avail);
+    if (avail) shimLog("FT_GetQueueStatus -> %u", avail);
     return FT_OK;
 }
 
@@ -383,14 +385,14 @@ FT_STATUS WINAPI FT_SetBaudRate(FT_HANDLE h, ULONG baud)
 {
     (void)h;
     g_baud = baud;
-    logf("FT_SetBaudRate(%u)", baud);
+    shimLog("FT_SetBaudRate(%u)", baud);
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_SetDivisor(FT_HANDLE h, USHORT divisor)
 {
     (void)h;
-    logf("FT_SetDivisor(0x%04X)", divisor);
+    shimLog("FT_SetDivisor(0x%04X)", divisor);
     return FT_OK;
 }
 
@@ -398,28 +400,28 @@ FT_STATUS WINAPI FT_SetDataCharacteristics(FT_HANDLE h, UCHAR bits, UCHAR stop, 
 {
     (void)h;
     g_bits = bits; g_stop = stop; g_parity = parity;
-    logf("FT_SetDataCharacteristics(bits=%u stop=%u parity=%u)", bits, stop, parity);
+    shimLog("FT_SetDataCharacteristics(bits=%u stop=%u parity=%u)", bits, stop, parity);
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_SetFlowControl(FT_HANDLE h, USHORT flow, UCHAR xon, UCHAR xoff)
 {
     (void)h;
-    logf("FT_SetFlowControl(0x%04X, xon=0x%02X, xoff=0x%02X)", flow, xon, xoff);
+    shimLog("FT_SetFlowControl(0x%04X, xon=0x%02X, xoff=0x%02X)", flow, xon, xoff);
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_SetTimeouts(FT_HANDLE h, ULONG rd, ULONG wr)
 {
     (void)h;
-    logf("FT_SetTimeouts(read=%u write=%u)", rd, wr);
+    shimLog("FT_SetTimeouts(read=%u write=%u)", rd, wr);
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_SetLatencyTimer(FT_HANDLE h, UCHAR ms)
 {
     (void)h;
-    logf("FT_SetLatencyTimer(%u)", ms);
+    shimLog("FT_SetLatencyTimer(%u)", ms);
     return FT_OK;
 }
 
@@ -433,21 +435,21 @@ FT_STATUS WINAPI FT_GetLatencyTimer(FT_HANDLE h, PUCHAR ms)
 FT_STATUS WINAPI FT_SetUSBParameters(FT_HANDLE h, ULONG in, ULONG out)
 {
     (void)h;
-    logf("FT_SetUSBParameters(in=%u out=%u)", in, out);
+    shimLog("FT_SetUSBParameters(in=%u out=%u)", in, out);
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_SetChars(FT_HANDLE h, UCHAR ev, UCHAR evEn, UCHAR er, UCHAR erEn)
 {
     (void)h;
-    logf("FT_SetChars(event=0x%02X/%u error=0x%02X/%u)", ev, evEn, er, erEn);
+    shimLog("FT_SetChars(event=0x%02X/%u error=0x%02X/%u)", ev, evEn, er, erEn);
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_Purge(FT_HANDLE h, ULONG mask)
 {
     (void)h;
-    logf("FT_Purge(mask=%u)%s", mask, mask & 1 ? "  [RX]" : "");
+    shimLog("FT_Purge(mask=%u)%s", mask, mask & 1 ? "  [RX]" : "");
     if (mask & 1) {
         /* Purging RX discards anything queued, exactly as the chip would. */
         if (g_lockReady) EnterCriticalSection(&g_lock);
@@ -460,19 +462,19 @@ FT_STATUS WINAPI FT_Purge(FT_HANDLE h, ULONG mask)
 FT_STATUS WINAPI FT_ResetDevice(FT_HANDLE h)
 {
     (void)h;
-    logf("FT_ResetDevice");
+    shimLog("FT_ResetDevice");
     return FT_OK;
 }
 
-FT_STATUS WINAPI FT_ResetPort(FT_HANDLE h) { (void)h; logf("FT_ResetPort"); return FT_OK; }
-FT_STATUS WINAPI FT_CyclePort(FT_HANDLE h) { (void)h; logf("FT_CyclePort"); return FT_OK; }
+FT_STATUS WINAPI FT_ResetPort(FT_HANDLE h) { (void)h; shimLog("FT_ResetPort"); return FT_OK; }
+FT_STATUS WINAPI FT_CyclePort(FT_HANDLE h) { (void)h; shimLog("FT_CyclePort"); return FT_OK; }
 
 /* ------------------------------------------------------------------ handshake lines */
 
-FT_STATUS WINAPI FT_SetDtr(FT_HANDLE h) { (void)h; logf("FT_SetDtr      <-- DTR asserted"); return FT_OK; }
-FT_STATUS WINAPI FT_ClrDtr(FT_HANDLE h) { (void)h; logf("FT_ClrDtr      <-- DTR released"); return FT_OK; }
-FT_STATUS WINAPI FT_SetRts(FT_HANDLE h) { (void)h; logf("FT_SetRts"); return FT_OK; }
-FT_STATUS WINAPI FT_ClrRts(FT_HANDLE h) { (void)h; logf("FT_ClrRts"); return FT_OK; }
+FT_STATUS WINAPI FT_SetDtr(FT_HANDLE h) { (void)h; shimLog("FT_SetDtr      <-- DTR asserted"); return FT_OK; }
+FT_STATUS WINAPI FT_ClrDtr(FT_HANDLE h) { (void)h; shimLog("FT_ClrDtr      <-- DTR released"); return FT_OK; }
+FT_STATUS WINAPI FT_SetRts(FT_HANDLE h) { (void)h; shimLog("FT_SetRts"); return FT_OK; }
+FT_STATUS WINAPI FT_ClrRts(FT_HANDLE h) { (void)h; shimLog("FT_ClrRts"); return FT_OK; }
 
 FT_STATUS WINAPI FT_GetModemStatus(FT_HANDLE h, LPDWORD status)
 {
@@ -482,15 +484,15 @@ FT_STATUS WINAPI FT_GetModemStatus(FT_HANDLE h, LPDWORD status)
     return FT_OK;
 }
 
-FT_STATUS WINAPI FT_SetBreakOn(FT_HANDLE h) { (void)h; logf("FT_SetBreakOn"); return FT_OK; }
-FT_STATUS WINAPI FT_SetBreakOff(FT_HANDLE h) { (void)h; logf("FT_SetBreakOff"); return FT_OK; }
+FT_STATUS WINAPI FT_SetBreakOn(FT_HANDLE h) { (void)h; shimLog("FT_SetBreakOn"); return FT_OK; }
+FT_STATUS WINAPI FT_SetBreakOff(FT_HANDLE h) { (void)h; shimLog("FT_SetBreakOff"); return FT_OK; }
 
 /* ------------------------------------------------------------------ bit mode */
 
 FT_STATUS WINAPI FT_SetBitMode(FT_HANDLE h, UCHAR mask, UCHAR mode)
 {
     (void)h;
-    logf("FT_SetBitMode(mask=0x%02X mode=0x%02X)%s", mask, mode,
+    shimLog("FT_SetBitMode(mask=0x%02X mode=0x%02X)%s", mask, mode,
          mode == 0x20 ? "  [CBUS bitbang]" : (mode == 0x01 ? "  [async bitbang]" :
          (mode == 0x04 ? "  [sync bitbang]" : (mode == 0x00 ? "  [reset]" : ""))));
     return FT_OK;
@@ -510,21 +512,21 @@ FT_STATUS WINAPI FT_ReadEE(FT_HANDLE h, DWORD offset, LPWORD value)
     (void)h;
     if (offset >= 64) return FT_IO_ERROR;
     if (value) *value = g_eeprom[offset];
-    logf("FT_ReadEE(0x%02X) -> 0x%04X", offset, g_eeprom[offset]);
+    shimLog("FT_ReadEE(0x%02X) -> 0x%04X", offset, g_eeprom[offset]);
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_WriteEE(FT_HANDLE h, DWORD offset, WORD value)
 {
     (void)h;
-    logf("FT_WriteEE(0x%02X, 0x%04X)  -- IGNORED, the shim never writes", offset, value);
+    shimLog("FT_WriteEE(0x%02X, 0x%04X)  -- IGNORED, the shim never writes", offset, value);
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_EraseEE(FT_HANDLE h)
 {
     (void)h;
-    logf("FT_EraseEE  -- IGNORED");
+    shimLog("FT_EraseEE  -- IGNORED");
     return FT_OK;
 }
 
@@ -562,7 +564,7 @@ FT_STATUS WINAPI FT_EE_Read(FT_HANDLE h, PVOID data)
 {
     FT_PROGRAM_DATA_HEAD *p = (FT_PROGRAM_DATA_HEAD *)data;
     (void)h;
-    logf("FT_EE_Read");
+    shimLog("FT_EE_Read");
     if (!p) return FT_IO_ERROR;
     p->VendorId = 0x0333;
     p->ProductId = 0x0137;
@@ -580,7 +582,7 @@ FT_STATUS WINAPI FT_EE_Read(FT_HANDLE h, PVOID data)
 FT_STATUS WINAPI FT_EE_ReadEx(FT_HANDLE h, PVOID data, char *m, char *mid, char *d, char *s)
 {
     (void)h;
-    logf("FT_EE_ReadEx");
+    shimLog("FT_EE_ReadEx");
     copyStr(m, g_manuf);
     copyStr(mid, "PA");
     copyStr(d, g_desc);
@@ -591,14 +593,14 @@ FT_STATUS WINAPI FT_EE_ReadEx(FT_HANDLE h, PVOID data, char *m, char *mid, char 
 FT_STATUS WINAPI FT_EE_Program(FT_HANDLE h, PVOID data)
 {
     (void)h; (void)data;
-    logf("FT_EE_Program  -- IGNORED, the shim never writes");
+    shimLog("FT_EE_Program  -- IGNORED, the shim never writes");
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_EE_ProgramEx(FT_HANDLE h, PVOID d, char *a, char *b, char *c, char *e)
 {
     (void)h; (void)d; (void)a; (void)b; (void)c; (void)e;
-    logf("FT_EE_ProgramEx  -- IGNORED");
+    shimLog("FT_EE_ProgramEx  -- IGNORED");
     return FT_OK;
 }
 
@@ -606,7 +608,7 @@ FT_STATUS WINAPI FT_EE_UASize(FT_HANDLE h, LPDWORD size)
 {
     (void)h;
     if (size) *size = 0;
-    logf("FT_EE_UASize -> 0");
+    shimLog("FT_EE_UASize -> 0");
     return FT_OK;
 }
 
@@ -614,14 +616,14 @@ FT_STATUS WINAPI FT_EE_UARead(FT_HANDLE h, PUCHAR data, DWORD len, LPDWORD read)
 {
     (void)h; (void)data; (void)len;
     if (read) *read = 0;
-    logf("FT_EE_UARead -> 0");
+    shimLog("FT_EE_UARead -> 0");
     return FT_OK;
 }
 
 FT_STATUS WINAPI FT_EE_UAWrite(FT_HANDLE h, PUCHAR data, DWORD len)
 {
     (void)h; (void)data; (void)len;
-    logf("FT_EE_UAWrite  -- IGNORED");
+    shimLog("FT_EE_UAWrite  -- IGNORED");
     return FT_OK;
 }
 
@@ -630,7 +632,7 @@ FT_STATUS WINAPI FT_EE_UAWrite(FT_HANDLE h, PUCHAR data, DWORD len)
 FT_STATUS WINAPI FT_SetEventNotification(FT_HANDLE h, DWORD mask, PVOID param)
 {
     (void)h; (void)param;
-    logf("FT_SetEventNotification(mask=0x%08X)", mask);
+    shimLog("FT_SetEventNotification(mask=0x%08X)", mask);
     return FT_OK;
 }
 
@@ -643,15 +645,15 @@ FT_STATUS WINAPI FT_GetEventStatus(FT_HANDLE h, LPDWORD ev)
 
 FT_STATUS WINAPI FT_SetWaitMask(FT_HANDLE h, DWORD mask) { (void)h; (void)mask; return FT_OK; }
 FT_STATUS WINAPI FT_WaitOnMask(FT_HANDLE h, LPDWORD mask) { (void)h; if (mask) *mask = 0; return FT_OK; }
-FT_STATUS WINAPI FT_StopInTask(FT_HANDLE h) { (void)h; logf("FT_StopInTask"); return FT_OK; }
-FT_STATUS WINAPI FT_RestartInTask(FT_HANDLE h) { (void)h; logf("FT_RestartInTask"); return FT_OK; }
+FT_STATUS WINAPI FT_StopInTask(FT_HANDLE h) { (void)h; shimLog("FT_StopInTask"); return FT_OK; }
+FT_STATUS WINAPI FT_RestartInTask(FT_HANDLE h) { (void)h; shimLog("FT_RestartInTask"); return FT_OK; }
 FT_STATUS WINAPI FT_SetResetPipeRetryCount(FT_HANDLE h, DWORD n) { (void)h; (void)n; return FT_OK; }
 FT_STATUS WINAPI FT_SetDeadmanTimeout(FT_HANDLE h, ULONG t) { (void)h; (void)t; return FT_OK; }
 
 FT_STATUS WINAPI FT_IoCtl(FT_HANDLE h, DWORD code, PVOID a, DWORD b, PVOID c, DWORD d, LPDWORD e, PVOID f)
 {
     (void)h; (void)a; (void)b; (void)c; (void)d; (void)f;
-    logf("FT_IoCtl(code=0x%08X)", code);
+    shimLog("FT_IoCtl(code=0x%08X)", code);
     if (e) *e = 0;
     return FT_OK;
 }
@@ -662,12 +664,12 @@ HANDLE WINAPI FT_W32_CreateFile(LPCSTR name, DWORD access, DWORD share, LPVOID s
                                 DWORD create, DWORD flags, HANDLE tmpl)
 {
     (void)name; (void)access; (void)share; (void)sec; (void)create; (void)flags; (void)tmpl;
-    logf("FT_W32_CreateFile");
+    shimLog("FT_W32_CreateFile");
     refreshRx();
     return (HANDLE)SHIM_HANDLE;
 }
 
-BOOL WINAPI FT_W32_CloseHandle(HANDLE h) { (void)h; logf("FT_W32_CloseHandle"); return TRUE; }
+BOOL WINAPI FT_W32_CloseHandle(HANDLE h) { (void)h; shimLog("FT_W32_CloseHandle"); return TRUE; }
 
 BOOL WINAPI FT_W32_ReadFile(HANDLE h, LPVOID buf, DWORD count, LPDWORD read, LPVOID ov)
 {
@@ -688,8 +690,8 @@ BOOL WINAPI FT_W32_WriteFile(HANDLE h, LPVOID buf, DWORD count, LPDWORD written,
 }
 
 BOOL WINAPI FT_W32_PurgeComm(HANDLE h, DWORD flags) { (void)h; FT_Purge(SHIM_HANDLE, flags); return TRUE; }
-BOOL WINAPI FT_W32_SetCommBreak(HANDLE h) { (void)h; logf("FT_W32_SetCommBreak"); return TRUE; }
-BOOL WINAPI FT_W32_ClearCommBreak(HANDLE h) { (void)h; logf("FT_W32_ClearCommBreak"); return TRUE; }
+BOOL WINAPI FT_W32_SetCommBreak(HANDLE h) { (void)h; shimLog("FT_W32_SetCommBreak"); return TRUE; }
+BOOL WINAPI FT_W32_ClearCommBreak(HANDLE h) { (void)h; shimLog("FT_W32_ClearCommBreak"); return TRUE; }
 BOOL WINAPI FT_W32_SetCommMask(HANDLE h, DWORD m) { (void)h; (void)m; return TRUE; }
 BOOL WINAPI FT_W32_WaitCommEvent(HANDLE h, LPDWORD ev, LPVOID ov) { (void)h; (void)ov; if (ev) *ev = 0; return TRUE; }
 BOOL WINAPI FT_W32_CancelIo(HANDLE h) { (void)h; return TRUE; }
@@ -716,7 +718,7 @@ BOOL WINAPI FT_W32_EscapeCommFunction(HANDLE h, DWORD func)
 {
     (void)h;
     /* SETDTR 5, CLRDTR 6, SETRTS 3, CLRRTS 4 */
-    logf("FT_W32_EscapeCommFunction(%u)%s", func,
+    shimLog("FT_W32_EscapeCommFunction(%u)%s", func,
          func == 5 ? "  <-- DTR asserted" : (func == 6 ? "  <-- DTR released" : ""));
     return TRUE;
 }
@@ -730,7 +732,7 @@ BOOL WINAPI FT_W32_SetCommState(HANDLE h, LPVOID dcb)
     if (dcb) {
         DWORD *d = (DWORD *)dcb;
         g_baud = d[1];               /* DCB: DCBlength, BaudRate, ... */
-        logf("FT_W32_SetCommState(baud=%u)", g_baud);
+        shimLog("FT_W32_SetCommState(baud=%u)", g_baud);
     }
     return TRUE;
 }

@@ -1,0 +1,29 @@
+# What FT_Read hands back to the vendor software.
+#
+# Whitespace-separated hex bytes; # starts a comment. The file is re-read whenever it changes, so
+# a candidate can be tried by editing this and pressing the button again - no restart, no rebuild.
+#
+# ---------------------------------------------------------------------------------------------
+# Attempt 1: leave this empty.
+#
+# The software pulses DTR and then waits for the cable to announce itself. With nothing to read it
+# will give up, exactly as it did in the run-6 USB capture - but this time the log shows the whole
+# call sequence and every byte it tried to send, which that capture never revealed.
+# ---------------------------------------------------------------------------------------------
+#
+# Attempt 2 onwards: give it an announcement. The strongest clue is the session log shipped with
+# the software itself (BMWScan140/2009-2-26_20-02-54/), whose header reads:
+#
+#     BMW Scanner v1.4.0.6 (24.05.2008) - P.A.Soft, 2008  HW: V144Bn9
+#
+# "V144Bn9" is a string the host cannot have invented, so the announcement almost certainly carries
+# it. Candidates to try, one at a time - uncomment one:
+#
+# V144Bn9 as plain ASCII:
+# 56 31 34 34 42 6E 39
+#
+# the same, newline-terminated:
+# 56 31 34 34 42 6E 39 0D 0A
+#
+# with a leading length byte, which is how a small microcontroller usually frames a reply:
+# 07 56 31 34 34 42 6E 39
