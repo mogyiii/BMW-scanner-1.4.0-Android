@@ -203,20 +203,50 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
 
 /* ------------------------------------------------------------------ enumeration */
 
+/*
+ * FT_ListDevices is three different functions wearing one name, and the first version of this got
+ * two of them wrong.
+ *
+ *   FT_LIST_NUMBER_ONLY  0x80000000  pArg1 is a DWORD* to receive the count
+ *   FT_LIST_BY_INDEX     0x40000000  pArg1 is the index *by value*, pArg2 a char buffer
+ *   FT_LIST_ALL          0x20000000  pArg1 is an array of char* to fill and NULL-terminate,
+ *                                    pArg2 is a DWORD* to receive the count
+ *
+ * The old code treated everything that was not NUMBER_ONLY as BY_INDEX and wrote a string into
+ * pArg2 - which, for the FT_LIST_ALL form that software of this vintage usually calls, means
+ * scribbling a device name over the caller's count variable and never filling the array it
+ * actually reads. "No adapter" is the polite outcome of that.
+ */
 FT_STATUS WINAPI FT_ListDevices(PVOID pArg1, PVOID pArg2, DWORD flags)
 {
-    shimLog("FT_ListDevices(flags=0x%08X)", flags);
-    /* FT_LIST_NUMBER_ONLY = 0x80000000 */
-    if ((flags & 0x80000000) && pArg1) {
-        *(DWORD *)pArg1 = 1;
+    const CHAR *name = (flags & 2) ? g_desc : g_serial;
+
+    shimLog("FT_ListDevices(flags=0x%08X)%s%s%s", flags,
+            (flags & 0x80000000) ? "  [number only]" : "",
+            (flags & 0x40000000) ? "  [by index]" : "",
+            (flags & 0x20000000) ? "  [all]" : "");
+
+    if (flags & 0x80000000) {
+        if (pArg1) *(DWORD *)pArg1 = 1;
         return FT_OK;
     }
-    if (pArg1 && pArg2) {
-        /* By serial or description, index in pArg1, buffer in pArg2. */
-        const CHAR *src = (flags & 2) ? g_desc : g_serial;
+
+    if (flags & 0x20000000) {
+        CHAR **slots = (CHAR **)pArg1;
+        if (slots) {
+            slots[0] = (CHAR *)name;      /* static storage, so handing out a pointer is safe */
+            slots[1] = NULL;
+        }
+        if (pArg2) *(DWORD *)pArg2 = 1;
+        return FT_OK;
+    }
+
+    /* BY_INDEX, and the index arrives by value rather than through a pointer. */
+    if ((DWORD_PTR)pArg1 != 0) return FT_DEVICE_NOT_FOUND;
+    if (pArg2) {
         CHAR *dst = (CHAR *)pArg2;
         int i = 0;
-        while (src[i]) { dst[i] = src[i]; i++; }
+        while (name[i]) { dst[i] = name[i]; i++; }
         dst[i] = 0;
     }
     return FT_OK;
