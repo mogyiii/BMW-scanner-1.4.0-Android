@@ -640,6 +640,55 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 32: the cable issues a challenge, and the software answers it
+
+2026-10-28, in the VM, with the shim serving **the real cable's 27-byte announcement** for the first
+time. (`field-logs/2026-10-28-run32-vm-signon-frame.log`)
+
+Every earlier shim run answered the announcement with a guessed string. The software accepted it far
+enough to reach its main window, which is why the guess looked good, but it never believed a real
+cable was attached. Fed the genuine 27 bytes — recorded off the car on 2026-10-28 — it read all of
+them one byte at a time and then sent something no capture has ever contained:
+
+```
+22 A7 7A 56 31 34 34 42 6E 39 9D 3E AF 2E A9 45 78 80 B7 AA
+F6 A9 FC 9F EE D2 7C 59 90 79 80 59 84 88 03 DA
+```
+
+Thirty-six bytes, length byte and checksum both correct. Command `0xA77A`, parameter `0x56` — `'V'`
+— and the payload opens `31 34 34 42 6E 39`, `"144Bn9"`. Together: `V144Bn9`, **the identity the
+cable had just announced**, handed straight back, followed by twenty-five further bytes.
+
+A device that announces a nonce and a host that repeats the device's identity back with a computed
+tail is a challenge and a response. How the twenty-five bytes are derived is not known.
+
+### This re-reads run 28 rather than contradicting it
+
+Run 28 swept all 256 keys and found that no second frame ever works, and recorded the conclusion as
+"the cable accepts one command per handshake". The measurement stands and the conclusion was the
+wrong reading of it. **The vendor does not send a command first at all** — it sends this. The cable
+was not refusing second frames; it was waiting for a response to its challenge, and every frame we
+sent was the wrong thing in the wrong place.
+
+### Why it is replayable
+
+The response was computed by the vendor software from **our** cable's actual announcement, because
+that is what the shim served. So these exact bytes answer this cable's actual challenge and can be
+sent verbatim — scrambled from key `0x9B`, which reproduces the logged wire bytes `B9 41 4B ...`
+exactly.
+
+Its scope is correspondingly narrow and the code enforces it: `VendorProtocol.matchesRecordedCable`
+compares the live announcement against the recorded one and the diagnostic refuses to send if they
+differ, because a response to a different challenge is bytes nobody has observed.
+
+### A shim defect, found by this run
+
+The shim decoded each `FT_Write` as a whole frame and reported "the key has slipped" seventy-two
+times. The software writes **one byte per call** — `FUN_006ccdd4` hands bytes to `FUN_006ca098`
+singly — so frames must be accumulated across calls, with the length taken from the first byte. The
+raw bytes were logged correctly throughout, so the frame above was recovered from the log afterwards
+rather than lost, but the shim should accumulate.
+
 ## Run 31: the cable waits 285 ms, then says it has nothing
 
 2026-10-28, on the car. The ident frame, then a four-second window, to answer one question: after

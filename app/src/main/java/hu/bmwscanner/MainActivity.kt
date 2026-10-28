@@ -158,6 +158,7 @@ class MainActivity : AppCompatActivity() {
                 "bustrials" -> guarded(what) { vendorBusTrials(device!!) }
                 "keyhunt" -> guarded(what) { vendorKeyHunt(device!!) }
                 "twostage" -> guarded(what) { twoStageRead(device!!) }
+                "signon" -> guarded(what) { vendorSignOn(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -419,10 +420,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "TWO-STAGE READ  (5 s)"
+                text = "SIGN-ON  <-- this one"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("twostage") { d -> twoStageRead(d) } }
+                setOnClickListener { withCable("signon") { d -> vendorSignOn(d) } }
             },
             wide(),
         )
@@ -2506,6 +2507,117 @@ class MainActivity : AppCompatActivity() {
         log("=== end two-stage read ===")
     }
 
+    /**
+     * Sends the vendor's sign-on frame, then tries a second command to see whether it unlocked one.
+     *
+     * Run 28 measured that the cable answers exactly one frame per handshake and that no key makes
+     * a second one work. That was recorded as "one command per handshake", which fitted the
+     * evidence and turns out to be the wrong reading of it: the vendor does not send a command
+     * first at all. It sends a thirty-six byte frame carrying the cable's own identity back —
+     * command `0xA77A`, parameter `'V'`, payload opening `"144Bn9"` — and only then goes on. A
+     * challenge from the cable, a response from the host.
+     *
+     * So the hypothesis under test is that the cable has been waiting for that response all along,
+     * and everything after it was ignored for want of it. The second frame below is the probe: if
+     * the ident frame now draws a real answer where run 28 could not make it work under any of 256
+     * keys, the lock was the sign-on and not the key.
+     *
+     * The frame is replayed, not computed. It is the one the vendor software produced when the shim
+     * fed it this cable's genuine announcement, so it answers this cable's actual challenge — and
+     * the announcement is checked against the recorded one before anything is sent, because a
+     * response to a different challenge would be bytes nobody has observed.
+     */
+    private fun vendorSignOn(device: UsbDevice) {
+        log("=== SIGN-ON (replayed) ===")
+        log("The 36-byte frame the vendor software sends straight after the announcement.")
+        log("Command 0xA77A, parameter 'V', payload opens \"144Bn9\" - the cable's own identity.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            dev.purge()
+            dev.setModemControl(dtr = true, rts = null)
+            Thread.sleep(100)
+            dev.setModemControl(dtr = false, rts = null)
+
+            val raw = dev.readBytes(VendorHandshake.LENGTH, 1500)
+            val hs = VendorHandshake.decode(raw)
+            if (hs == null) { log("  handshake failed"); return }
+            log("  handshake ok: \"${hs.identity}\", key 0x%02X".format(hs.key))
+
+            if (!VendorProtocol.matchesRecordedCable(raw)) {
+                log("  announcement differs from the one the sign-on frame answers:")
+                log("    now      ${Ds2.hex(raw)}")
+                log("    recorded ${Ds2.hex(VendorProtocol.RECORDED_ANNOUNCEMENT)}")
+                log("  The recorded response belongs to a different challenge, so sending it would")
+                log("  be sending invented bytes. Stopping here on purpose.")
+                return
+            }
+            log("  announcement matches the recorded challenge exactly")
+            log("")
+
+            var key = hs.key
+            val (wire, afterSignOn) = VendorProtocol.scramble(VendorProtocol.SIGN_ON_FRAME, key)
+            log("  sign-on frame  ${Ds2.hex(VendorProtocol.SIGN_ON_FRAME)}")
+            log("  on the wire    ${Ds2.hex(wire)}")
+            log("  key 0x%02X -> 0x%02X".format(key, afterSignOn))
+            dev.write(wire)
+            key = afterSignOn
+
+            val r1 = dev.readTimed(3000)
+            reportFrames("sign-on", r1)
+
+            if (stopRequested) { log("stopped"); return }
+
+            // The probe. Run 28 could not make a second frame work under any key; if the sign-on
+            // was the lock, this one answers.
+            log("")
+            log("  now the ident frame as a SECOND frame, which run 28 never got to work:")
+            val identFrame = VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12)
+            val (w2, _) = VendorProtocol.scramble(identFrame, key)
+            log("    frame  ${Ds2.hex(identFrame)}  on the wire ${Ds2.hex(w2)}  key 0x%02X"
+                .format(key))
+            dev.write(w2)
+            reportFrames("second frame", dev.readTimed(3000))
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end sign-on ===")
+    }
+
+    /** Prints arrival timing and then splits the bytes into frames the way the executable would. */
+    private fun reportFrames(label: String, batches: List<Pair<Long, ByteArray>>) {
+        if (batches.isEmpty()) { log("  $label: nothing came back"); return }
+        val raw = batches.flatMap { it.second.asIterable() }.toByteArray()
+        log("  $label: ${raw.size} byte(s) over ${batches.last().first} ms")
+        for ((ms, bytes) in batches) log("      %5d ms  ${Ds2.hex(bytes)}".format(ms))
+
+        var at = 0
+        var n = 0
+        while (at < raw.size) {
+            val f = VendorTransaction.resync(
+                VendorTransaction.Mode.DS2, raw.copyOfRange(at, raw.size)) ?: break
+            n++
+            if (f.offset > 0) {
+                log("      ${f.offset} byte(s) before frame $n: " +
+                    Ds2.hex(raw.copyOfRange(at, at + f.offset)))
+            }
+            log("      frame $n: ${Ds2.hex(f.bytes)}" + when (f.ack) {
+                VendorTransaction.Ack.NOTHING_TO_SAY -> "   cable: nothing to say"
+                VendorTransaction.Ack.ABORT -> "   cable: ABORT"
+                null -> "   NOT a sentinel - address 0x%02X  <<<<<< NEW".format(f.bytes[0])
+            })
+            at += f.offset + f.bytes.size
+        }
+        if (at < raw.size) {
+            log("      trailing: ${Ds2.hex(raw.copyOfRange(at, raw.size))}")
+        }
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -3301,5 +3413,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.31-probe"
+    const val NAME = "0.32-probe"
 }

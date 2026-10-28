@@ -47,7 +47,60 @@ object VendorProtocol {
          * holds at `+0x2F4` of each record. See `docs/findings.md`, run 29.
          */
         const val BUS = 0x83F0
+
+        /**
+         * The frame the vendor software sends **immediately after the announcement**, carrying the
+         * cable's own identity back to it along with twenty-five further bytes.
+         *
+         * Recovered on 2026-10-28 by feeding the shim our cable's real 27-byte announcement and
+         * letting `BMWScan140.exe` answer it. Until then the shim had replied with a guessed
+         * string, the software never believed a cable was present, and this frame was never built.
+         *
+         * Its shape says what it is. The parameter byte is `0x56`, `'V'`, and the payload opens
+         * `31 34 34 42 6E 39`, `"144Bn9"` — together the identity `V144Bn9` the cable just
+         * announced. A device announcing itself and a host repeating that identity back with a
+         * further twenty-five bytes is a challenge and a response.
+         */
+        const val SIGN_ON = 0xA77A
     }
+
+    /**
+     * The exact sign-on frame the vendor software produced for **this** cable.
+     *
+     * It is replayable only because the shim fed the software our cable's genuine announcement, so
+     * the twenty-five trailing bytes were computed from the real challenge rather than a fiction.
+     * That also fixes its scope: **this frame is valid for one cable and one announcement.** If the
+     * announcement ever differs — a different cable, or the same cable announcing something new —
+     * these bytes are meaningless and must not be sent. [matchesRecordedCable] exists so a caller
+     * checks rather than assumes.
+     *
+     * How the trailing bytes are derived is not known. Deriving them would make this work for any
+     * cable; replaying them works for ours, which is what the project needs first.
+     */
+    val SIGN_ON_FRAME: ByteArray = byteArrayOf(
+        0x22, 0xA7.toByte(), 0x7A, 0x56, 0x31, 0x34, 0x34, 0x42, 0x6E, 0x39,
+        0x9D.toByte(), 0x3E, 0xAF.toByte(), 0x2E, 0xA9.toByte(), 0x45, 0x78, 0x80.toByte(),
+        0xB7.toByte(), 0xAA.toByte(), 0xF6.toByte(), 0xA9.toByte(), 0xFC.toByte(), 0x9F.toByte(),
+        0xEE.toByte(), 0xD2.toByte(), 0x7C, 0x59, 0x90.toByte(), 0x79, 0x80.toByte(), 0x59,
+        0x84.toByte(), 0x88.toByte(), 0x03, 0xDA.toByte(),
+    )
+
+    /** The 27 announcement bytes [SIGN_ON_FRAME] was computed against, exactly as recorded. */
+    val RECORDED_ANNOUNCEMENT: ByteArray = byteArrayOf(
+        0x9B.toByte(), 0xCD.toByte(), 0xAA.toByte(), 0xAF.toByte(), 0xAF.toByte(), 0xD9.toByte(),
+        0xF5.toByte(), 0xA2.toByte(), 0x9B.toByte(), 0x17, 0x28, 0xFE.toByte(), 0x72, 0xD1.toByte(),
+        0x17, 0x4C, 0x5E, 0x80.toByte(), 0x38, 0x09, 0xED.toByte(), 0x2E, 0xB5.toByte(),
+        0xCF.toByte(), 0xAA.toByte(), 0x07, 0x2B,
+    )
+
+    /**
+     * Whether [announcement] is the one [SIGN_ON_FRAME] answers.
+     *
+     * Sending a response computed for a different challenge is not a harmless experiment - it is
+     * sending bytes nobody has ever observed, which is the one thing this project does not do.
+     */
+    fun matchesRecordedCable(announcement: ByteArray): Boolean =
+        announcement.contentEquals(RECORDED_ANNOUNCEMENT)
 
     /**
      * Builds one unscrambled frame.

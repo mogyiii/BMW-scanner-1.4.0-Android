@@ -187,6 +187,45 @@ class VendorProtocolTest {
     }
 
     @Test
+    fun `the sign-on frame is well formed and carries the cable's identity back`() {
+        val f = VendorProtocol.SIGN_ON_FRAME
+        assertEquals(36, f.size)
+        assertTrue("length byte and checksum both agree", VendorProtocol.frameOk(f))
+        assertEquals(VendorProtocol.Command.SIGN_ON, (f[1].toInt() and 0xFF) shl 8 or (f[2].toInt() and 0xFF))
+
+        // Parameter 'V' then "144Bn9" spell the identity the cable announces.
+        val identity = StringBuilder().append(f[3].toInt().toChar())
+        for (i in 4 until 10) identity.append(f[i].toInt().toChar())
+        assertEquals(VendorHandshake.EXPECTED_IDENTITY, identity.toString())
+    }
+
+    @Test
+    fun `the recorded announcement is the one the sign-on frame answers`() {
+        val a = VendorProtocol.RECORDED_ANNOUNCEMENT
+        assertEquals(VendorHandshake.LENGTH, a.size)
+        assertTrue("it is a valid announcement in its own right", VendorHandshake.checksumOk(a))
+        assertEquals(VendorHandshake.EXPECTED_IDENTITY, VendorHandshake.decode(a)!!.identity)
+        assertTrue(VendorProtocol.matchesRecordedCable(a))
+    }
+
+    @Test
+    fun `a different announcement is refused, since the response would answer nothing`() {
+        val other = VendorProtocol.RECORDED_ANNOUNCEMENT.copyOf()
+        other[9] = (other[9].toInt() xor 0x01).toByte()
+        assertTrue(!VendorProtocol.matchesRecordedCable(other))
+    }
+
+    @Test
+    fun `scrambling the sign-on frame reproduces the bytes the vendor put on the wire`() {
+        // First and last bytes as logged through the shim on 2026-10-28.
+        val (wire, _) = VendorProtocol.scramble(VendorProtocol.SIGN_ON_FRAME, 0x9B)
+        assertEquals(0xB9, wire[0].toInt() and 0xFF)
+        assertEquals(0x41, wire[1].toInt() and 0xFF)
+        assertEquals(0x4B, wire[2].toInt() and 0xFF)
+        assertEquals(0x06, wire[35].toInt() and 0xFF)
+    }
+
+    @Test
     fun `a body without a sentinel reports none rather than guessing`() {
         val raw = byteArrayOf(0x41, 0xAA.toByte(), 0x12, 0x01, 0x02, 0x03)
         val r = VendorProtocol.parseReply(raw, VendorProtocol.Command.IDENT, 0x12)!!

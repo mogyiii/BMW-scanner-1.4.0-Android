@@ -1,0 +1,2558 @@
+
+23:15:55.639  ================ shim loaded ================
+23:15:55.639  directory: C:\BMWScan140
+23:15:55.639  CANDIDATE 1 of 11: (nothing - the baseline)  (0 byte(s))
+23:15:55.639  close the program and start it again to try the next one
+23:15:55.639  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:15:55.639  FT_SetBaudRate(19200)
+23:15:55.639  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:15:55.639  FT_SetTimeouts(read=1000 write=1000)
+23:15:55.739  FT_Purge(mask=3)  [RX]
+23:15:55.739  FT_SetDtr      <-- DTR asserted
+23:15:55.840  FT_ClrDtr      <-- DTR released
+23:15:55.840  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:15:57.051     ... 1 empty read(s) while waiting
+23:15:57.051  FT_Close
+23:15:57.051  ================ shim unloaded ==============
+
+23:16:23.559  ================ shim loaded ================
+23:16:23.559  directory: C:\BMWScan140
+23:16:23.559  CANDIDATE 2 of 11: the real cable's burst at 19200  (27 byte(s))
+    will answer with[0..] 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+23:16:23.559  close the program and start it again to try the next one
+23:16:23.559  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:16:23.559  FT_SetBaudRate(19200)
+23:16:23.559  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:16:23.559  FT_SetTimeouts(read=1000 write=1000)
+23:16:23.660  FT_Purge(mask=3)  [RX]
+23:16:23.660  FT_SetDtr      <-- DTR asserted
+23:16:23.760  FT_ClrDtr      <-- DTR released
+23:16:23.760  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:16:25.562     ... 1 empty read(s) while waiting
+23:16:25.562  FT_Close
+23:16:25.562  ================ shim unloaded ==============
+
+23:22:10.849  ================ shim loaded ================
+23:22:10.849  directory: C:\BMWScan140
+23:22:10.849  CANDIDATE 3 of 11: "V144Bn9"  (7 byte(s))
+    will answer with[0..] 56 31 34 34 42 6E 39
+23:22:10.849  close the program and start it again to try the next one
+23:22:10.849  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:22:10.849  FT_SetBaudRate(19200)
+23:22:10.849  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:22:10.849  FT_SetTimeouts(read=1000 write=1000)
+23:22:10.949  FT_Purge(mask=3)  [RX]
+23:22:10.949  FT_SetDtr      <-- DTR asserted
+23:22:11.049  FT_ClrDtr      <-- DTR released
+23:22:11.049     re-armed 7 byte(s), as the cable would answer after the pulse
+23:22:11.049  FT_Read(asked 1) -> 1
+    RX[0..] 56
+23:22:11.049  FT_Read(asked 1) -> 1
+    RX[0..] 31
+23:22:11.049  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:22:11.049  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:22:11.049  FT_Read(asked 1) -> 1
+    RX[0..] 42
+23:22:11.049  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+23:22:11.049  FT_Read(asked 1) -> 1
+    RX[0..] 39
+23:22:11.049  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:22:47.852     ... 1 empty read(s) while waiting
+23:22:47.852  FT_Close
+23:22:47.852  ================ shim unloaded ==============
+
+23:22:53.170  ================ shim loaded ================
+23:22:53.170  directory: C:\BMWScan140
+23:22:53.170  CANDIDATE 4 of 11: "V144Bn9" + CR LF  (9 byte(s))
+    will answer with[0..] 56 31 34 34 42 6E 39 0D 0A
+23:22:53.170  close the program and start it again to try the next one
+23:22:53.170  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:22:53.170  FT_SetBaudRate(19200)
+23:22:53.170  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:22:53.170  FT_SetTimeouts(read=1000 write=1000)
+23:22:53.270  FT_Purge(mask=3)  [RX]
+23:22:53.270  FT_SetDtr      <-- DTR asserted
+23:22:53.370  FT_ClrDtr      <-- DTR released
+23:22:53.370     re-armed 9 byte(s), as the cable would answer after the pulse
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 56
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 31
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 42
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 39
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 0D
+23:22:53.370  FT_Read(asked 1) -> 1
+    RX[0..] 0A
+23:22:53.370  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:23:00.020     ... 1 empty read(s) while waiting
+23:23:00.020  FT_Close
+23:23:00.020  ================ shim unloaded ==============
+
+23:23:05.027  ================ shim loaded ================
+23:23:05.027  directory: C:\BMWScan140
+23:23:05.027  CANDIDATE 5 of 11: length byte 07 + "V144Bn9"  (8 byte(s))
+    will answer with[0..] 07 56 31 34 34 42 6E 39
+23:23:05.027  close the program and start it again to try the next one
+23:23:05.027  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:23:05.027  FT_SetBaudRate(19200)
+23:23:05.027  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:23:05.027  FT_SetTimeouts(read=1000 write=1000)
+23:23:05.127  FT_Purge(mask=3)  [RX]
+23:23:05.127  FT_SetDtr      <-- DTR asserted
+23:23:05.227  FT_ClrDtr      <-- DTR released
+23:23:05.227     re-armed 8 byte(s), as the cable would answer after the pulse
+23:23:05.227  FT_Read(asked 1) -> 1
+    RX[0..] 07
+23:23:05.227  FT_Read(asked 1) -> 1
+    RX[0..] 56
+23:23:05.227  FT_Read(asked 1) -> 1
+    RX[0..] 31
+23:23:05.227  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:23:05.227  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:23:05.227  FT_Read(asked 1) -> 1
+    RX[0..] 42
+23:23:05.227  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+23:23:05.227  FT_Read(asked 1) -> 1
+    RX[0..] 39
+23:23:05.227  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:23:11.897     ... 1 empty read(s) while waiting
+23:23:11.897  FT_Close
+23:23:11.897  ================ shim unloaded ==============
+
+23:23:16.884  ================ shim loaded ================
+23:23:16.884  directory: C:\BMWScan140
+23:23:16.884  CANDIDATE 6 of 11: "V144Bn9" + NUL  (8 byte(s))
+    will answer with[0..] 56 31 34 34 42 6E 39 00
+23:23:16.884  close the program and start it again to try the next one
+23:23:16.884  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:23:16.884  FT_SetBaudRate(19200)
+23:23:16.884  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:23:16.884  FT_SetTimeouts(read=1000 write=1000)
+23:23:16.984  FT_Purge(mask=3)  [RX]
+23:23:16.984  FT_SetDtr      <-- DTR asserted
+23:23:17.084  FT_ClrDtr      <-- DTR released
+23:23:17.084     re-armed 8 byte(s), as the cable would answer after the pulse
+23:23:17.084  FT_Read(asked 1) -> 1
+    RX[0..] 56
+23:23:17.084  FT_Read(asked 1) -> 1
+    RX[0..] 31
+23:23:17.084  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:23:17.084  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:23:17.084  FT_Read(asked 1) -> 1
+    RX[0..] 42
+23:23:17.084  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+23:23:17.084  FT_Read(asked 1) -> 1
+    RX[0..] 39
+23:23:17.084  FT_Read(asked 1) -> 1
+    RX[0..] 00
+23:23:17.084  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:23:23.754     ... 1 empty read(s) while waiting
+23:23:23.754  FT_Close
+23:23:23.754  ================ shim unloaded ==============
+
+23:23:28.741  ================ shim loaded ================
+23:23:28.741  directory: C:\BMWScan140
+23:23:28.741  CANDIDATE 7 of 11: "V144"  (4 byte(s))
+    will answer with[0..] 56 31 34 34
+23:23:28.741  close the program and start it again to try the next one
+23:23:28.741  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:23:28.741  FT_SetBaudRate(19200)
+23:23:28.741  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:23:28.741  FT_SetTimeouts(read=1000 write=1000)
+23:23:28.841  FT_Purge(mask=3)  [RX]
+23:23:28.841  FT_SetDtr      <-- DTR asserted
+23:23:28.941  FT_ClrDtr      <-- DTR released
+23:23:28.941     re-armed 4 byte(s), as the cable would answer after the pulse
+23:23:28.941  FT_Read(asked 1) -> 1
+    RX[0..] 56
+23:23:28.941  FT_Read(asked 1) -> 1
+    RX[0..] 31
+23:23:28.941  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:23:28.941  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:23:28.941  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:23:35.611     ... 1 empty read(s) while waiting
+23:23:35.611  FT_Close
+23:23:35.611  ================ shim unloaded ==============
+
+23:23:40.618  ================ shim loaded ================
+23:23:40.618  directory: C:\BMWScan140
+23:23:40.618  CANDIDATE 8 of 11: 0x55 sync byte  (1 byte(s))
+    will answer with[0..] 55
+23:23:40.618  close the program and start it again to try the next one
+23:23:40.618  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:23:40.618  FT_SetBaudRate(19200)
+23:23:40.618  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:23:40.618  FT_SetTimeouts(read=1000 write=1000)
+23:23:40.718  FT_Purge(mask=3)  [RX]
+23:23:40.718  FT_SetDtr      <-- DTR asserted
+23:23:40.818  FT_ClrDtr      <-- DTR released
+23:23:40.818     re-armed 1 byte(s), as the cable would answer after the pulse
+23:23:40.818  FT_Read(asked 1) -> 1
+    RX[0..] 55
+23:23:40.818  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:23:47.478     ... 1 empty read(s) while waiting
+23:23:47.478  FT_Close
+23:23:47.478  ================ shim unloaded ==============
+
+23:23:52.465  ================ shim loaded ================
+23:23:52.465  directory: C:\BMWScan140
+23:23:52.465  CANDIDATE 9 of 11: 0xAA  (1 byte(s))
+    will answer with[0..] AA
+23:23:52.465  close the program and start it again to try the next one
+23:23:52.465  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:23:52.465  FT_SetBaudRate(19200)
+23:23:52.465  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:23:52.465  FT_SetTimeouts(read=1000 write=1000)
+23:23:52.565  FT_Purge(mask=3)  [RX]
+23:23:52.565  FT_SetDtr      <-- DTR asserted
+23:23:52.665  FT_ClrDtr      <-- DTR released
+23:23:52.665     re-armed 1 byte(s), as the cable would answer after the pulse
+23:23:52.665  FT_Read(asked 1) -> 1
+    RX[0..] AA
+23:23:52.665  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:23:59.335     ... 1 empty read(s) while waiting
+23:23:59.335  FT_Close
+23:23:59.335  ================ shim unloaded ==============
+
+23:24:04.322  ================ shim loaded ================
+23:24:04.322  directory: C:\BMWScan140
+23:24:04.322  CANDIDATE 10 of 11: 0x06 ACK  (1 byte(s))
+    will answer with[0..] 06
+23:24:04.322  close the program and start it again to try the next one
+23:24:04.322  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:24:04.322  FT_SetBaudRate(19200)
+23:24:04.322  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:24:04.322  FT_SetTimeouts(read=1000 write=1000)
+23:24:04.422  FT_Purge(mask=3)  [RX]
+23:24:04.422  FT_SetDtr      <-- DTR asserted
+23:24:04.522  FT_ClrDtr      <-- DTR released
+23:24:04.522     re-armed 1 byte(s), as the cable would answer after the pulse
+23:24:04.522  FT_Read(asked 1) -> 1
+    RX[0..] 06
+23:24:04.522  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:24:11.192     ... 1 empty read(s) while waiting
+23:24:11.192  FT_Close
+23:24:11.192  ================ shim unloaded ==============
+
+23:24:16.189  ================ shim loaded ================
+23:24:16.189  directory: C:\BMWScan140
+23:24:16.189  CANDIDATE 11 of 11: "BMW Scanner v14x"  (16 byte(s))
+    will answer with[0..] 42 4D 57 20 53 63 61 6E 6E 65 72 20 76 31 34 78
+23:24:16.189  close the program and start it again to try the next one
+23:24:16.189  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:24:16.189  FT_SetBaudRate(19200)
+23:24:16.189  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:24:16.189  FT_SetTimeouts(read=1000 write=1000)
+23:24:16.289  FT_Purge(mask=3)  [RX]
+23:24:16.289  FT_SetDtr      <-- DTR asserted
+23:24:16.389  FT_ClrDtr      <-- DTR released
+23:24:16.389     re-armed 16 byte(s), as the cable would answer after the pulse
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 42
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 57
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 20
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 53
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 63
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 61
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 65
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 72
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 20
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 76
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 31
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 34
+23:24:16.389  FT_Read(asked 1) -> 1
+    RX[0..] 78
+23:24:16.389  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:24:23.049     ... 1 empty read(s) while waiting
+23:24:23.049  FT_Close
+23:24:23.049  ================ shim unloaded ==============
+
+23:24:28.056  ================ shim loaded ================
+23:24:28.056  directory: C:\BMWScan140
+23:24:28.056  CANDIDATE 1 of 11: (nothing - the baseline)  (0 byte(s))
+23:24:28.056  close the program and start it again to try the next one
+23:24:28.056  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+23:24:28.056  FT_SetBaudRate(19200)
+23:24:28.056  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+23:24:28.056  FT_SetTimeouts(read=1000 write=1000)
+23:24:28.156  FT_Purge(mask=3)  [RX]
+23:24:28.156  FT_SetDtr      <-- DTR asserted
+23:24:28.256  FT_ClrDtr      <-- DTR released
+23:24:28.256  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+23:24:34.906     ... 1 empty read(s) while waiting
+23:24:34.906  FT_Close
+23:24:34.906  ================ shim unloaded ==============
+
+10:21:53.448  ================ shim loaded ================
+10:21:53.448  directory: C:\BMWScan140
+10:21:53.448  rx file reloaded: 0 byte(s) queued
+10:21:53.448  CANDIDATE 2 of 11: the real cable's burst at 19200  (27 byte(s))
+    will answer with[0..] 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+10:21:53.448  close the program and start it again to try the next one
+10:21:53.448  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+10:21:53.448  FT_SetBaudRate(19200)
+10:21:53.448  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+10:21:53.448  FT_SetTimeouts(read=1000 write=1000)
+10:21:53.548  FT_Purge(mask=3)  [RX]
+10:21:53.548  FT_SetDtr      <-- DTR asserted
+10:21:53.648  FT_ClrDtr      <-- DTR released
+10:21:53.648     re-armed 27 byte(s), as the cable would answer after the pulse
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 9B
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] CD
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] AA
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] AF
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] AF
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] D9
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] F5
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] A2
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 9B
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 17
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 28
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] FE
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 72
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] D1
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 17
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 4C
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 5E
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 80
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 38
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 09
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] ED
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 2E
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] B5
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] CF
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] AA
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 07
+10:21:53.648  FT_Read(asked 1) -> 1
+    RX[0..] 2B
+10:21:53.658  FT_Close   -- the software consumed 27 of 27 queued byte(s)   <<<<<< MORE THAN ONE - look here
+10:21:53.658  ================ shim unloaded ==============
+
+10:21:56.843  ================ shim loaded ================
+10:21:56.843  directory: C:\BMWScan140
+10:21:56.843  rx file reloaded: 0 byte(s) queued
+10:21:56.843  CANDIDATE 3 of 11: "V144Bn9"  (7 byte(s))
+    will answer with[0..] 56 31 34 34 42 6E 39
+10:21:56.843  close the program and start it again to try the next one
+10:21:56.843  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+10:21:56.843  FT_SetBaudRate(19200)
+10:21:56.843  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+10:21:56.843  FT_SetTimeouts(read=800 write=800)
+10:21:57.143  FT_Purge(mask=3)  [RX]
+10:21:57.143  FT_SetDtr      <-- DTR asserted
+10:21:57.243  FT_ClrDtr      <-- DTR released
+10:21:57.243     re-armed 7 byte(s), as the cable would answer after the pulse
+10:21:57.243  FT_Read(asked 1) -> 1
+    RX[0..] 56
+10:21:57.243  FT_Read(asked 1) -> 1
+    RX[0..] 31
+10:21:57.243  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:21:57.243  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:21:57.243  FT_Read(asked 1) -> 1
+    RX[0..] 42
+10:21:57.243  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+10:21:57.243  FT_Read(asked 1) -> 1
+    RX[0..] 39
+10:21:57.243  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+
+10:22:02.541  ================ shim loaded ================
+10:22:02.541  directory: C:\BMWScan140
+10:22:02.541  rx file reloaded: 0 byte(s) queued
+10:22:02.541  CANDIDATE 4 of 11: "V144Bn9" + CR LF  (9 byte(s))
+    will answer with[0..] 56 31 34 34 42 6E 39 0D 0A
+10:22:02.541  close the program and start it again to try the next one
+10:22:02.541  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+10:22:02.551  FT_SetBaudRate(19200)
+10:22:02.551  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+10:22:02.551  FT_SetTimeouts(read=800 write=800)
+10:22:02.852  FT_Purge(mask=3)  [RX]
+10:22:02.852  FT_SetDtr      <-- DTR asserted
+10:22:02.952  FT_ClrDtr      <-- DTR released
+10:22:02.952     re-armed 9 byte(s), as the cable would answer after the pulse
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 56
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 31
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 42
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 39
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 0D
+10:22:02.952  FT_Read(asked 1) -> 1
+    RX[0..] 0A
+10:22:02.952  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+
+10:22:11.163  ================ shim loaded ================
+10:22:11.163  directory: C:\BMWScan140
+10:22:11.163  rx file reloaded: 0 byte(s) queued
+10:22:11.163  CANDIDATE 5 of 11: length byte 07 + "V144Bn9"  (8 byte(s))
+    will answer with[0..] 07 56 31 34 34 42 6E 39
+10:22:11.163  close the program and start it again to try the next one
+10:22:11.163  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+10:22:11.163  FT_SetBaudRate(19200)
+10:22:11.163  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+10:22:11.163  FT_SetTimeouts(read=800 write=800)
+10:22:11.464  FT_Purge(mask=3)  [RX]
+10:22:11.464  FT_SetDtr      <-- DTR asserted
+10:22:11.564  FT_ClrDtr      <-- DTR released
+10:22:11.564     re-armed 8 byte(s), as the cable would answer after the pulse
+10:22:11.564  FT_Read(asked 1) -> 1
+    RX[0..] 07
+10:22:11.564  FT_Read(asked 1) -> 1
+    RX[0..] 56
+10:22:11.564  FT_Read(asked 1) -> 1
+    RX[0..] 31
+10:22:11.564  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:22:11.564  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:22:11.564  FT_Read(asked 1) -> 1
+    RX[0..] 42
+10:22:11.564  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+10:22:11.564  FT_Read(asked 1) -> 1
+    RX[0..] 39
+10:22:11.564  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+
+10:22:16.401  ================ shim loaded ================
+10:22:16.401  directory: C:\BMWScan140
+10:22:16.401  rx file reloaded: 0 byte(s) queued
+10:22:16.401  CANDIDATE 6 of 11: "V144Bn9" + NUL  (8 byte(s))
+    will answer with[0..] 56 31 34 34 42 6E 39 00
+10:22:16.401  close the program and start it again to try the next one
+10:22:16.401  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+10:22:16.401  FT_SetBaudRate(19200)
+10:22:16.401  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+10:22:16.401  FT_SetTimeouts(read=800 write=800)
+10:22:16.701  FT_Purge(mask=3)  [RX]
+10:22:16.701  FT_SetDtr      <-- DTR asserted
+10:22:16.802  FT_ClrDtr      <-- DTR released
+10:22:16.802     re-armed 8 byte(s), as the cable would answer after the pulse
+10:22:16.802  FT_Read(asked 1) -> 1
+    RX[0..] 56
+10:22:16.802  FT_Read(asked 1) -> 1
+    RX[0..] 31
+10:22:16.802  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:22:16.802  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:22:16.802  FT_Read(asked 1) -> 1
+    RX[0..] 42
+10:22:16.802  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+10:22:16.802  FT_Read(asked 1) -> 1
+    RX[0..] 39
+10:22:16.802  FT_Read(asked 1) -> 1
+    RX[0..] 00
+10:22:16.802  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+
+10:22:23.812  ================ shim loaded ================
+10:22:23.812  directory: C:\BMWScan140
+10:22:23.812  rx file reloaded: 0 byte(s) queued
+10:22:23.812  CANDIDATE 7 of 11: "V144"  (4 byte(s))
+    will answer with[0..] 56 31 34 34
+10:22:23.812  close the program and start it again to try the next one
+10:22:23.812  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+10:22:23.812  FT_SetBaudRate(19200)
+10:22:23.812  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+10:22:23.812  FT_SetTimeouts(read=800 write=800)
+10:22:24.112  FT_Purge(mask=3)  [RX]
+10:22:24.112  FT_SetDtr      <-- DTR asserted
+10:22:24.212  FT_ClrDtr      <-- DTR released
+10:22:24.212     re-armed 4 byte(s), as the cable would answer after the pulse
+10:22:24.212  FT_Read(asked 1) -> 1
+    RX[0..] 56
+10:22:24.212  FT_Read(asked 1) -> 1
+    RX[0..] 31
+10:22:24.212  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:22:24.212  FT_Read(asked 1) -> 1
+    RX[0..] 34
+10:22:24.212  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+
+10:22:29.570  ================ shim loaded ================
+10:22:29.570  directory: C:\BMWScan140
+10:22:29.570  rx file reloaded: 0 byte(s) queued
+10:22:29.570  CANDIDATE 8 of 11: 0x55 sync byte  (1 byte(s))
+    will answer with[0..] 55
+10:22:29.570  close the program and start it again to try the next one
+10:22:29.570  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+10:22:29.570  FT_SetBaudRate(19200)
+10:22:29.570  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+10:22:29.570  FT_SetTimeouts(read=800 write=800)
+10:22:29.870  FT_Purge(mask=3)  [RX]
+10:22:29.870  FT_SetDtr      <-- DTR asserted
+10:22:29.971  FT_ClrDtr      <-- DTR released
+10:22:29.971     re-armed 1 byte(s), as the cable would answer after the pulse
+10:22:29.971  FT_Read(asked 1) -> 1
+    RX[0..] 55
+10:22:29.971  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+
+10:39:49.565  ================ shim loaded ================
+10:39:49.565  directory: C:\BMWScan140
+10:39:49.565  rx file reloaded: 0 byte(s) queued
+10:39:49.565  CANDIDATE 9 of 11: 0xAA  (1 byte(s))
+    will answer with[0..] AA
+10:39:49.565  close the program and start it again to try the next one
+10:39:49.565  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+10:39:49.565  FT_SetBaudRate(19200)
+10:39:49.565  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+10:39:49.565  FT_SetTimeouts(read=800 write=800)
+10:39:49.866  FT_Purge(mask=3)  [RX]
+10:39:49.866  FT_SetDtr      <-- DTR asserted
+10:39:49.966  FT_ClrDtr      <-- DTR released
+10:39:49.966     re-armed 1 byte(s), as the cable would answer after the pulse
+10:39:49.966  FT_Read(asked 1) -> 1
+    RX[0..] AA
+10:39:49.966  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+
+11:10:43.722  ================ shim loaded ================
+11:10:43.722  directory: C:\BMWScan140
+11:10:43.722  rx file reloaded: 0 byte(s) queued
+11:10:43.722  CANDIDATE 10 of 11: 0x06 ACK  (1 byte(s))
+    will answer with[0..] 06
+11:10:43.722  close the program and start it again to try the next one
+11:10:43.722  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:10:43.722  FT_SetBaudRate(19200)
+11:10:43.722  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:10:43.722  FT_SetTimeouts(read=800 write=800)
+11:10:44.022  FT_Purge(mask=3)  [RX]
+11:10:44.022  FT_SetDtr      <-- DTR asserted
+11:10:44.122  FT_ClrDtr      <-- DTR released
+11:10:44.122     re-armed 1 byte(s), as the cable would answer after the pulse
+11:10:44.122  FT_Read(asked 1) -> 1
+    RX[0..] 06
+11:10:44.122  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:10:47.687  FT_SetDtr      <-- DTR asserted
+11:10:47.787  FT_ClrDtr      <-- DTR released
+11:10:47.787     re-armed 1 byte(s), as the cable would answer after the pulse
+11:10:47.787  FT_Purge(mask=3)  [RX]
+11:10:47.787     ... 1 empty read(s) while waiting
+11:10:47.787  FT_Close   -- the software consumed 1 of 1 queued byte(s)
+11:10:47.787  ================ shim unloaded ==============
+
+11:18:25.649  ================ shim loaded ================
+11:18:25.649  directory: C:\BMWScan140
+11:18:25.659  rx file reloaded: 0 byte(s) queued
+11:18:25.659  CANDIDATE 11 of 11: "BMW Scanner v14x"  (16 byte(s))
+    will answer with[0..] 42 4D 57 20 53 63 61 6E 6E 65 72 20 76 31 34 78
+11:18:25.659  close the program and start it again to try the next one
+11:18:25.659  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:18:25.659  FT_SetBaudRate(19200)
+11:18:25.659  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:18:25.659  FT_SetTimeouts(read=800 write=800)
+11:18:25.959  FT_Purge(mask=3)  [RX]
+11:18:25.959  FT_SetDtr      <-- DTR asserted
+11:18:26.059  FT_ClrDtr      <-- DTR released
+11:18:26.059     re-armed 16 byte(s), as the cable would answer after the pulse
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:18:26.059  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:18:26.059  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+
+11:25:50.378  ================ shim loaded ================
+11:25:50.378  directory: C:\BMWScan140
+11:25:50.378  rx file reloaded: 0 byte(s) queued
+11:25:50.378  SIGN-ON: answering with "BMW Scanner v14x" (16 bytes) - the accepted one
+11:25:50.378  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:25:50.378  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+11:25:50.649  wrote 16 region(s), 8024064 byte(s) to unpacked.bin
+11:25:50.649  FT_SetBaudRate(19200)
+11:25:50.649  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:25:50.649  FT_SetTimeouts(read=800 write=800)
+11:25:50.949  FT_Purge(mask=3)  [RX]
+11:25:50.949  FT_SetDtr      <-- DTR asserted
+11:25:51.049  FT_ClrDtr      <-- DTR released
+11:25:51.089     re-armed 16 byte(s), as the cable would answer after the pulse
+11:25:51.089  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:25:51.089  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:25:51.089  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:25:51.089  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:25:51.089  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:25:51.099  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:25:51.099  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:25:51.099  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:25:51.099  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:25:51.099  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:25:51.099  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:25:51.109  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:25:51.109  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:25:51.109  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:25:51.109  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:25:51.109  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:25:51.109  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:25:59.091  FT_Purge(mask=3)  [RX]
+11:25:59.091  FT_SetTimeouts(read=800 write=800)
+11:25:59.611  FT_Purge(mask=3)  [RX]
+11:25:59.621     ... 1 empty read(s) while waiting
+11:25:59.631  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4B
+11:25:59.631  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 0E
+11:25:59.631  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 28
+11:25:59.631  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 31
+11:25:59.631  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 8B
+11:25:59.631  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E9
+11:25:59.641  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 43
+11:25:59.641  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 29
+11:25:59.641  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 52
+11:25:59.641  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F1
+11:25:59.641  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 7C
+11:25:59.662  FT_SetBaudRate(9600)
+11:25:59.662  FT_SetDataCharacteristics(bits=8 stop=0 parity=2)
+11:25:59.662  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:25:59.672  FT_Purge(mask=3)  [RX]
+11:25:59.672     ... 1 empty read(s) while waiting
+11:25:59.672  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 72
+11:25:59.672  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 45
+11:25:59.672  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] E1
+11:25:59.682  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 4E
+11:25:59.682  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 42
+11:25:59.682  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] A2
+11:25:59.682  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 7A
+11:25:59.682  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] EE
+11:25:59.692  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 1B
+11:25:59.692  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 0A
+11:25:59.692  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 25
+11:25:59.712  FT_SetBaudRate(9600)
+11:25:59.712  FT_SetDataCharacteristics(bits=8 stop=0 parity=2)
+11:25:59.712  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:25:59.712  FT_SetDtr      <-- DTR asserted
+11:25:59.822  FT_ClrDtr      <-- DTR released
+11:25:59.822     re-armed 16 byte(s), as the cable would answer after the pulse
+11:25:59.822  FT_Purge(mask=3)  [RX]
+11:25:59.822     ... 1 empty read(s) while waiting
+11:25:59.822  FT_Close   -- the software consumed 16 of 16 queued byte(s)   <<<<<< MORE THAN ONE - look here
+11:25:59.822  ================ shim unloaded ==============
+
+11:25:59.822  ================ shim loaded ================
+11:25:59.822  directory: C:\BMWScan140
+11:25:59.822  rx file reloaded: 0 byte(s) queued
+11:25:59.822  SIGN-ON: answering with "BMW Scanner v14x" (16 bytes) - the accepted one
+11:25:59.822  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:25:59.832  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+11:25:59.982  wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+11:25:59.982  FT_SetBaudRate(19200)
+11:25:59.982  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:25:59.982  FT_SetTimeouts(read=800 write=800)
+11:26:00.292  FT_Purge(mask=3)  [RX]
+11:26:00.292  FT_SetDtr      <-- DTR asserted
+11:26:00.393  FT_ClrDtr      <-- DTR released
+11:26:00.393     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:00.393  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:26:00.393  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:26:00.393  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:26:00.393  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:00.393  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:26:00.403  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:26:00.403  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:26:00.403  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:00.403  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:00.403  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:26:00.403  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:26:00.413  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:00.413  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:26:00.413  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:26:00.413  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:26:00.413  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:26:00.413  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:02.235  FT_Purge(mask=3)  [RX]
+11:26:02.245     ... 1 empty read(s) while waiting
+11:26:02.245  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 41
+11:26:02.245  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CC
+11:26:02.245  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 72
+11:26:02.245  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 31
+11:26:02.245  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 6E
+11:26:02.255  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:02.255  FT_Purge(mask=3)  [RX]
+11:26:02.255     ... 1 empty read(s) while waiting
+11:26:02.255  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] BA
+11:26:02.255  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 45
+11:26:02.255  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E5
+11:26:02.265  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 88
+11:26:02.265  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E5
+11:26:02.265  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:02.265  FT_SetDtr      <-- DTR asserted
+11:26:02.365  FT_ClrDtr      <-- DTR released
+11:26:02.365     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:02.365  FT_Purge(mask=3)  [RX]
+11:26:02.375     ... 1 empty read(s) while waiting
+11:26:02.375  FT_Close   -- the software consumed 16 of 16 queued byte(s)   <<<<<< MORE THAN ONE - look here
+11:26:02.375  ================ shim unloaded ==============
+
+11:26:14.483  ================ shim loaded ================
+11:26:14.483  directory: C:\BMWScan140
+11:26:14.483  rx file reloaded: 0 byte(s) queued
+11:26:14.483  SIGN-ON: answering with "BMW Scanner v14x" (16 bytes) - the accepted one
+11:26:14.483  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:26:14.493  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+11:26:14.663  wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+11:26:14.663  FT_SetBaudRate(19200)
+11:26:14.663  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:26:14.663  FT_SetTimeouts(read=800 write=800)
+11:26:14.964  FT_Purge(mask=3)  [RX]
+11:26:14.964  FT_SetDtr      <-- DTR asserted
+11:26:15.074  FT_ClrDtr      <-- DTR released
+11:26:15.074     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:15.074  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:26:15.074  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:26:15.074  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:26:15.074  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:15.074  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:26:15.084  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:26:15.084  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:26:15.084  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:15.084  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:15.084  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:26:15.084  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:26:15.094  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:15.094  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:26:15.094  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:26:15.094  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:26:15.094  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:26:15.094  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:29.725  FT_Purge(mask=3)  [RX]
+11:26:29.725  FT_SetTimeouts(read=800 write=800)
+11:26:29.725  FT_Purge(mask=3)  [RX]
+11:26:29.735     ... 1 empty read(s) while waiting
+11:26:29.735  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4B
+11:26:29.735  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 0E
+11:26:29.735  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 28
+11:26:29.735  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] A3
+11:26:29.735  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 8B
+11:26:29.745  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E9
+11:26:29.745  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 43
+11:26:29.745  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 29
+11:26:29.745  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B2
+11:26:29.745  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F1
+11:26:29.755  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 2A
+11:26:29.775  FT_SetBaudRate(9600)
+11:26:29.775  FT_SetDataCharacteristics(bits=8 stop=0 parity=2)
+11:26:29.775  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:29.775  FT_Purge(mask=3)  [RX]
+11:26:29.775     ... 1 empty read(s) while waiting
+11:26:29.775  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 72
+11:26:29.785  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 45
+11:26:29.785  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] E1
+11:26:29.785  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] DC
+11:26:29.785  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 42
+11:26:29.785  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] A2
+11:26:29.795  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 7A
+11:26:29.795  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] EE
+11:26:29.795  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] FB
+11:26:29.795  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 0A
+11:26:29.795  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 73
+11:26:29.825  FT_SetBaudRate(9600)
+11:26:29.825  FT_SetDataCharacteristics(bits=8 stop=0 parity=2)
+11:26:29.825  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:29.825  FT_SetDtr      <-- DTR asserted
+11:26:29.925  FT_ClrDtr      <-- DTR released
+11:26:29.925     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:29.925  FT_Purge(mask=3)  [RX]
+11:26:29.925     ... 1 empty read(s) while waiting
+11:26:29.925  FT_Close   -- the software consumed 16 of 16 queued byte(s)   <<<<<< MORE THAN ONE - look here
+11:26:29.925  ================ shim unloaded ==============
+
+11:26:29.935  ================ shim loaded ================
+11:26:29.935  directory: C:\BMWScan140
+11:26:29.935  rx file reloaded: 0 byte(s) queued
+11:26:29.935  SIGN-ON: answering with "BMW Scanner v14x" (16 bytes) - the accepted one
+11:26:29.935  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:26:29.935  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+11:26:30.055  wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+11:26:30.065  FT_SetBaudRate(19200)
+11:26:30.065  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:26:30.065  FT_SetTimeouts(read=800 write=800)
+11:26:30.366  FT_Purge(mask=3)  [RX]
+11:26:30.366  FT_SetDtr      <-- DTR asserted
+11:26:30.466  FT_ClrDtr      <-- DTR released
+11:26:30.466     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:30.466  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:26:30.466  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:26:30.476  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:26:30.476  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:30.476  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:26:30.476  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:26:30.476  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:26:30.476  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:30.486  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:30.486  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:26:30.486  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:26:30.486  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:30.486  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:26:30.486  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:26:30.486  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:26:30.496  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:26:30.496  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:33.360  FT_Purge(mask=3)  [RX]
+11:26:33.360     ... 1 empty read(s) while waiting
+11:26:33.360  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 41
+11:26:33.370  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CB
+11:26:33.370  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 29
+11:26:33.370  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 67
+11:26:33.370  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 10
+11:26:33.370  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:33.370  FT_Purge(mask=3)  [RX]
+11:26:33.380     ... 1 empty read(s) while waiting
+11:26:33.380  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] BA
+11:26:33.380  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 42
+11:26:33.380  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] BE
+11:26:33.380  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DE
+11:26:33.380  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 9B
+11:26:33.390  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:33.390  FT_SetDtr      <-- DTR asserted
+11:26:33.490  FT_ClrDtr      <-- DTR released
+11:26:33.490     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:33.490  FT_Purge(mask=3)  [RX]
+11:26:33.490     ... 1 empty read(s) while waiting
+11:26:33.490  FT_Close   -- the software consumed 16 of 16 queued byte(s)   <<<<<< MORE THAN ONE - look here
+11:26:33.490  ================ shim unloaded ==============
+
+11:26:46.369  ================ shim loaded ================
+11:26:46.369  directory: C:\BMWScan140
+11:26:46.379  rx file reloaded: 0 byte(s) queued
+11:26:46.379  SIGN-ON: answering with "BMW Scanner v14x" (16 bytes) - the accepted one
+11:26:46.379  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:26:46.379  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+11:26:46.509  wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+11:26:46.509  FT_SetBaudRate(19200)
+11:26:46.509  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:26:46.509  FT_SetTimeouts(read=800 write=800)
+11:26:46.809  FT_Purge(mask=3)  [RX]
+11:26:46.809  FT_SetDtr      <-- DTR asserted
+11:26:46.909  FT_ClrDtr      <-- DTR released
+11:26:46.919     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:46.919  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:26:46.919  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:26:46.919  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:26:46.919  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:46.919  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:26:46.919  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:26:46.929  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:26:46.929  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:46.929  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:46.929  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:26:46.929  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:26:46.929  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:46.939  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:26:46.939  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:26:46.939  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:26:46.939  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:26:46.939  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:55.792  FT_Purge(mask=3)  [RX]
+11:26:55.802  FT_SetTimeouts(read=800 write=800)
+11:26:56.313  FT_Purge(mask=3)  [RX]
+11:26:56.313     ... 1 empty read(s) while waiting
+11:26:56.313  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4B
+11:26:56.313  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 0E
+11:26:56.313  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 28
+11:26:56.323  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 31
+11:26:56.323  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 8B
+11:26:56.323  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E9
+11:26:56.323  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 43
+11:26:56.323  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 29
+11:26:56.323  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 52
+11:26:56.333  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F1
+11:26:56.333  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 7C
+11:26:56.353  FT_SetBaudRate(9600)
+11:26:56.353  FT_SetDataCharacteristics(bits=8 stop=0 parity=2)
+11:26:56.353  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:56.353  FT_Purge(mask=3)  [RX]
+11:26:56.353     ... 1 empty read(s) while waiting
+11:26:56.363  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 72
+11:26:56.363  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 45
+11:26:56.363  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] E1
+11:26:56.363  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 4E
+11:26:56.363  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 42
+11:26:56.363  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] A2
+11:26:56.373  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 7A
+11:26:56.373  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] EE
+11:26:56.373  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 1B
+11:26:56.373  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 0A
+11:26:56.373  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 25
+11:26:56.403  FT_SetBaudRate(9600)
+11:26:56.403  FT_SetDataCharacteristics(bits=8 stop=0 parity=2)
+11:26:56.403  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:26:56.403  FT_SetDtr      <-- DTR asserted
+11:26:56.503  FT_ClrDtr      <-- DTR released
+11:26:56.503     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:56.503  FT_Purge(mask=3)  [RX]
+11:26:56.503     ... 1 empty read(s) while waiting
+11:26:56.503  FT_Close   -- the software consumed 16 of 16 queued byte(s)   <<<<<< MORE THAN ONE - look here
+11:26:56.503  ================ shim unloaded ==============
+
+11:26:56.503  ================ shim loaded ================
+11:26:56.513  directory: C:\BMWScan140
+11:26:56.513  rx file reloaded: 0 byte(s) queued
+11:26:56.513  SIGN-ON: answering with "BMW Scanner v14x" (16 bytes) - the accepted one
+11:26:56.513  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:26:56.513  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+11:26:56.633  wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+11:26:56.643  FT_SetBaudRate(19200)
+11:26:56.643  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:26:56.643  FT_SetTimeouts(read=800 write=800)
+11:26:56.944  FT_Purge(mask=3)  [RX]
+11:26:56.944  FT_SetDtr      <-- DTR asserted
+11:26:57.044  FT_ClrDtr      <-- DTR released
+11:26:57.044     re-armed 16 byte(s), as the cable would answer after the pulse
+11:26:57.044  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:26:57.044  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:26:57.054  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:26:57.054  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:57.054  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:26:57.054  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:26:57.054  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:26:57.054  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:57.064  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:26:57.064  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:26:57.064  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:26:57.064  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:26:57.064  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:26:57.064  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:26:57.074  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:26:57.074  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:26:57.074  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:44:55.375  FT_Purge(mask=3)  [RX]
+11:44:55.385     ... 1 empty read(s) while waiting
+11:44:55.385  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 41
+11:44:55.385  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CC
+11:44:55.385  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 72
+11:44:55.385  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 31
+11:44:55.395  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 6E
+11:44:55.395  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:44:55.395  FT_Purge(mask=3)  [RX]
+11:44:55.395     ... 1 empty read(s) while waiting
+11:44:55.395  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] BA
+11:44:55.395  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 45
+11:44:55.405  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E5
+11:44:55.405  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 88
+11:44:55.405  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E5
+11:44:55.405  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:44:55.405  FT_SetDtr      <-- DTR asserted
+11:44:55.505  FT_ClrDtr      <-- DTR released
+11:44:55.505     re-armed 16 byte(s), as the cable would answer after the pulse
+11:44:55.515  FT_Purge(mask=3)  [RX]
+11:44:55.515     ... 1 empty read(s) while waiting
+11:44:55.515  FT_Close   -- the software consumed 16 of 16 queued byte(s)   <<<<<< MORE THAN ONE - look here
+11:44:55.515  ================ shim unloaded ==============
+
+11:45:42.172  ================ shim loaded ================
+11:45:42.172  directory: C:\BMWScan140
+11:45:42.172  rx file reloaded: 0 byte(s) queued
+11:45:42.172  SIGN-ON: answering with "BMW Scanner v14x" (16 bytes) - the accepted one
+11:45:42.172  export addresses for dump lookup:
+11:45:42.172     FT_Write        703C1E50
+11:45:42.172     FT_Read         703C1D90
+11:45:42.172     FT_SetBaudRate  703C19D0
+11:45:42.172     FT_Purge        703C1DB0
+11:45:42.172     shim base       703C0000
+11:45:42.172  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:45:42.172  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+11:45:42.462  wrote 16 region(s), 8024064 byte(s) to unpacked.bin
+11:45:42.462  FT_SetBaudRate(19200)
+11:45:42.462  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:45:42.462  FT_SetTimeouts(read=800 write=800)
+11:45:42.773  FT_Purge(mask=3)  [RX]
+11:45:42.773  FT_SetDtr      <-- DTR asserted
+11:45:42.873  FT_ClrDtr      <-- DTR released
+11:45:42.873     re-armed 16 byte(s), as the cable would answer after the pulse
+11:45:42.873  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:45:42.873  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:45:42.873  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:45:42.873  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:45:42.873  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:45:42.873  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:45:42.883  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:45:42.883  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:45:42.883  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:45:42.883  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:45:42.883  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:45:42.883  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:45:42.883  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:45:42.893  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:45:42.893  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:45:42.893  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:45:42.893  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:45:49.693  FT_Purge(mask=3)  [RX]
+11:45:49.703  FT_SetTimeouts(read=800 write=800)
+11:45:49.703  FT_Purge(mask=3)  [RX]
+11:45:49.733     ... 1 empty read(s) while waiting
+11:45:49.733  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4B
+11:45:49.733  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 0E
+11:45:49.743  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 28
+11:45:49.743  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] A3
+11:45:49.743  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 8B
+11:45:49.753  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E9
+11:45:49.753  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 43
+11:45:49.753  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 29
+11:45:49.763  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B2
+11:45:49.763  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F1
+11:45:49.763  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 2A
+11:45:49.783  FT_SetBaudRate(9600)
+11:45:49.783  FT_SetDataCharacteristics(bits=8 stop=0 parity=2)
+11:45:49.783  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:45:49.783  FT_Purge(mask=3)  [RX]
+11:45:49.793     ... 1 empty read(s) while waiting
+11:45:49.793  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 72
+11:45:49.793  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 45
+11:45:49.793  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] E1
+11:45:49.793  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] DC
+11:45:49.793  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 42
+11:45:49.803  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] A2
+11:45:49.803  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 7A
+11:45:49.803  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] EE
+11:45:49.803  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] FB
+11:45:49.803  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 0A
+11:45:49.813  FT_Write(1 byte(s))  [9600 baud, 8E1]
+    TX[0..] 73
+11:45:49.833  FT_SetBaudRate(9600)
+11:45:49.833  FT_SetDataCharacteristics(bits=8 stop=0 parity=2)
+11:45:49.833  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:45:49.833  FT_SetDtr      <-- DTR asserted
+11:45:49.933  FT_ClrDtr      <-- DTR released
+11:45:49.933     re-armed 16 byte(s), as the cable would answer after the pulse
+11:45:49.933  FT_Purge(mask=3)  [RX]
+11:45:49.933     ... 1 empty read(s) while waiting
+11:45:49.933  FT_Close   -- the software consumed 16 of 16 queued byte(s)   <<<<<< MORE THAN ONE - look here
+11:45:49.933  ================ shim unloaded ==============
+
+11:45:49.943  ================ shim loaded ================
+11:45:49.943  directory: C:\BMWScan140
+11:45:49.943  rx file reloaded: 0 byte(s) queued
+11:45:49.943  SIGN-ON: answering with "BMW Scanner v14x" (16 bytes) - the accepted one
+11:45:49.943  export addresses for dump lookup:
+11:45:49.943     FT_Write        703C1E50
+11:45:49.943     FT_Read         703C1D90
+11:45:49.943     FT_SetBaudRate  703C19D0
+11:45:49.943     FT_Purge        703C1DB0
+11:45:49.953     shim base       703C0000
+11:45:49.953  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+11:45:49.953  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+11:45:50.083  wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+11:45:50.083  FT_SetBaudRate(19200)
+11:45:50.093  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+11:45:50.093  FT_SetTimeouts(read=800 write=800)
+11:45:50.394  FT_Purge(mask=3)  [RX]
+11:45:50.394  FT_SetDtr      <-- DTR asserted
+11:45:50.494  FT_ClrDtr      <-- DTR released
+11:45:50.494     re-armed 16 byte(s), as the cable would answer after the pulse
+11:45:50.494  FT_Read(asked 1) -> 1
+    RX[0..] 42
+11:45:50.494  FT_Read(asked 1) -> 1
+    RX[0..] 4D
+11:45:50.494  FT_Read(asked 1) -> 1
+    RX[0..] 57
+11:45:50.504  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:45:50.504  FT_Read(asked 1) -> 1
+    RX[0..] 53
+11:45:50.504  FT_Read(asked 1) -> 1
+    RX[0..] 63
+11:45:50.504  FT_Read(asked 1) -> 1
+    RX[0..] 61
+11:45:50.504  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:45:50.504  FT_Read(asked 1) -> 1
+    RX[0..] 6E
+11:45:50.514  FT_Read(asked 1) -> 1
+    RX[0..] 65
+11:45:50.514  FT_Read(asked 1) -> 1
+    RX[0..] 72
+11:45:50.514  FT_Read(asked 1) -> 1
+    RX[0..] 20
+11:45:50.514  FT_Read(asked 1) -> 1
+    RX[0..] 76
+11:45:50.514  FT_Read(asked 1) -> 1
+    RX[0..] 31
+11:45:50.514  FT_Read(asked 1) -> 1
+    RX[0..] 34
+11:45:50.524  FT_Read(asked 1) -> 1
+    RX[0..] 78
+11:45:50.524  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:45:52.527  FT_Purge(mask=3)  [RX]
+11:45:52.527     ... 1 empty read(s) while waiting
+11:45:52.527  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 41
+11:45:52.537  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CB
+11:45:52.537  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 29
+11:45:52.537  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 67
+11:45:52.537  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 10
+11:45:52.537  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:45:52.547  FT_Purge(mask=3)  [RX]
+11:45:52.547     ... 1 empty read(s) while waiting
+11:45:52.547  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] BA
+11:45:52.547  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 42
+11:45:52.547  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] BE
+11:45:52.547  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DE
+11:45:52.557  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 9B
+11:45:52.557  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+11:45:52.557  FT_SetDtr      <-- DTR asserted
+11:45:52.657  FT_ClrDtr      <-- DTR released
+11:45:52.657     re-armed 16 byte(s), as the cable would answer after the pulse
+11:45:52.657  FT_Purge(mask=3)  [RX]
+11:45:52.657     ... 1 empty read(s) while waiting
+11:45:52.657  FT_Close   -- the software consumed 16 of 16 queued byte(s)   <<<<<< MORE THAN ONE - look here
+11:45:52.657  ================ shim unloaded ==============
+
+20:45:09.003  ================ shim loaded ================
+20:45:09.003  directory: C:\BMWScan140
+20:45:09.003  rx file reloaded: 0 byte(s) queued
+20:45:09.003  SIGN-ON: the real cable's 27-byte announcement, identity "V144Bn9", key 0x9B
+20:45:09.003  export addresses for dump lookup:
+20:45:09.013     FT_Write        703C1E50
+20:45:09.013     FT_Read         703C1D90
+20:45:09.013     FT_SetBaudRate  703C19D0
+20:45:09.013     FT_Purge        703C1DB0
+20:45:09.013     shim base       703C0000
+20:45:09.013  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+20:45:09.013  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+20:45:09.113  wrote 16 region(s), 8024064 byte(s) to unpacked.bin
+20:45:09.123  FT_SetBaudRate(19200)
+20:45:09.123  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+20:45:09.123  FT_SetTimeouts(read=800 write=800)
+20:45:09.424  FT_Purge(mask=3)  [RX]
+20:45:09.424  FT_SetDtr      <-- DTR asserted
+20:45:09.524  FT_ClrDtr      <-- DTR released
+20:45:09.524     re-armed the announcement, key back to 0x9B
+20:45:09.524  FT_Read(asked 1) -> 1
+    RX[0..] 9B
+20:45:09.524  FT_Read(asked 1) -> 1
+    RX[0..] CD
+20:45:09.524  FT_Read(asked 1) -> 1
+    RX[0..] AA
+20:45:09.524  FT_Read(asked 1) -> 1
+    RX[0..] AF
+20:45:09.524  FT_Read(asked 1) -> 1
+    RX[0..] AF
+20:45:09.524  FT_Read(asked 1) -> 1
+    RX[0..] D9
+20:45:09.534  FT_Read(asked 1) -> 1
+    RX[0..] F5
+20:45:09.534  FT_Read(asked 1) -> 1
+    RX[0..] A2
+20:45:09.534  FT_Read(asked 1) -> 1
+    RX[0..] 9B
+20:45:09.534  FT_Read(asked 1) -> 1
+    RX[0..] 17
+20:45:09.534  FT_Read(asked 1) -> 1
+    RX[0..] 28
+20:45:09.534  FT_Read(asked 1) -> 1
+    RX[0..] FE
+20:45:09.534  FT_Read(asked 1) -> 1
+    RX[0..] 72
+20:45:09.544  FT_Read(asked 1) -> 1
+    RX[0..] D1
+20:45:09.544  FT_Read(asked 1) -> 1
+    RX[0..] 17
+20:45:09.544  FT_Read(asked 1) -> 1
+    RX[0..] 4C
+20:45:09.544  FT_Read(asked 1) -> 1
+    RX[0..] 5E
+20:45:09.544  FT_Read(asked 1) -> 1
+    RX[0..] 80
+20:45:09.544  FT_Read(asked 1) -> 1
+    RX[0..] 38
+20:45:09.544  FT_Read(asked 1) -> 1
+    RX[0..] 09
+20:45:09.554  FT_Read(asked 1) -> 1
+    RX[0..] ED
+20:45:09.554  FT_Read(asked 1) -> 1
+    RX[0..] 2E
+20:45:09.554  FT_Read(asked 1) -> 1
+    RX[0..] B5
+20:45:09.554  FT_Read(asked 1) -> 1
+    RX[0..] CF
+20:45:09.554  FT_Read(asked 1) -> 1
+    RX[0..] AA
+20:45:09.554  FT_Read(asked 1) -> 1
+    RX[0..] 07
+20:45:09.564  FT_Read(asked 1) -> 1
+    RX[0..] 2B
+20:45:09.664  FT_Purge(mask=3)  [RX]
+20:45:09.674  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B9
+       plaintext[0..] 22
+20:45:09.684     NOT A FRAME at key 0x9B (len wrong, checksum wrong) - the key has slipped
+20:45:09.684  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 41
+       plaintext[0..] A7
+20:45:09.684     NOT A FRAME at key 0xE6 (len wrong, checksum wrong) - the key has slipped
+20:45:09.684  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4B
+       plaintext[0..] 7A
+20:45:09.694     NOT A FRAME at key 0x31 (len wrong, checksum wrong) - the key has slipped
+20:45:09.694  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 2A
+       plaintext[0..] 56
+20:45:09.694     NOT A FRAME at key 0x7C (len wrong, checksum wrong) - the key has slipped
+20:45:09.694  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F6
+       plaintext[0..] 31
+20:45:09.694     NOT A FRAME at key 0xC7 (len wrong, checksum wrong) - the key has slipped
+20:45:09.694  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 26
+       plaintext[0..] 34
+20:45:09.704     NOT A FRAME at key 0x12 (len wrong, checksum wrong) - the key has slipped
+20:45:09.704  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 69
+       plaintext[0..] 34
+20:45:09.704     NOT A FRAME at key 0x5D (len wrong, checksum wrong) - the key has slipped
+20:45:09.704  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] EA
+       plaintext[0..] 42
+20:45:09.704     NOT A FRAME at key 0xA8 (len wrong, checksum wrong) - the key has slipped
+20:45:09.704  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 9D
+       plaintext[0..] 6E
+20:45:09.714     NOT A FRAME at key 0xF3 (len wrong, checksum wrong) - the key has slipped
+20:45:09.714  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 07
+       plaintext[0..] 39
+20:45:09.714     NOT A FRAME at key 0x3E (len wrong, checksum wrong) - the key has slipped
+20:45:09.714  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 14
+       plaintext[0..] 9D
+20:45:09.714     NOT A FRAME at key 0x89 (len wrong, checksum wrong) - the key has slipped
+20:45:09.724  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] EA
+       plaintext[0..] 3E
+20:45:09.724     NOT A FRAME at key 0xD4 (len wrong, checksum wrong) - the key has slipped
+20:45:09.724  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B0
+       plaintext[0..] AF
+20:45:09.724     NOT A FRAME at key 0x1F (len wrong, checksum wrong) - the key has slipped
+20:45:09.724  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 44
+       plaintext[0..] 2E
+20:45:09.724     NOT A FRAME at key 0x6A (len wrong, checksum wrong) - the key has slipped
+20:45:09.724  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 1C
+       plaintext[0..] A9
+20:45:09.734     NOT A FRAME at key 0xB5 (len wrong, checksum wrong) - the key has slipped
+20:45:09.734  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 45
+       plaintext[0..] 45
+20:45:09.734     NOT A FRAME at key 0x00 (len wrong, checksum wrong) - the key has slipped
+20:45:09.734  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 33
+       plaintext[0..] 78
+20:45:09.734     NOT A FRAME at key 0x4B (len wrong, checksum wrong) - the key has slipped
+20:45:09.734  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 16
+       plaintext[0..] 80
+20:45:09.744     NOT A FRAME at key 0x96 (len wrong, checksum wrong) - the key has slipped
+20:45:09.744  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 56
+       plaintext[0..] B7
+20:45:09.744     NOT A FRAME at key 0xE1 (len wrong, checksum wrong) - the key has slipped
+20:45:09.744  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 86
+       plaintext[0..] AA
+20:45:09.744     NOT A FRAME at key 0x2C (len wrong, checksum wrong) - the key has slipped
+20:45:09.744  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 81
+       plaintext[0..] F6
+20:45:09.754     NOT A FRAME at key 0x77 (len wrong, checksum wrong) - the key has slipped
+20:45:09.754  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 6B
+       plaintext[0..] A9
+20:45:09.754     NOT A FRAME at key 0xC2 (len wrong, checksum wrong) - the key has slipped
+20:45:09.754  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F1
+       plaintext[0..] FC
+20:45:09.754     NOT A FRAME at key 0x0D (len wrong, checksum wrong) - the key has slipped
+20:45:09.754  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C7
+       plaintext[0..] 9F
+20:45:09.764     NOT A FRAME at key 0x58 (len wrong, checksum wrong) - the key has slipped
+20:45:09.764  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4D
+       plaintext[0..] EE
+20:45:09.764     NOT A FRAME at key 0xA3 (len wrong, checksum wrong) - the key has slipped
+20:45:09.764  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 3C
+       plaintext[0..] D2
+20:45:09.764     NOT A FRAME at key 0xEE (len wrong, checksum wrong) - the key has slipped
+20:45:09.764  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 45
+       plaintext[0..] 7C
+20:45:09.764     NOT A FRAME at key 0x39 (len wrong, checksum wrong) - the key has slipped
+20:45:09.774  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DD
+       plaintext[0..] 59
+20:45:09.774     NOT A FRAME at key 0x84 (len wrong, checksum wrong) - the key has slipped
+20:45:09.774  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5F
+       plaintext[0..] 90
+20:45:09.774     NOT A FRAME at key 0xCF (len wrong, checksum wrong) - the key has slipped
+20:45:09.774  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 63
+       plaintext[0..] 79
+20:45:09.774     NOT A FRAME at key 0x1A (len wrong, checksum wrong) - the key has slipped
+20:45:09.784  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E5
+       plaintext[0..] 80
+20:45:09.784     NOT A FRAME at key 0x65 (len wrong, checksum wrong) - the key has slipped
+20:45:09.784  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E9
+       plaintext[0..] 59
+20:45:09.784     NOT A FRAME at key 0xB0 (len wrong, checksum wrong) - the key has slipped
+20:45:09.784  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 7F
+       plaintext[0..] 84
+20:45:09.784     NOT A FRAME at key 0xFB (len wrong, checksum wrong) - the key has slipped
+20:45:09.794  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CE
+       plaintext[0..] 88
+20:45:09.794     NOT A FRAME at key 0x46 (len wrong, checksum wrong) - the key has slipped
+20:45:09.794  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 92
+       plaintext[0..] 03
+20:45:09.794     NOT A FRAME at key 0x91 (len wrong, checksum wrong) - the key has slipped
+20:45:09.794  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 06
+       plaintext[0..] DA
+20:45:09.794     NOT A FRAME at key 0xDC (len wrong, checksum wrong) - the key has slipped
+20:45:09.804  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+20:45:09.804  FT_Purge(mask=3)  [RX]
+20:45:09.804     ... 1 empty read(s) while waiting
+20:45:09.804  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 05
+       plaintext[0..] 22
+20:45:09.804     NOT A FRAME at key 0x27 (len wrong, checksum wrong) - the key has slipped
+20:45:09.804  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] D5
+       plaintext[0..] A7
+20:45:09.814     NOT A FRAME at key 0x72 (len wrong, checksum wrong) - the key has slipped
+20:45:09.814  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C7
+       plaintext[0..] 7A
+20:45:09.814     NOT A FRAME at key 0xBD (len wrong, checksum wrong) - the key has slipped
+20:45:09.814  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5E
+       plaintext[0..] 56
+20:45:09.814     NOT A FRAME at key 0x08 (len wrong, checksum wrong) - the key has slipped
+20:45:09.814  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 62
+       plaintext[0..] 31
+20:45:09.824     NOT A FRAME at key 0x53 (len wrong, checksum wrong) - the key has slipped
+20:45:09.824  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] AA
+       plaintext[0..] 34
+20:45:09.824     NOT A FRAME at key 0x9E (len wrong, checksum wrong) - the key has slipped
+20:45:09.824  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DD
+       plaintext[0..] 34
+20:45:09.824     NOT A FRAME at key 0xE9 (len wrong, checksum wrong) - the key has slipped
+20:45:09.824  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 76
+       plaintext[0..] 42
+20:45:09.834     NOT A FRAME at key 0x34 (len wrong, checksum wrong) - the key has slipped
+20:45:09.834  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 11
+       plaintext[0..] 6E
+20:45:09.834     NOT A FRAME at key 0x7F (len wrong, checksum wrong) - the key has slipped
+20:45:09.834  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F3
+       plaintext[0..] 39
+20:45:09.834     NOT A FRAME at key 0xCA (len wrong, checksum wrong) - the key has slipped
+20:45:09.844  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 88
+       plaintext[0..] 9D
+20:45:09.844     NOT A FRAME at key 0x15 (len wrong, checksum wrong) - the key has slipped
+20:45:09.844  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5E
+       plaintext[0..] 3E
+20:45:09.844     NOT A FRAME at key 0x60 (len wrong, checksum wrong) - the key has slipped
+20:45:09.844  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 04
+       plaintext[0..] AF
+20:45:09.854     NOT A FRAME at key 0xAB (len wrong, checksum wrong) - the key has slipped
+20:45:09.854  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] D8
+       plaintext[0..] 2E
+20:45:09.854     NOT A FRAME at key 0xF6 (len wrong, checksum wrong) - the key has slipped
+20:45:09.854  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E8
+       plaintext[0..] A9
+20:45:09.854     NOT A FRAME at key 0x41 (len wrong, checksum wrong) - the key has slipped
+20:45:09.854  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C9
+       plaintext[0..] 45
+20:45:09.864     NOT A FRAME at key 0x8C (len wrong, checksum wrong) - the key has slipped
+20:45:09.864  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] AF
+       plaintext[0..] 78
+20:45:09.864     NOT A FRAME at key 0xD7 (len wrong, checksum wrong) - the key has slipped
+20:45:09.864  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] A2
+       plaintext[0..] 80
+20:45:09.864     NOT A FRAME at key 0x22 (len wrong, checksum wrong) - the key has slipped
+20:45:09.864  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DA
+       plaintext[0..] B7
+20:45:09.874     NOT A FRAME at key 0x6D (len wrong, checksum wrong) - the key has slipped
+20:45:09.874  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 12
+       plaintext[0..] AA
+20:45:09.874     NOT A FRAME at key 0xB8 (len wrong, checksum wrong) - the key has slipped
+20:45:09.874  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F5
+       plaintext[0..] F6
+20:45:09.874     NOT A FRAME at key 0x03 (len wrong, checksum wrong) - the key has slipped
+20:45:09.874  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E7
+       plaintext[0..] A9
+20:45:09.874     NOT A FRAME at key 0x4E (len wrong, checksum wrong) - the key has slipped
+20:45:09.884  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 65
+       plaintext[0..] FC
+20:45:09.995     NOT A FRAME at key 0x99 (len wrong, checksum wrong) - the key has slipped
+20:45:09.995  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 7B
+       plaintext[0..] 9F
+20:45:10.005     NOT A FRAME at key 0xE4 (len wrong, checksum wrong) - the key has slipped
+20:45:10.005  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C1
+       plaintext[0..] EE
+20:45:10.005     NOT A FRAME at key 0x2F (len wrong, checksum wrong) - the key has slipped
+20:45:10.005  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] A8
+       plaintext[0..] D2
+20:45:10.005     NOT A FRAME at key 0x7A (len wrong, checksum wrong) - the key has slipped
+20:45:10.005  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B9
+       plaintext[0..] 7C
+20:45:10.015     NOT A FRAME at key 0xC5 (len wrong, checksum wrong) - the key has slipped
+20:45:10.015  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 49
+       plaintext[0..] 59
+20:45:10.015     NOT A FRAME at key 0x10 (len wrong, checksum wrong) - the key has slipped
+20:45:10.015  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CB
+       plaintext[0..] 90
+20:45:10.015     NOT A FRAME at key 0x5B (len wrong, checksum wrong) - the key has slipped
+20:45:10.015  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DF
+       plaintext[0..] 79
+20:45:10.025     NOT A FRAME at key 0xA6 (len wrong, checksum wrong) - the key has slipped
+20:45:10.025  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 71
+       plaintext[0..] 80
+20:45:10.025     NOT A FRAME at key 0xF1 (len wrong, checksum wrong) - the key has slipped
+20:45:10.025  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 65
+       plaintext[0..] 59
+20:45:10.025     NOT A FRAME at key 0x3C (len wrong, checksum wrong) - the key has slipped
+20:45:10.025  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 03
+       plaintext[0..] 84
+20:45:10.035     NOT A FRAME at key 0x87 (len wrong, checksum wrong) - the key has slipped
+20:45:10.035  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5A
+       plaintext[0..] 88
+20:45:10.035     NOT A FRAME at key 0xD2 (len wrong, checksum wrong) - the key has slipped
+20:45:10.035  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 1E
+       plaintext[0..] 03
+20:45:10.035     NOT A FRAME at key 0x1D (len wrong, checksum wrong) - the key has slipped
+20:45:10.035  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B2
+       plaintext[0..] DA
+20:45:10.045     NOT A FRAME at key 0x68 (len wrong, checksum wrong) - the key has slipped
+20:45:10.045  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+20:45:10.045  FT_SetDtr      <-- DTR asserted
+20:45:10.145  FT_ClrDtr      <-- DTR released
+20:45:10.145     re-armed the announcement, key back to 0x9B
+20:45:10.145  FT_Purge(mask=3)  [RX]
+20:45:10.145     ... 1 empty read(s) while waiting
+20:45:10.145  FT_Close   -- the software consumed 27 of 27 queued byte(s)   <<<<<< MORE THAN ONE - look here
+20:45:10.145  ================ shim unloaded ==============
+
+20:45:21.651  ================ shim loaded ================
+20:45:21.651  directory: C:\BMWScan140
+20:45:21.661  rx file reloaded: 0 byte(s) queued
+20:45:21.661  SIGN-ON: the real cable's 27-byte announcement, identity "V144Bn9", key 0x9B
+20:45:21.661  export addresses for dump lookup:
+20:45:21.661     FT_Write        703C1E50
+20:45:21.661     FT_Read         703C1D90
+20:45:21.661     FT_SetBaudRate  703C19D0
+20:45:21.661     FT_Purge        703C1DB0
+20:45:21.661     shim base       703C0000
+20:45:21.661  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+20:45:21.671  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+20:45:21.802  wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+20:45:21.802  FT_SetBaudRate(19200)
+20:45:21.802  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+20:45:21.802  FT_SetTimeouts(read=800 write=800)
+20:45:22.102  FT_Purge(mask=3)  [RX]
+20:45:22.102  FT_SetDtr      <-- DTR asserted
+20:45:22.202  FT_ClrDtr      <-- DTR released
+20:45:22.202     re-armed the announcement, key back to 0x9B
+20:45:22.202  FT_Read(asked 1) -> 1
+    RX[0..] 9B
+20:45:22.212  FT_Read(asked 1) -> 1
+    RX[0..] CD
+20:45:22.212  FT_Read(asked 1) -> 1
+    RX[0..] AA
+20:45:22.212  FT_Read(asked 1) -> 1
+    RX[0..] AF
+20:45:22.212  FT_Read(asked 1) -> 1
+    RX[0..] AF
+20:45:22.212  FT_Read(asked 1) -> 1
+    RX[0..] D9
+20:45:22.212  FT_Read(asked 1) -> 1
+    RX[0..] F5
+20:45:22.222  FT_Read(asked 1) -> 1
+    RX[0..] A2
+20:45:22.222  FT_Read(asked 1) -> 1
+    RX[0..] 9B
+20:45:22.222  FT_Read(asked 1) -> 1
+    RX[0..] 17
+20:45:22.222  FT_Read(asked 1) -> 1
+    RX[0..] 28
+20:45:22.222  FT_Read(asked 1) -> 1
+    RX[0..] FE
+20:45:22.222  FT_Read(asked 1) -> 1
+    RX[0..] 72
+20:45:22.222  FT_Read(asked 1) -> 1
+    RX[0..] D1
+20:45:22.232  FT_Read(asked 1) -> 1
+    RX[0..] 17
+20:45:22.232  FT_Read(asked 1) -> 1
+    RX[0..] 4C
+20:45:22.232  FT_Read(asked 1) -> 1
+    RX[0..] 5E
+20:45:22.232  FT_Read(asked 1) -> 1
+    RX[0..] 80
+20:45:22.232  FT_Read(asked 1) -> 1
+    RX[0..] 38
+20:45:22.232  FT_Read(asked 1) -> 1
+    RX[0..] 09
+20:45:22.242  FT_Read(asked 1) -> 1
+    RX[0..] ED
+20:45:22.242  FT_Read(asked 1) -> 1
+    RX[0..] 2E
+20:45:22.242  FT_Read(asked 1) -> 1
+    RX[0..] B5
+20:45:22.242  FT_Read(asked 1) -> 1
+    RX[0..] CF
+20:45:22.242  FT_Read(asked 1) -> 1
+    RX[0..] AA
+20:45:22.242  FT_Read(asked 1) -> 1
+    RX[0..] 07
+20:45:22.252  FT_Read(asked 1) -> 1
+    RX[0..] 2B
+20:45:22.352  FT_Purge(mask=3)  [RX]
+20:45:22.352  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B9
+       plaintext[0..] 22
+20:45:22.352     NOT A FRAME at key 0x9B (len wrong, checksum wrong) - the key has slipped
+20:45:22.352  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 41
+       plaintext[0..] A7
+20:45:22.352     NOT A FRAME at key 0xE6 (len wrong, checksum wrong) - the key has slipped
+20:45:22.362  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4B
+       plaintext[0..] 7A
+20:45:22.362     NOT A FRAME at key 0x31 (len wrong, checksum wrong) - the key has slipped
+20:45:22.362  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 2A
+       plaintext[0..] 56
+20:45:22.362     NOT A FRAME at key 0x7C (len wrong, checksum wrong) - the key has slipped
+20:45:22.362  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F6
+       plaintext[0..] 31
+20:45:22.362     NOT A FRAME at key 0xC7 (len wrong, checksum wrong) - the key has slipped
+20:45:22.362  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 26
+       plaintext[0..] 34
+20:45:22.372     NOT A FRAME at key 0x12 (len wrong, checksum wrong) - the key has slipped
+20:45:22.372  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 69
+       plaintext[0..] 34
+20:45:22.372     NOT A FRAME at key 0x5D (len wrong, checksum wrong) - the key has slipped
+20:45:22.372  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] EA
+       plaintext[0..] 42
+20:45:22.372     NOT A FRAME at key 0xA8 (len wrong, checksum wrong) - the key has slipped
+20:45:22.382  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 9D
+       plaintext[0..] 6E
+20:45:22.382     NOT A FRAME at key 0xF3 (len wrong, checksum wrong) - the key has slipped
+20:45:22.382  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 07
+       plaintext[0..] 39
+20:45:22.382     NOT A FRAME at key 0x3E (len wrong, checksum wrong) - the key has slipped
+20:45:22.382  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 14
+       plaintext[0..] 9D
+20:45:22.392     NOT A FRAME at key 0x89 (len wrong, checksum wrong) - the key has slipped
+20:45:22.392  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] EA
+       plaintext[0..] 3E
+20:45:22.392     NOT A FRAME at key 0xD4 (len wrong, checksum wrong) - the key has slipped
+20:45:22.392  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B0
+       plaintext[0..] AF
+20:45:22.392     NOT A FRAME at key 0x1F (len wrong, checksum wrong) - the key has slipped
+20:45:22.392  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 44
+       plaintext[0..] 2E
+20:45:22.402     NOT A FRAME at key 0x6A (len wrong, checksum wrong) - the key has slipped
+20:45:22.402  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 1C
+       plaintext[0..] A9
+20:45:22.402     NOT A FRAME at key 0xB5 (len wrong, checksum wrong) - the key has slipped
+20:45:22.402  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 45
+       plaintext[0..] 45
+20:45:22.402     NOT A FRAME at key 0x00 (len wrong, checksum wrong) - the key has slipped
+20:45:22.402  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 33
+       plaintext[0..] 78
+20:45:22.412     NOT A FRAME at key 0x4B (len wrong, checksum wrong) - the key has slipped
+20:45:22.412  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 16
+       plaintext[0..] 80
+20:45:22.412     NOT A FRAME at key 0x96 (len wrong, checksum wrong) - the key has slipped
+20:45:22.412  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 56
+       plaintext[0..] B7
+20:45:22.412     NOT A FRAME at key 0xE1 (len wrong, checksum wrong) - the key has slipped
+20:45:22.412  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 86
+       plaintext[0..] AA
+20:45:22.422     NOT A FRAME at key 0x2C (len wrong, checksum wrong) - the key has slipped
+20:45:22.422  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 81
+       plaintext[0..] F6
+20:45:22.422     NOT A FRAME at key 0x77 (len wrong, checksum wrong) - the key has slipped
+20:45:22.422  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 6B
+       plaintext[0..] A9
+20:45:22.422     NOT A FRAME at key 0xC2 (len wrong, checksum wrong) - the key has slipped
+20:45:22.422  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F1
+       plaintext[0..] FC
+20:45:22.432     NOT A FRAME at key 0x0D (len wrong, checksum wrong) - the key has slipped
+20:45:22.432  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C7
+       plaintext[0..] 9F
+20:45:22.432     NOT A FRAME at key 0x58 (len wrong, checksum wrong) - the key has slipped
+20:45:22.432  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4D
+       plaintext[0..] EE
+20:45:22.432     NOT A FRAME at key 0xA3 (len wrong, checksum wrong) - the key has slipped
+20:45:22.442  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 3C
+       plaintext[0..] D2
+20:45:22.442     NOT A FRAME at key 0xEE (len wrong, checksum wrong) - the key has slipped
+20:45:22.442  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 45
+       plaintext[0..] 7C
+20:45:22.442     NOT A FRAME at key 0x39 (len wrong, checksum wrong) - the key has slipped
+20:45:22.442  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DD
+       plaintext[0..] 59
+20:45:22.452     NOT A FRAME at key 0x84 (len wrong, checksum wrong) - the key has slipped
+20:45:22.452  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5F
+       plaintext[0..] 90
+20:45:22.452     NOT A FRAME at key 0xCF (len wrong, checksum wrong) - the key has slipped
+20:45:22.452  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 63
+       plaintext[0..] 79
+20:45:22.452     NOT A FRAME at key 0x1A (len wrong, checksum wrong) - the key has slipped
+20:45:22.452  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E5
+       plaintext[0..] 80
+20:45:22.462     NOT A FRAME at key 0x65 (len wrong, checksum wrong) - the key has slipped
+20:45:22.462  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E9
+       plaintext[0..] 59
+20:45:22.462     NOT A FRAME at key 0xB0 (len wrong, checksum wrong) - the key has slipped
+20:45:22.462  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 7F
+       plaintext[0..] 84
+20:45:22.462     NOT A FRAME at key 0xFB (len wrong, checksum wrong) - the key has slipped
+20:45:22.462  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CE
+       plaintext[0..] 88
+20:45:22.472     NOT A FRAME at key 0x46 (len wrong, checksum wrong) - the key has slipped
+20:45:22.472  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 92
+       plaintext[0..] 03
+20:45:22.472     NOT A FRAME at key 0x91 (len wrong, checksum wrong) - the key has slipped
+20:45:22.472  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 06
+       plaintext[0..] DA
+20:45:22.472     NOT A FRAME at key 0xDC (len wrong, checksum wrong) - the key has slipped
+20:45:22.482  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+20:45:22.482  FT_Purge(mask=3)  [RX]
+20:45:22.482     ... 1 empty read(s) while waiting
+20:45:22.482  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 05
+       plaintext[0..] 22
+20:45:22.482     NOT A FRAME at key 0x27 (len wrong, checksum wrong) - the key has slipped
+20:45:22.482  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] D5
+       plaintext[0..] A7
+20:45:22.482     NOT A FRAME at key 0x72 (len wrong, checksum wrong) - the key has slipped
+20:45:22.492  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C7
+       plaintext[0..] 7A
+20:45:22.492     NOT A FRAME at key 0xBD (len wrong, checksum wrong) - the key has slipped
+20:45:22.492  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5E
+       plaintext[0..] 56
+20:45:22.492     NOT A FRAME at key 0x08 (len wrong, checksum wrong) - the key has slipped
+20:45:22.492  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 62
+       plaintext[0..] 31
+20:45:22.503     NOT A FRAME at key 0x53 (len wrong, checksum wrong) - the key has slipped
+20:45:22.503  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] AA
+       plaintext[0..] 34
+20:45:22.503     NOT A FRAME at key 0x9E (len wrong, checksum wrong) - the key has slipped
+20:45:22.503  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DD
+       plaintext[0..] 34
+20:45:22.503     NOT A FRAME at key 0xE9 (len wrong, checksum wrong) - the key has slipped
+20:45:22.503  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 76
+       plaintext[0..] 42
+20:45:22.503     NOT A FRAME at key 0x34 (len wrong, checksum wrong) - the key has slipped
+20:45:22.503  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 11
+       plaintext[0..] 6E
+20:45:22.513     NOT A FRAME at key 0x7F (len wrong, checksum wrong) - the key has slipped
+20:45:22.513  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F3
+       plaintext[0..] 39
+20:45:22.513     NOT A FRAME at key 0xCA (len wrong, checksum wrong) - the key has slipped
+20:45:22.513  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 88
+       plaintext[0..] 9D
+20:45:22.513     NOT A FRAME at key 0x15 (len wrong, checksum wrong) - the key has slipped
+20:45:22.513  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5E
+       plaintext[0..] 3E
+20:45:22.523     NOT A FRAME at key 0x60 (len wrong, checksum wrong) - the key has slipped
+20:45:22.523  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 04
+       plaintext[0..] AF
+20:45:22.523     NOT A FRAME at key 0xAB (len wrong, checksum wrong) - the key has slipped
+20:45:22.523  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] D8
+       plaintext[0..] 2E
+20:45:22.523     NOT A FRAME at key 0xF6 (len wrong, checksum wrong) - the key has slipped
+20:45:22.523  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E8
+       plaintext[0..] A9
+20:45:22.533     NOT A FRAME at key 0x41 (len wrong, checksum wrong) - the key has slipped
+20:45:22.533  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C9
+       plaintext[0..] 45
+20:45:22.533     NOT A FRAME at key 0x8C (len wrong, checksum wrong) - the key has slipped
+20:45:22.533  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] AF
+       plaintext[0..] 78
+20:45:22.533     NOT A FRAME at key 0xD7 (len wrong, checksum wrong) - the key has slipped
+20:45:22.543  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] A2
+       plaintext[0..] 80
+20:45:22.543     NOT A FRAME at key 0x22 (len wrong, checksum wrong) - the key has slipped
+20:45:22.543  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DA
+       plaintext[0..] B7
+20:45:22.543     NOT A FRAME at key 0x6D (len wrong, checksum wrong) - the key has slipped
+20:45:22.543  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 12
+       plaintext[0..] AA
+20:45:22.553     NOT A FRAME at key 0xB8 (len wrong, checksum wrong) - the key has slipped
+20:45:22.553  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F5
+       plaintext[0..] F6
+20:45:22.553     NOT A FRAME at key 0x03 (len wrong, checksum wrong) - the key has slipped
+20:45:22.553  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E7
+       plaintext[0..] A9
+20:45:22.553     NOT A FRAME at key 0x4E (len wrong, checksum wrong) - the key has slipped
+20:45:22.553  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 65
+       plaintext[0..] FC
+20:45:22.563     NOT A FRAME at key 0x99 (len wrong, checksum wrong) - the key has slipped
+20:45:22.563  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 7B
+       plaintext[0..] 9F
+20:45:22.563     NOT A FRAME at key 0xE4 (len wrong, checksum wrong) - the key has slipped
+20:45:22.563  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C1
+       plaintext[0..] EE
+20:45:22.573     NOT A FRAME at key 0x2F (len wrong, checksum wrong) - the key has slipped
+20:45:22.573  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] A8
+       plaintext[0..] D2
+20:45:22.573     NOT A FRAME at key 0x7A (len wrong, checksum wrong) - the key has slipped
+20:45:22.573  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B9
+       plaintext[0..] 7C
+20:45:22.573     NOT A FRAME at key 0xC5 (len wrong, checksum wrong) - the key has slipped
+20:45:22.583  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 49
+       plaintext[0..] 59
+20:45:22.583     NOT A FRAME at key 0x10 (len wrong, checksum wrong) - the key has slipped
+20:45:22.583  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CB
+       plaintext[0..] 90
+20:45:22.583     NOT A FRAME at key 0x5B (len wrong, checksum wrong) - the key has slipped
+20:45:22.583  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DF
+       plaintext[0..] 79
+20:45:22.593     NOT A FRAME at key 0xA6 (len wrong, checksum wrong) - the key has slipped
+20:45:22.593  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 71
+       plaintext[0..] 80
+20:45:22.593     NOT A FRAME at key 0xF1 (len wrong, checksum wrong) - the key has slipped
+20:45:22.593  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 65
+       plaintext[0..] 59
+20:45:22.603     NOT A FRAME at key 0x3C (len wrong, checksum wrong) - the key has slipped
+20:45:22.603  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 03
+       plaintext[0..] 84
+20:45:22.603     NOT A FRAME at key 0x87 (len wrong, checksum wrong) - the key has slipped
+20:45:22.603  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5A
+       plaintext[0..] 88
+20:45:22.603     NOT A FRAME at key 0xD2 (len wrong, checksum wrong) - the key has slipped
+20:45:22.603  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 1E
+       plaintext[0..] 03
+20:45:22.613     NOT A FRAME at key 0x1D (len wrong, checksum wrong) - the key has slipped
+20:45:22.613  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B2
+       plaintext[0..] DA
+20:45:22.613     NOT A FRAME at key 0x68 (len wrong, checksum wrong) - the key has slipped
+20:45:22.613  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+20:45:22.613  FT_SetDtr      <-- DTR asserted
+20:45:22.713  FT_ClrDtr      <-- DTR released
+20:45:22.713     re-armed the announcement, key back to 0x9B
+20:45:22.723  FT_Purge(mask=3)  [RX]
+20:45:22.723     ... 1 empty read(s) while waiting
+20:45:22.723  FT_Close   -- the software consumed 27 of 27 queued byte(s)   <<<<<< MORE THAN ONE - look here
+20:45:22.723  ================ shim unloaded ==============
+
+20:45:24.776  ================ shim loaded ================
+20:45:24.776  directory: C:\BMWScan140
+20:45:24.786  rx file reloaded: 0 byte(s) queued
+20:45:24.786  SIGN-ON: the real cable's 27-byte announcement, identity "V144Bn9", key 0x9B
+20:45:24.786  export addresses for dump lookup:
+20:45:24.786     FT_Write        703C1E50
+20:45:24.786     FT_Read         703C1D90
+20:45:24.786     FT_SetBaudRate  703C19D0
+20:45:24.786     FT_Purge        703C1DB0
+20:45:24.786     shim base       703C0000
+20:45:24.786  FT_OpenEx(flags=0x2, "BMW Scanner V14x")
+20:45:24.786  dumping the unpacked image: base 00400000, SizeOfImage 8024064
+20:45:24.916  wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+20:45:24.926  FT_SetBaudRate(19200)
+20:45:24.926  FT_SetDataCharacteristics(bits=8 stop=0 parity=0)
+20:45:24.926  FT_SetTimeouts(read=800 write=800)
+20:45:25.226  FT_Purge(mask=3)  [RX]
+20:45:25.226  FT_SetDtr      <-- DTR asserted
+20:45:25.327  FT_ClrDtr      <-- DTR released
+20:45:25.327     re-armed the announcement, key back to 0x9B
+20:45:25.327  FT_Read(asked 1) -> 1
+    RX[0..] 9B
+20:45:25.327  FT_Read(asked 1) -> 1
+    RX[0..] CD
+20:45:25.327  FT_Read(asked 1) -> 1
+    RX[0..] AA
+20:45:25.327  FT_Read(asked 1) -> 1
+    RX[0..] AF
+20:45:25.337  FT_Read(asked 1) -> 1
+    RX[0..] AF
+20:45:25.337  FT_Read(asked 1) -> 1
+    RX[0..] D9
+20:45:25.337  FT_Read(asked 1) -> 1
+    RX[0..] F5
+20:45:25.337  FT_Read(asked 1) -> 1
+    RX[0..] A2
+20:45:25.337  FT_Read(asked 1) -> 1
+    RX[0..] 9B
+20:45:25.337  FT_Read(asked 1) -> 1
+    RX[0..] 17
+20:45:25.347  FT_Read(asked 1) -> 1
+    RX[0..] 28
+20:45:25.347  FT_Read(asked 1) -> 1
+    RX[0..] FE
+20:45:25.347  FT_Read(asked 1) -> 1
+    RX[0..] 72
+20:45:25.347  FT_Read(asked 1) -> 1
+    RX[0..] D1
+20:45:25.347  FT_Read(asked 1) -> 1
+    RX[0..] 17
+20:45:25.347  FT_Read(asked 1) -> 1
+    RX[0..] 4C
+20:45:25.347  FT_Read(asked 1) -> 1
+    RX[0..] 5E
+20:45:25.357  FT_Read(asked 1) -> 1
+    RX[0..] 80
+20:45:25.357  FT_Read(asked 1) -> 1
+    RX[0..] 38
+20:45:25.357  FT_Read(asked 1) -> 1
+    RX[0..] 09
+20:45:25.357  FT_Read(asked 1) -> 1
+    RX[0..] ED
+20:45:25.357  FT_Read(asked 1) -> 1
+    RX[0..] 2E
+20:45:25.357  FT_Read(asked 1) -> 1
+    RX[0..] B5
+20:45:25.367  FT_Read(asked 1) -> 1
+    RX[0..] CF
+20:45:25.367  FT_Read(asked 1) -> 1
+    RX[0..] AA
+20:45:25.367  FT_Read(asked 1) -> 1
+    RX[0..] 07
+20:45:25.367  FT_Read(asked 1) -> 1
+    RX[0..] 2B
+20:45:25.467  FT_Purge(mask=3)  [RX]
+20:45:25.467  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B9
+       plaintext[0..] 22
+20:45:25.477     NOT A FRAME at key 0x9B (len wrong, checksum wrong) - the key has slipped
+20:45:25.477  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 41
+       plaintext[0..] A7
+20:45:25.477     NOT A FRAME at key 0xE6 (len wrong, checksum wrong) - the key has slipped
+20:45:25.477  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4B
+       plaintext[0..] 7A
+20:45:25.477     NOT A FRAME at key 0x31 (len wrong, checksum wrong) - the key has slipped
+20:45:25.477  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 2A
+       plaintext[0..] 56
+20:45:25.487     NOT A FRAME at key 0x7C (len wrong, checksum wrong) - the key has slipped
+20:45:25.487  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F6
+       plaintext[0..] 31
+20:45:25.487     NOT A FRAME at key 0xC7 (len wrong, checksum wrong) - the key has slipped
+20:45:25.487  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 26
+       plaintext[0..] 34
+20:45:25.487     NOT A FRAME at key 0x12 (len wrong, checksum wrong) - the key has slipped
+20:45:25.497  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 69
+       plaintext[0..] 34
+20:45:25.497     NOT A FRAME at key 0x5D (len wrong, checksum wrong) - the key has slipped
+20:45:25.497  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] EA
+       plaintext[0..] 42
+20:45:25.497     NOT A FRAME at key 0xA8 (len wrong, checksum wrong) - the key has slipped
+20:45:25.497  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 9D
+       plaintext[0..] 6E
+20:45:25.497     NOT A FRAME at key 0xF3 (len wrong, checksum wrong) - the key has slipped
+20:45:25.507  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 07
+       plaintext[0..] 39
+20:45:25.507     NOT A FRAME at key 0x3E (len wrong, checksum wrong) - the key has slipped
+20:45:25.507  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 14
+       plaintext[0..] 9D
+20:45:25.507     NOT A FRAME at key 0x89 (len wrong, checksum wrong) - the key has slipped
+20:45:25.507  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] EA
+       plaintext[0..] 3E
+20:45:25.517     NOT A FRAME at key 0xD4 (len wrong, checksum wrong) - the key has slipped
+20:45:25.517  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B0
+       plaintext[0..] AF
+20:45:25.517     NOT A FRAME at key 0x1F (len wrong, checksum wrong) - the key has slipped
+20:45:25.517  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 44
+       plaintext[0..] 2E
+20:45:25.517     NOT A FRAME at key 0x6A (len wrong, checksum wrong) - the key has slipped
+20:45:25.517  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 1C
+       plaintext[0..] A9
+20:45:25.527     NOT A FRAME at key 0xB5 (len wrong, checksum wrong) - the key has slipped
+20:45:25.527  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 45
+       plaintext[0..] 45
+20:45:25.527     NOT A FRAME at key 0x00 (len wrong, checksum wrong) - the key has slipped
+20:45:25.527  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 33
+       plaintext[0..] 78
+20:45:25.527     NOT A FRAME at key 0x4B (len wrong, checksum wrong) - the key has slipped
+20:45:25.527  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 16
+       plaintext[0..] 80
+20:45:25.537     NOT A FRAME at key 0x96 (len wrong, checksum wrong) - the key has slipped
+20:45:25.537  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 56
+       plaintext[0..] B7
+20:45:25.537     NOT A FRAME at key 0xE1 (len wrong, checksum wrong) - the key has slipped
+20:45:25.537  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 86
+       plaintext[0..] AA
+20:45:25.537     NOT A FRAME at key 0x2C (len wrong, checksum wrong) - the key has slipped
+20:45:25.537  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 81
+       plaintext[0..] F6
+20:45:25.547     NOT A FRAME at key 0x77 (len wrong, checksum wrong) - the key has slipped
+20:45:25.547  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 6B
+       plaintext[0..] A9
+20:45:25.547     NOT A FRAME at key 0xC2 (len wrong, checksum wrong) - the key has slipped
+20:45:25.547  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F1
+       plaintext[0..] FC
+20:45:25.547     NOT A FRAME at key 0x0D (len wrong, checksum wrong) - the key has slipped
+20:45:25.547  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C7
+       plaintext[0..] 9F
+20:45:25.557     NOT A FRAME at key 0x58 (len wrong, checksum wrong) - the key has slipped
+20:45:25.557  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 4D
+       plaintext[0..] EE
+20:45:25.557     NOT A FRAME at key 0xA3 (len wrong, checksum wrong) - the key has slipped
+20:45:25.557  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 3C
+       plaintext[0..] D2
+20:45:25.557     NOT A FRAME at key 0xEE (len wrong, checksum wrong) - the key has slipped
+20:45:25.557  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 45
+       plaintext[0..] 7C
+20:45:25.557     NOT A FRAME at key 0x39 (len wrong, checksum wrong) - the key has slipped
+20:45:25.567  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DD
+       plaintext[0..] 59
+20:45:25.567     NOT A FRAME at key 0x84 (len wrong, checksum wrong) - the key has slipped
+20:45:25.567  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5F
+       plaintext[0..] 90
+20:45:25.567     NOT A FRAME at key 0xCF (len wrong, checksum wrong) - the key has slipped
+20:45:25.567  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 63
+       plaintext[0..] 79
+20:45:25.567     NOT A FRAME at key 0x1A (len wrong, checksum wrong) - the key has slipped
+20:45:25.567  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E5
+       plaintext[0..] 80
+20:45:25.577     NOT A FRAME at key 0x65 (len wrong, checksum wrong) - the key has slipped
+20:45:25.577  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E9
+       plaintext[0..] 59
+20:45:25.577     NOT A FRAME at key 0xB0 (len wrong, checksum wrong) - the key has slipped
+20:45:25.577  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 7F
+       plaintext[0..] 84
+20:45:25.577     NOT A FRAME at key 0xFB (len wrong, checksum wrong) - the key has slipped
+20:45:25.577  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CE
+       plaintext[0..] 88
+20:45:25.587     NOT A FRAME at key 0x46 (len wrong, checksum wrong) - the key has slipped
+20:45:25.587  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 92
+       plaintext[0..] 03
+20:45:25.587     NOT A FRAME at key 0x91 (len wrong, checksum wrong) - the key has slipped
+20:45:25.587  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 06
+       plaintext[0..] DA
+20:45:25.587     NOT A FRAME at key 0xDC (len wrong, checksum wrong) - the key has slipped
+20:45:25.587  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+20:45:25.587  FT_Purge(mask=3)  [RX]
+20:45:25.597     ... 1 empty read(s) while waiting
+20:45:25.597  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 05
+       plaintext[0..] 22
+20:45:25.597     NOT A FRAME at key 0x27 (len wrong, checksum wrong) - the key has slipped
+20:45:25.597  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] D5
+       plaintext[0..] A7
+20:45:25.597     NOT A FRAME at key 0x72 (len wrong, checksum wrong) - the key has slipped
+20:45:25.607  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C7
+       plaintext[0..] 7A
+20:45:25.607     NOT A FRAME at key 0xBD (len wrong, checksum wrong) - the key has slipped
+20:45:25.607  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5E
+       plaintext[0..] 56
+20:45:25.607     NOT A FRAME at key 0x08 (len wrong, checksum wrong) - the key has slipped
+20:45:25.607  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 62
+       plaintext[0..] 31
+20:45:25.607     NOT A FRAME at key 0x53 (len wrong, checksum wrong) - the key has slipped
+20:45:25.617  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] AA
+       plaintext[0..] 34
+20:45:25.617     NOT A FRAME at key 0x9E (len wrong, checksum wrong) - the key has slipped
+20:45:25.617  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DD
+       plaintext[0..] 34
+20:45:25.617     NOT A FRAME at key 0xE9 (len wrong, checksum wrong) - the key has slipped
+20:45:25.617  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 76
+       plaintext[0..] 42
+20:45:25.627     NOT A FRAME at key 0x34 (len wrong, checksum wrong) - the key has slipped
+20:45:25.627  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 11
+       plaintext[0..] 6E
+20:45:25.627     NOT A FRAME at key 0x7F (len wrong, checksum wrong) - the key has slipped
+20:45:25.627  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F3
+       plaintext[0..] 39
+20:45:25.627     NOT A FRAME at key 0xCA (len wrong, checksum wrong) - the key has slipped
+20:45:25.627  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 88
+       plaintext[0..] 9D
+20:45:25.637     NOT A FRAME at key 0x15 (len wrong, checksum wrong) - the key has slipped
+20:45:25.637  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5E
+       plaintext[0..] 3E
+20:45:25.637     NOT A FRAME at key 0x60 (len wrong, checksum wrong) - the key has slipped
+20:45:25.637  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 04
+       plaintext[0..] AF
+20:45:25.637     NOT A FRAME at key 0xAB (len wrong, checksum wrong) - the key has slipped
+20:45:25.637  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] D8
+       plaintext[0..] 2E
+20:45:25.647     NOT A FRAME at key 0xF6 (len wrong, checksum wrong) - the key has slipped
+20:45:25.647  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E8
+       plaintext[0..] A9
+20:45:25.647     NOT A FRAME at key 0x41 (len wrong, checksum wrong) - the key has slipped
+20:45:25.647  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C9
+       plaintext[0..] 45
+20:45:25.647     NOT A FRAME at key 0x8C (len wrong, checksum wrong) - the key has slipped
+20:45:25.647  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] AF
+       plaintext[0..] 78
+20:45:25.657     NOT A FRAME at key 0xD7 (len wrong, checksum wrong) - the key has slipped
+20:45:25.657  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] A2
+       plaintext[0..] 80
+20:45:25.657     NOT A FRAME at key 0x22 (len wrong, checksum wrong) - the key has slipped
+20:45:25.657  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DA
+       plaintext[0..] B7
+20:45:25.657     NOT A FRAME at key 0x6D (len wrong, checksum wrong) - the key has slipped
+20:45:25.657  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 12
+       plaintext[0..] AA
+20:45:25.667     NOT A FRAME at key 0xB8 (len wrong, checksum wrong) - the key has slipped
+20:45:25.667  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] F5
+       plaintext[0..] F6
+20:45:25.667     NOT A FRAME at key 0x03 (len wrong, checksum wrong) - the key has slipped
+20:45:25.667  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] E7
+       plaintext[0..] A9
+20:45:25.667     NOT A FRAME at key 0x4E (len wrong, checksum wrong) - the key has slipped
+20:45:25.667  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 65
+       plaintext[0..] FC
+20:45:25.677     NOT A FRAME at key 0x99 (len wrong, checksum wrong) - the key has slipped
+20:45:25.677  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 7B
+       plaintext[0..] 9F
+20:45:25.677     NOT A FRAME at key 0xE4 (len wrong, checksum wrong) - the key has slipped
+20:45:25.677  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] C1
+       plaintext[0..] EE
+20:45:25.677     NOT A FRAME at key 0x2F (len wrong, checksum wrong) - the key has slipped
+20:45:25.677  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] A8
+       plaintext[0..] D2
+20:45:25.687     NOT A FRAME at key 0x7A (len wrong, checksum wrong) - the key has slipped
+20:45:25.687  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B9
+       plaintext[0..] 7C
+20:45:25.687     NOT A FRAME at key 0xC5 (len wrong, checksum wrong) - the key has slipped
+20:45:25.687  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 49
+       plaintext[0..] 59
+20:45:25.687     NOT A FRAME at key 0x10 (len wrong, checksum wrong) - the key has slipped
+20:45:25.687  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] CB
+       plaintext[0..] 90
+20:45:25.697     NOT A FRAME at key 0x5B (len wrong, checksum wrong) - the key has slipped
+20:45:25.697  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] DF
+       plaintext[0..] 79
+20:45:25.697     NOT A FRAME at key 0xA6 (len wrong, checksum wrong) - the key has slipped
+20:45:25.697  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 71
+       plaintext[0..] 80
+20:45:25.697     NOT A FRAME at key 0xF1 (len wrong, checksum wrong) - the key has slipped
+20:45:25.697  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 65
+       plaintext[0..] 59
+20:45:25.707     NOT A FRAME at key 0x3C (len wrong, checksum wrong) - the key has slipped
+20:45:25.707  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 03
+       plaintext[0..] 84
+20:45:25.707     NOT A FRAME at key 0x87 (len wrong, checksum wrong) - the key has slipped
+20:45:25.707  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 5A
+       plaintext[0..] 88
+20:45:25.707     NOT A FRAME at key 0xD2 (len wrong, checksum wrong) - the key has slipped
+20:45:25.707  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] 1E
+       plaintext[0..] 03
+20:45:25.717     NOT A FRAME at key 0x1D (len wrong, checksum wrong) - the key has slipped
+20:45:25.717  FT_Write(1 byte(s))  [19200 baud, 8N1]
+    TX[0..] B2
+       plaintext[0..] DA
+20:45:25.717     NOT A FRAME at key 0x68 (len wrong, checksum wrong) - the key has slipped
+20:45:25.717  FT_Read(asked 1) -> 0   (polling; further empty reads are counted)
+20:45:25.717  FT_SetDtr      <-- DTR asserted
+20:45:25.817  FT_ClrDtr      <-- DTR released
+20:45:25.817     re-armed the announcement, key back to 0x9B
+20:45:25.817  FT_Purge(mask=3)  [RX]
+20:45:25.817     ... 1 empty read(s) while waiting
+20:45:25.817  FT_Close   -- the software consumed 27 of 27 queued byte(s)   <<<<<< MORE THAN ONE - look here
+20:45:25.817  ================ shim unloaded ==============
