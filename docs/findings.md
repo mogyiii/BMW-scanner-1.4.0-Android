@@ -640,6 +640,82 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 22: the burst is the cable's announcement, and the cable works
+
+**This overturns the central conclusion of this document.** Everything below that calls the cable
+faulty is wrong, and the fault reports written on that basis are withdrawn.
+
+`FUN_006ce388` is the handshake. Decompiled, it is unambiguous:
+
+```c
+FT_Purge(); delay(); FT_SetDtr(); sleep(); FT_ClrDtr();   /* the vendor's DTR pulse */
+bVar5 = 0; iVar2 = 0;
+pbVar3 = &DAT_0098289c;                      /* the key variable IS the buffer start */
+do {
+    bVar1 = readByte();
+    *pbVar3 = bVar1;
+    bVar5 = bVar5 ^ *pbVar3;                 /* running XOR over the raw bytes */
+    if (0 < iVar2) *pbVar3 = *pbVar3 ^ DAT_0098289c;   /* first byte is the key */
+    iVar2++; pbVar3++;
+} while (iVar2 != 0x1b);                     /* exactly 27 bytes */
+if (bVar5 == 0) break;                       /* XOR of all 27 must be zero */
+/* then bytes 1..7 are assembled into a string */
+```
+
+So the cable is expected to answer a DTR pulse with **27 bytes whose XOR is zero**, the first of
+which is the descrambling key, and bytes 1–7 of which spell a seven-character hardware identity.
+
+### The burst we have been measuring since run 7 is exactly that
+
+```
+9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+```
+
+| Test the code applies | Result |
+|---|---|
+| Length must be `0x1B` | **27 bytes** ✓ |
+| XOR of all raw bytes must be `0` | **0x00** ✓ |
+| Byte 0 is the key | `0x9B` |
+| Bytes 1–7, descrambled, are the hardware identity | **`V144Bn9`** ✓ |
+
+`V144Bn9` is character-for-character the string in the header of the vendor's own 2009 session log
+shipped with the software: `BMW Scanner v1.4.0.6 (24.05.2008) - P.A.Soft, 2008  HW: V144Bn9`.
+
+The rest decodes to `00` (terminating the string) and eighteen bytes of binary, presumably serial or
+licence data: `8C B3 65 E9 4A 8C D7 C5 1B A3 92 76 B5 2E 54 31 9C B0`.
+
+### What this means, stated plainly
+
+**The cable was talking to us from the first on-car run.** Run 7 recorded those 27 bytes on
+2026-10-19; run 16 recorded them again, byte for byte, on 2026-10-27. They were a correct, checksummed,
+meaningful message at 19200 8N1 the whole time, and the project decoded them as noise.
+
+**Run 9's verdict is refuted.** It analysed the burst's edge timing, found no convincing bit grid,
+and concluded "transient, not a message". A transient does not produce 27 bytes whose XOR is zero
+and whose payload spells the hardware identity printed in the vendor's own log. The measurement was
+real; the inference from it was wrong, and it was wrong in the direction that closed the project.
+
+**The "data-independent reply" never contradicted this.** The `C4`-prefixed answers came from
+sending raw DS2 frames at 9600 8E1 to a microcontroller that was waiting to be addressed in its own
+protocol at 19200 8N1. That is not a broken transceiver; it is the wrong conversation.
+
+Whether the cable's K-line stage reaches the car is still **unestablished** — it was never tested
+with the cable in the mode the vendor puts it in. What is established is that the cable is alive,
+identifies itself correctly, and does so reproducibly.
+
+### Immediately implementable
+
+The Android app can do this today, with no further reverse engineering:
+
+1. 19200 8N1, purge, assert DTR, wait ~100 ms, release DTR.
+2. Read 27 bytes.
+3. Check the XOR of all 27 is zero; retry twice, as the vendor does.
+4. Take byte 0 as the key, XOR bytes 1–26 with it.
+5. Bytes 1–7 are the hardware identity, and should read `V144Bn9`.
+
+That is a complete, testable handshake, and it is the first thing in this project that can be
+verified against the car as right or wrong rather than argued about.
+
 ## Run 21: the executable gives up its serial layer
 
 With the dump rebuilt as a loadable PE, Ghidra analyses it normally and the path from the
