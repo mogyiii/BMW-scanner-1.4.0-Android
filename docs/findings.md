@@ -640,6 +640,50 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 18: twenty launches, eleven candidates, and the software still has not said a word
+
+The shim is doing its job. What it reports, searched across the whole log:
+
+| | |
+|---|---|
+| Launches recorded | 20 |
+| Distinct candidates tried | 11 |
+| **`FT_Write` calls, ever** | **0** |
+
+**The vendor software has never transmitted a single byte**, through any candidate. It sets 19200
+8N1, purges, pulses DTR for 100 ms, polls `FT_Read` one byte at a time for about 1.2 s, gives up and
+shows "Hardware faulty". Nothing we have offered persuades it to speak.
+
+### One line that looked like a hit, and probably is not
+
+```
+10:21:53.658  FT_Close  -- the software consumed 27 of 27 queued byte(s)   <<<<<< MORE THAN ONE
+```
+
+Twenty-seven bytes is the real cable's 19200 burst, and it was consumed in full rather than
+abandoned after the first byte. That was the signal the sweep was designed to detect, on the
+reasoning that a one-byte-at-a-time reader checks as it goes.
+
+**It does not hold up.** The software polls for a fixed ~1.2 s and will drain whatever is queued
+regardless of content, so "27 of 27" is equally what a *wrong* 27-byte answer produces. The
+comparison that would mean something — consumption against candidate length, across candidates —
+cannot be made, because only the newest build logs consumption and only one run used it.
+
+So the sweep's success criterion has to be `FT_Write`, not consumption. That is already logged; the
+batch simply greps for the wrong thing.
+
+### The sweep did not run
+
+`SWEEP` appears zero times and the log stopped growing at 10:39. `sweep.bat` managed about one
+iteration. Not yet diagnosed; `tskill` failing to match the process would do it.
+
+### Where this leaves the search
+
+The announcement is unknown and the space is large. A first-byte sweep is still cheap and still
+worth running once the success signal is right, but if the sign-on is multi-byte or carries a
+checksum, no amount of sweeping the first byte will find it, and the answer would have to come from
+unpacking the executable.
+
 ## The way in: replace the library, not the cable
 
 The owner's idea, and it is the right one: *make the vendor software think a device is attached, and
