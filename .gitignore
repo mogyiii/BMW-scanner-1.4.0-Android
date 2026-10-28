@@ -8,3 +8,4 @@ build/
 *.iml
 .DS_Store
 captures/
+build/unpacked/

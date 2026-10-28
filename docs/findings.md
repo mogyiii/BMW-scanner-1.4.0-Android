@@ -640,6 +640,98 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 19–20: the sign-on, the protocol, and the unpacked executable
+
+Three things fell out at once, and together they are what the project set out to get.
+
+### The announcement: the cable repeats its own name
+
+Candidate 11 was accepted. Answering the DTR pulse with the ASCII string **`BMW Scanner v14x`** —
+`42 4D 57 20 53 63 61 6E 6E 65 72 20 76 31 34 78` — carries `BMWScan140.exe` past its hardware
+check and into its main window, module list and all.
+
+```
+11:18:25.659  CANDIDATE 11 of 11: "BMW Scanner v14x"  (16 byte(s))
+11:18:26.059  FT_ClrDtr      <-- DTR released
+11:18:26.059     re-armed 16 byte(s)
+11:18:26.059  FT_Read(asked 1) -> 1   RX 42
+              ... sixteen single-byte reads ...
+```
+
+It is the same string the software hands `FT_OpenEx` to find the device, and the same one stored in
+the cable's EEPROM and dumped in run 1. **The cable identifies itself by repeating its own
+description back down the wire**, which is why every cleverer guess failed — the real burst,
+`V144Bn9` in four framings, sync bytes. The answer had been in the descriptor the whole time.
+
+### The protocol: two line settings, one byte at a time
+
+Clicking *Car ident* and *Scan!* produced **86 `FT_Write` calls**. The software writes a byte at a
+time, as it reads, and it **switches line settings mid-session**:
+
+| Setting | Bytes |
+|---|---|
+| **19200 8N1** | `4B 0E 28 31 8B E9 43 29 52 F1 7C` |
+| **9600 8E1** | `72 45 E1 4E 42 A2 7A EE 1B 0A 25` |
+| **19200 8N1** | `41 CC 72 31 6E BA 45 E5 88 E5 4B 0E 28 A3 8B E9 43 29 B2 F1 2A` |
+| **9600 8E1** | `72 45 E1 DC 42 A2 7A EE FB 0A 73` |
+
+Full ordered capture in `field-logs/2026-10-28-run20-tx-sequence.txt`.
+
+**9600 8E1 is DS2.** So the 19200 8N1 traffic is the command channel to the µPD78F9234, and the
+9600 8E1 traffic is what is meant for the car — which means the microcontroller can be put into a
+mode where the host drives the bus settings directly. That is the thing this project assumed from
+the start and could never reach: it is reachable, but only after the right 19200 preamble.
+
+Neither stream is plaintext DS2. `4B 0E 28` recurs with a varying fourth byte (`31`, `A3`), and the
+9600 blocks differ in the same positions, so there is structure and almost certainly obfuscation —
+unsurprising in a licensed tool. It does not have to be guessed at, because of the third result.
+
+### The unpacked executable, 8 MB of it
+
+`dumpOwnImage` wrote the main module's committed regions out of its own address space at
+`FT_OpenEx`, by which point the protector had finished unpacking:
+
+```
+dumping the unpacked image: base 00400000, SizeOfImage 8024064
+wrote 4 region(s), 8024064 byte(s) to unpacked.bin
+```
+
+No debugger, no single-stepping, no breakpoints, nothing for the anti-analysis measures to catch —
+the shim is already inside the process and simply copied what was there. `docs/findings.md` recorded
+in the first session that *"static decompilation of this binary is not viable"*, and that was true;
+this is not static.
+
+It is genuinely unpacked: **61 556 printable strings**, including the Delphi RTL markers
+(`SOFTWARE\Borland\Delphi\RTL`, `TInterfacedObject`, `EOutOfMemory`) that were encrypted at ~8.0
+entropy in the file on disk. And the application's own:
+
+| | |
+|---|---|
+| `Hardware is not ready` | `0x269610` |
+| `Hardware faulty` | `0x2D2844` |
+| `BMW Scanner v1.4`, `P.A.Soft` | `0x2C8E34` |
+| `BMWTNR`, `Odometer` | the output schema from the 2009 log |
+
+**And the ECU table, at `0xA3600`** — the thing `Ds2.kt` has been carrying as "deliberately
+unverified candidates" since the beginning:
+
+```
+addresses  00 01 02 10 50 30 31 32 33 34 40 44 64 68 80 81 ...
+modules    EWS LEW A/C SRS IKE LCM PDC AIC ZKE GR2 RAD TEL SZM VID NAV VMGP
+           BMBT MID FID FMBT MFL VTG VTC1 VTC2 RDC DSP SES EHC HKM LRA AHL
+           XENL XENR SPMBT SPMFT SMF
+```
+
+with the DME part-number table (`1740732`, `4380670`, `1744606`, …) at `0xA1850`.
+
+The image is kept at `build/unpacked/unpacked.bin`, out of git for its size.
+
+### What this changes
+
+The protocol no longer has to be guessed from the car. It is in the dump, as code, and the
+transmitted bytes above are a known-good sample to check any reading against. That is the position
+the project was trying to reach by measurement for nineteen runs.
+
 ## Run 18: twenty launches, eleven candidates, and the software still has not said a word
 
 The shim is doing its job. What it reports, searched across the whole log:
