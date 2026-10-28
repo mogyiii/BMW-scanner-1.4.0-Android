@@ -640,6 +640,57 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 24: the command set, and what the mode byte actually selects
+
+Three thin wrappers sit immediately after the frame builder at `0x6cd09c`, and they are identical
+except for one instruction:
+
+```
+0x6cd150:  mov dword ptr [0x00a4cf20], 2      <- then build and send
+0x6cd184:  mov dword ptr [0x00a4cf20], 3
+0x6cd1b8:  mov dword ptr [0x00a4cf20], 1
+```
+
+`0x00a4cf20` is the variable the receive half of `FUN_006ccdd4` switches on to decide where a reply's
+length byte lives. So each wrapper means *send this frame and expect a reply of family N*, and
+**`0x6cd150` is the DS2 one**.
+
+### Counting the call sites gives the command surface
+
+Scanning the image for relative calls to each wrapper, then reading backwards for the `mov ecx,
+imm32` that the Delphi register convention places in the frame's command field:
+
+| Wrapper | Reply framing | Call sites | Distinct commands |
+|---|---|---|---|
+| `0x6cd150` | length at index 1 — **DS2** | **718** | **276** |
+| `0x6cd184` | length at index 3, plus 5 | 107 | 50 |
+| `0x6cd1b8` | length at index 2 | 8 | 8 |
+
+The full list is in `docs/vendor-command-set.txt`, with the parameter values seen at each.
+
+### The method checks out against the capture
+
+This is a heuristic and individual rows may be wrong, so it is worth stating what corroborates it.
+The two commands actually recorded from the running software land in exactly the mode their line
+settings imply, which the scan had no way of knowing:
+
+| Captured | Line setting when sent | Found in |
+|---|---|---|
+| `0x83F0` | **9600 8E1** — the DS2 setting | **mode 2** ✓ |
+| `0x41AA` | 19200 8N1 | **mode 3** ✓ |
+
+`0x83F0` is also the command `FUN_006ccdd4` singles out for a much longer wait, which is what a
+request forwarded to a control module and back needs. Everything points the same way: mode 2 and
+`0x83F0` are the route to the car, and 718 call sites is the size of what the vendor software can
+ask for over it.
+
+### Not yet established
+
+What the sixteen-bit command values mean individually, and what the six-byte payload of the captured
+`0x83F0` frame (`E5 50 47 66 C8 14`) contains. It is not a plain DS2 frame — neither byte pair reads
+as an address and length — so there is a further transform or an envelope between the cable and the
+bus that is still unread.
+
 ## Run 22: the burst is the cable's announcement, and the cable works
 
 **This overturns the central conclusion of this document.** Everything below that calls the cable
