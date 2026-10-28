@@ -154,6 +154,8 @@ class MainActivity : AppCompatActivity() {
                 "handshake2" -> guarded(what) { vendorHandshake(device!!) }
                 "vendorident" -> guarded(what) { vendorIdent(device!!) }
                 "vendorseq" -> guarded(what) { vendorSequence(device!!) }
+                "bustrials" -> guarded(what) { vendorBusTrials(device!!) }
+                "keyhunt" -> guarded(what) { vendorKeyHunt(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -380,12 +382,17 @@ class MainActivity : AppCompatActivity() {
             setPadding(pad, pad, pad, pad)
         }
 
+        // The controls live in their own scroller. There are enough diagnostics now that the rows
+        // overflowed the screen, which both hid the console and left the newest button - always the
+        // one worth pressing - unreachable below the fold.
+        val controls = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
         fun row(vararg children: android.view.View) = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             children.forEach {
                 addView(it, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             }
-            root.addView(this, wide())
+            controls.addView(this, wide())
         }
 
         fun button(text: String, onClick: () -> Unit) = Button(this).apply {
@@ -395,7 +402,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // The one button that matters in the car. Everything below it is for afterwards.
-        root.addView(
+        controls.addView(
             Button(this).apply {
                 text = "???  FULL RUN"
                 textSize = 18f
@@ -405,8 +412,21 @@ class MainActivity : AppCompatActivity() {
             wide(),
         )
 
+        // Whatever experiment is current goes here, big, at the top. The rows further down have
+        // accumulated over twenty-odd diagnostics, and the newest one - the only one worth
+        // pressing - ended up below the fold where it could not be reached at all.
+        controls.addView(
+            Button(this).apply {
+                text = "KEY HUNT  (about 4 min)"
+                textSize = 16f
+                setTypeface(typeface, Typeface.BOLD)
+                setOnClickListener { withCable("keyhunt") { d -> vendorKeyHunt(d) } }
+            },
+            wide(),
+        )
+
         deviceSpinner = Spinner(this)
-        root.addView(deviceSpinner, wide())
+        controls.addView(deviceSpinner, wide())
 
         channelSpinner = Spinner(this).apply {
             adapter = simpleAdapter(listOf("Channel A", "Channel B"))
@@ -426,7 +446,7 @@ class MainActivity : AppCompatActivity() {
 
         row(channelSpinner, paritySpinner, baudInput)
 
-        root.addView(
+        controls.addView(
             TextView(this).apply {
                 text = "Echo is detected automatically; replies are located by resynchronising " +
                     "on the checksum, not by assuming byte alignment."
@@ -442,7 +462,7 @@ class MainActivity : AppCompatActivity() {
             setSingleLine(true)
             typeface = Typeface.MONOSPACE
         }
-        root.addView(hexInput, wide())
+        controls.addView(hexInput, wide())
 
         row(button("Send raw") { sendRaw() },
             button("Send as DS2") { sendDs2() })
@@ -454,7 +474,9 @@ class MainActivity : AppCompatActivity() {
         row(button("VENDOR HANDSHAKE") { withCable("handshake2") { d -> vendorHandshake(d) } },
             button("VENDOR IDENT") { withCable("vendorident") { d -> vendorIdent(d) } })
 
-        row(button("VENDOR SEQUENCE  <-- next") { withCable("vendorseq") { d -> vendorSequence(d) } })
+        row(button("VENDOR SEQUENCE") { withCable("vendorseq") { d -> vendorSequence(d) } },
+            button("BUS TRIALS") { withCable("bustrials") { d -> vendorBusTrials(d) } })
+
 
         row(button("LATE-REPLY HUNT") { withCable("latehunt") { d -> mcuHunt(d) } })
 
@@ -484,9 +506,14 @@ class MainActivity : AppCompatActivity() {
             setPadding(pad, pad, pad, pad)
         }
         logScroll = ScrollView(this).apply { addView(logView) }
+
+        root.addView(
+            ScrollView(this).apply { addView(controls) },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+        )
         root.addView(
             logScroll,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 2f),
         )
 
         return root
@@ -2113,6 +2140,277 @@ class MainActivity : AppCompatActivity() {
         log("=== end vendor sequence ===")
     }
 
+    /**
+     * Describes a reply, and in particular says whether it is merely our own transmission coming
+     * back.
+     *
+     * Added because run 26 showed that it can be. The cable loops our bytes back to us, and a
+     * loopback read as a reply is how this project spent weeks explaining a `0xC4`-prefixed echo of
+     * its own traffic as a circuit transient. Every reply gets checked against what was sent now.
+     */
+    private fun describeReply(wire: ByteArray, raw: ByteArray, sentCmd: Int, sentParam: Int) {
+        val at = indexOfBytes(raw, wire)
+        if (at >= 0) {
+            log("      LOOPBACK - our own ${wire.size} transmitted bytes appear at offset $at")
+            if (at + wire.size == raw.size && at == 0) {
+                log("      and nothing else came back, so this carries no information from the car")
+                return
+            }
+        }
+
+        val p = VendorProtocol.parseReply(raw, sentCmd, sentParam)
+        if (p == null) { log("      too short to split"); return }
+        log("      echo    0x%04X / 0x%02X%s".format(
+            p.command, p.parameter, if (p.echoMatches) "   ours" else "   NOT ours"))
+        log("      body    ${Ds2.hex(p.body)}  (${p.body.size} byte(s))")
+        when (p.sentinel) {
+            VendorProtocol.Sentinel.SEVEN_A -> log("      body is the 77 07 sentinel")
+            VendorProtocol.Sentinel.SEVEN_B -> log("      body is the 7A 07 sentinel (abort)")
+            else -> {
+                val f = Ds2.findFrame(p.body, 0, null)
+                if (f != null) {
+                    log("      contains a valid DS2 frame at offset ${f.offset}: " +
+                        "${Ds2.hex(f.frame)}  address 0x%02X".format(f.frame[0]))
+                } else {
+                    log("      no sentinel and no valid DS2 frame in it")
+                }
+            }
+        }
+    }
+
+    /** Where [needle] starts inside [haystack], or -1. */
+    private fun indexOfBytes(haystack: ByteArray, needle: ByteArray): Int {
+        if (needle.isEmpty() || needle.size > haystack.size) return -1
+        outer@ for (i in 0..haystack.size - needle.size) {
+            for (j in needle.indices) if (haystack[i + j] != needle[j]) continue@outer
+            return i
+        }
+        return -1
+    }
+
+    /**
+     * Sends the recorded `0x83F0` frame several ways, each from a completely fresh handshake.
+     *
+     * Run 26 taught two things that make this the right shape of experiment.
+     *
+     * **One: the microcontroller link runs at 19200 8N1 and dropping to 9600 8E1 breaks it.** The
+     * ident frame worked at 19200, the bus frames at 9600 returned mangled echoes, and then the
+     * *same* ident frame that had just worked came back as a loopback. Setting 9600 8E1 does not
+     * change the car's bus rate — there is a microcontroller in between, and that setting changes
+     * the rate we speak to *it*. So the frames are replayed here at the rate the cable demonstrably
+     * speaks, and the captured line setting is treated as what it is: a capture taken against a
+     * shim with no cable present, which may well have sent the software down a path it only takes
+     * when the hardware fails to answer. The frames came from the cable's own software and stand;
+     * the line setting around them does not.
+     *
+     * **Two: state carries over, so trials must not share it.** Each trial below re-opens the
+     * device and re-does the handshake, because run 26's steps 4 to 6 measured nothing except the
+     * damage done by steps 2 and 3.
+     */
+    private fun vendorBusTrials(device: UsbDevice) {
+        log("=== VENDOR BUS TRIALS ===")
+        log("The recorded 0x83F0 frame, several ways, each from its own fresh handshake.")
+        log("At 19200 8N1 - the rate the cable answered at in run 26 - not the captured 9600 8E1,")
+        log("which run 26 showed breaks the link to the cable's own microcontroller.")
+        log("")
+
+        val busA = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0xC8.toByte(), 0x14)
+        val busB = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+
+        data class Trial(
+            val label: String,
+            val preIdent: Boolean,
+            val parameter: Int,
+            val payload: ByteArray,
+            val literalKey: Boolean = false,
+        )
+
+        val trials = listOf(
+            Trial("bus 0x12, first frame after the handshake", false, 0x12, busA),
+            Trial("bus 0x12, after an ident frame (key chained)", true, 0x12, busA),
+            Trial("bus 0x80, after an ident frame (key chained)", true, 0x80, busB),
+            Trial("bus 0x12, literal key 0x7B, first frame", false, 0x12, busA, literalKey = true),
+        )
+
+        for ((n, t) in trials.withIndex()) {
+            if (stopRequested) { log("stopped"); return }
+            log("  trial %d - %s".format(n + 1, t.label))
+
+            var dev: FtdiDevice? = null
+            try {
+                dev = FtdiDevice.open(usbManager, device, 0)
+                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(100)
+                dev.setModemControl(dtr = false, rts = null)
+
+                val hs = VendorHandshake.decode(dev.readBytes(VendorHandshake.LENGTH, 1500))
+                if (hs == null) { log("    handshake failed, skipping this trial"); log(""); continue }
+                var key = hs.key
+                log("    handshake ok: \"${hs.identity}\", key 0x%02X".format(key))
+
+                if (t.preIdent) {
+                    val f = VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12)
+                    val (w, next) = VendorProtocol.scramble(f, key)
+                    dev.write(w)
+                    key = next
+                    val r = dev.readTimed(800).flatMap { it.second.asIterable() }.toByteArray()
+                    log("    ident   ${Ds2.hex(w)} -> ${if (r.isEmpty()) "no reply" else Ds2.hex(r)}")
+                    log("    key now 0x%02X".format(key))
+                }
+
+                val used = if (t.literalKey) VendorProtocol.BUS_KEY_OBSERVED else key
+                val frame = VendorProtocol.buildFrame(VendorProtocol.Command.BUS, t.parameter, t.payload)
+                val (wire, _) = VendorProtocol.scramble(frame, used)
+                log("    frame   ${Ds2.hex(frame)}")
+                log("    wire    ${Ds2.hex(wire)}   key 0x%02X".format(used))
+
+                dev.write(wire)
+                val batches = dev.readTimed(2000)
+                val raw = batches.flatMap { it.second.asIterable() }.toByteArray()
+                if (raw.isEmpty()) {
+                    log("    reply   none in 2 s")
+                } else {
+                    log("    reply   ${Ds2.hex(raw)}  (${raw.size} byte(s), first at " +
+                        "${batches.first().first} ms)")
+                    describeReply(wire, raw, VendorProtocol.Command.BUS, t.parameter)
+                }
+            } catch (e: Throwable) {
+                log("    trial failed: ${e.javaClass.simpleName}: ${e.message}")
+            } finally {
+                runCatching { dev?.close() }
+            }
+            log("")
+            Thread.sleep(300)
+        }
+        log("=== end bus trials ===")
+    }
+
+    /**
+     * Finds, by measurement, the key the cable expects on a *second* frame.
+     *
+     * The blocker after run 27 is that only the first frame of a session is ever understood. The
+     * ident frame works as frame one and returns `41 AA 12 77 07 77 07 77 07 70`; the very same
+     * frame as frame two returns `65 3D 02` followed by a loopback of our own bytes. So the cable's
+     * key does not advance the way ours does, and until that is known nothing beyond one frame per
+     * handshake can be sent.
+     *
+     * Reading it out of the executable did not settle it. `FUN_006ce388` stores the announcement
+     * into `DAT_0098289c` and uses its first byte as the key, `FUN_006ccdd4` adds `0x4B` per
+     * transmitted byte, and **nothing in either resets it per frame** — which predicts that frame
+     * two should work at `0x12`, and it does not. Something outside those two functions moves the
+     * key, or the microcontroller counts differently from the host.
+     *
+     * Rather than guess which, this measures it. The ident frame is a known-good probe whose
+     * correct answer we can recognise, so it is sent as frame two under every one of the 256
+     * possible keys, and the ones that get a real answer are the answer. Each attempt gets a fresh
+     * DTR pulse and handshake, because run 26 established that a misunderstood frame leaves the
+     * cable echoing and a contaminated attempt measures nothing.
+     *
+     * Only the recorded ident frame is ever sent. The sweep is over the key, not over commands —
+     * sweeping unknown *commands* at a car's bus is a different and much less careful thing, and
+     * this deliberately is not that.
+     */
+    private fun vendorKeyHunt(device: UsbDevice, from: Int = 0, to: Int = 255) {
+        log("=== SECOND-FRAME KEY HUNT ===")
+        log("Sends the known-good ident frame as the SECOND frame under each candidate key,")
+        log("with a fresh handshake before every attempt. Only that one recorded frame is sent.")
+        log("Candidates 0x%02X..0x%02X".format(from, to))
+        log("")
+
+        val identFrame = VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12)
+        val hits = mutableListOf<Triple<Int, Int, ByteArray>>()
+        var handshakeFailures = 0
+        var firstFrameFailures = 0
+        var attempts = 0
+        val started = System.currentTimeMillis()
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            for (candidate in from..to) {
+                if (stopRequested) { log("stopped at 0x%02X".format(candidate)); break }
+                attempts++
+
+                // Fresh handshake. This is what puts the cable's key back to a known state.
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(60)
+                dev.setModemControl(dtr = false, rts = null)
+                val hs = VendorHandshake.decode(dev.readBytes(VendorHandshake.LENGTH, 900))
+                if (hs == null) { handshakeFailures++; continue }
+
+                // Frame one at the announcement key, which run 27 showed is always understood.
+                // Its reply also tells us the attempt is sound before the candidate is tried.
+                val (w1, _) = VendorProtocol.scramble(identFrame, hs.key)
+                dev.write(w1)
+                val r1 = dev.readTimed(350).flatMap { it.second.asIterable() }.toByteArray()
+                if (!looksLikeRealReply(w1, r1)) { firstFrameFailures++; continue }
+
+                // Frame two at the candidate.
+                val (w2, _) = VendorProtocol.scramble(identFrame, candidate)
+                dev.write(w2)
+                val r2 = dev.readTimed(350).flatMap { it.second.asIterable() }.toByteArray()
+                if (looksLikeRealReply(w2, r2)) {
+                    hits += Triple(candidate, r2.size, r2)
+                    log("  HIT  key 0x%02X -> ${Ds2.hex(r2)}".format(candidate))
+                }
+
+                // Progress, with a remaining estimate: this takes minutes and a run with no visible
+                // end is a run the owner cannot tell from a hung one.
+                if (candidate % 16 == 15) {
+                    val elapsed = System.currentTimeMillis() - started
+                    val left = (to - candidate) * elapsed / attempts.coerceAtLeast(1) / 1000
+                    log("  ...through 0x%02X, %d hit(s), about %d s left"
+                        .format(candidate, hits.size, left))
+                }
+            }
+        } catch (e: Throwable) {
+            log("  hunt failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+
+        log("")
+        log("  attempts            $attempts")
+        log("  handshake failures  $handshakeFailures")
+        log("  frame-one failures  $firstFrameFailures  (attempt discarded, measures nothing)")
+        log("  hits                ${hits.size}")
+        if (hits.isEmpty()) {
+            log("")
+            log("  No key makes a second frame work. That is itself a result: the cable takes one")
+            log("  frame per handshake and the key is not what gates the second one.")
+        } else {
+            log("")
+            for ((k, _, r) in hits) log("  0x%02X  ${Ds2.hex(r)}".format(k))
+            val sound = hits.size <= 4
+            log("")
+            log(if (sound) "  Few enough hits to be real. Compare against the announcement key."
+                else "  Many hits - suspect the test accepts too much, not that many keys work.")
+        }
+        log("=== end key hunt ===")
+    }
+
+    /**
+     * Whether [raw] is a genuine reply to [wire] rather than our own bytes coming back.
+     *
+     * Deliberately strict. It requires the cable's `XX 07` reply frame to be present, because that
+     * is the one thing only a cable that parsed the request produces, and it rejects anything
+     * containing our transmitted bytes. A loose test over 256 candidates would manufacture hits.
+     */
+    private fun looksLikeRealReply(wire: ByteArray, raw: ByteArray): Boolean {
+        if (raw.size < 5) return false
+        if (indexOfBytes(raw, wire) >= 0) return false
+        for (i in 0 until raw.size - 1) {
+            val a = raw[i].toInt() and 0xFF
+            if ((a == 0x77 || a == 0x7A) && (raw[i + 1].toInt() and 0xFF) == 0x07) return true
+        }
+        return false
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -2908,5 +3206,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.26-probe"
+    const val NAME = "0.30-probe"
 }

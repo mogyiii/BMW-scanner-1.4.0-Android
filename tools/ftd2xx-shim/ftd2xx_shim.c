@@ -281,71 +281,131 @@ static DWORD nextCandidateIndex(void)
  */
 #define SWEEP_REPEATS 64
 
+/*
+ * The real cable's announcement, 27 bytes, exactly as it came off the wire on the car.
+ *
+ * Recorded 2026-10-28 (field-logs/2026-10-28-run23-handshake-complete-on-car.log). XOR of all 27
+ * is zero, byte 0 is the scrambling key, and bytes 1..7 decode to "V144Bn9" - the same identity the
+ * manufacturer's own shipped session log prints. This replaces the "BMW Scanner v14x" guess that
+ * earlier runs used: that string got the software to its main window, but it is not what the cable
+ * says, so everything the software built afterwards was built on a fiction.
+ */
+static const BYTE g_announce[27] = {
+    0x9B, 0xCD, 0xAA, 0xAF, 0xAF, 0xD9, 0xF5, 0xA2, 0x9B, 0x17, 0x28, 0xFE, 0x72, 0xD1,
+    0x17, 0x4C, 0x5E, 0x80, 0x38, 0x09, 0xED, 0x2E, 0xB5, 0xCF, 0xAA, 0x07, 0x2B
+};
+
+/* Scrambling key, tracked exactly as FUN_006ccdd4 does: announcement byte 0, plus 0x4B per
+ * transmitted byte, never reset between frames. Tracking it here is what makes the log show
+ * plaintext commands instead of hex that has to be brute-forced afterwards. */
+static BYTE g_key = 0x9B;
+
+/*
+ * Replies the real cable was observed giving, and one substitute.
+ *
+ * The distinction matters and is kept visible in the log. Two of these are evidence: the cable gave
+ * them, on the car, to those exact requests. The third is a **substitute** - the `77 07` reply,
+ * reused for requests whose real answer nobody has measured yet.
+ *
+ * Why substitute anything at all: `77 07` is the one reply FUN_006ccdd4 treats as a benign
+ * non-event and simply returns from, whereas `7A 07` raises its abort flag and `0x83F0`'s own
+ * failure path tears the session down. Feeding the benign one to unknown requests keeps the
+ * software running and emitting further commands, and **the commands it emits are the evidence
+ * being collected here.** Its replies are a fixture; nothing downstream of them may be treated as
+ * the cable's behaviour. Anything logged as SUBSTITUTED is a request to go and ask the real cable.
+ */
+static const BYTE reply_ident[] = { 0x41, 0xAA, 0x12, 0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70 };
+static const BYTE reply_nothing[] = { 0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70 };
+
+static void queueReply(const BYTE *data, DWORD len, const char *what)
+{
+    DWORD i;
+    if (len > sizeof(g_rx)) len = sizeof(g_rx);
+    for (i = 0; i < len; i++) g_rx[i] = data[i];
+    g_rxLen = len;
+    g_rxPos = 0;
+    shimLog("   queued %s (%u byte(s))", what, len);
+}
+
 static void loadCandidate(void)
 {
     DWORD i;
 
     if (g_rxLen > 0) {
-        shimLog("ftd2xx-rx.hex has %u byte(s), so it wins over the built-in candidates", g_rxLen);
+        shimLog("ftd2xx-rx.hex has %u byte(s), so it wins over the built-in answer", g_rxLen);
         return;
     }
-    /*
-     * The search is over. Candidate 11 was accepted: answering the DTR pulse with the ASCII string
-     * "BMW Scanner v14x" gets the software past its hardware check and all the way to its main
-     * window, module list and all. It is the same string it passes to FT_OpenEx to find the device,
-     * and the same one stored in the cable's EEPROM - the cable identifies itself by repeating its
-     * own description back down the wire.
-     *
-     * So that is now the fixed answer rather than one guess among many. Rotating candidates would
-     * mean ten runs out of eleven failing the check for no reason, when what is wanted from here on
-     * is a session that gets far enough to send commands.
-     */
-    for (i = 0; i < sizeof(cand_desc); i++) g_rx[i] = cand_desc[i];
-    g_rxLen = sizeof(cand_desc);
+    for (i = 0; i < sizeof(g_announce); i++) g_rx[i] = g_announce[i];
+    g_rxLen = sizeof(g_announce);
     g_rxPos = 0;
-    shimLog("SIGN-ON: answering with \"BMW Scanner v14x\" (%u bytes) - the accepted one", g_rxLen);
-    return;
-
-    /* Kept below, unreachable, because the candidate machinery is how the answer was found and
-     * will be wanted again if the software ever asks for something different. */
-    g_candIndex = nextCandidateIndex();
-    g_rxPos = 0;
-
-    if (g_candIndex < CANDIDATE_COUNT) {
-        const Candidate *c = &g_candidates[g_candIndex];
-        for (i = 0; i < c->len && i < sizeof(g_rx); i++) g_rx[i] = c->data[i];
-        g_rxLen = c->len;
-        shimLog("CANDIDATE %u of %u: %s  (%u byte(s))",
-                g_candIndex + 1, (DWORD)CANDIDATE_COUNT, c->name, c->len);
-        if (c->len) logBytes("will answer with", g_rx, g_rxLen);
-    } else {
-        /* Past the named guesses, sweep the first byte through every value it could be. */
-        BYTE value = (BYTE)((g_candIndex - CANDIDATE_COUNT) & 0xFF);
-        for (i = 0; i < SWEEP_REPEATS; i++) g_rx[i] = value;
-        g_rxLen = SWEEP_REPEATS;
-        shimLog("SWEEP: first byte 0x%02X, %u copies queued", value, (DWORD)SWEEP_REPEATS);
-    }
-    shimLog("close the program and start it again to try the next one");
+    g_key = g_announce[0];
+    shimLog("SIGN-ON: the real cable's 27-byte announcement, identity \"V144Bn9\", key 0x%02X",
+            g_key);
 }
 
 /*
- * Re-arms the queued announcement when DTR is released.
+ * Re-arms the announcement when DTR is released, and puts the key back with it.
  *
- * Without this every candidate looks like the baseline, and the first attempt did. The software
- * purges the receive buffer *before* pulsing DTR, and FT_Purge below honours that by dropping
- * whatever is queued - which is what a real chip does, and costs nothing on real hardware because
- * the cable has not spoken yet. The announcement arrives *after* the pulse. Loading the candidate
- * at DLL load time put it on the wrong side of that purge, so it was thrown away every time and
- * all eleven candidates would have produced identical logs.
- *
- * Re-arming on DTR release models the cable correctly: it answers once the pulse has been given.
+ * The software purges before pulsing DTR, so an announcement queued at load time is thrown away;
+ * the cable's arrives *after* the pulse. Re-arming here models that. The key reset belongs here
+ * too, because FUN_006ce388 rewrites it from the announcement it has just read.
  */
 static void rearmCandidate(void)
 {
-    if (g_rxLen == 0) return;
+    DWORD i;
+    for (i = 0; i < sizeof(g_announce); i++) g_rx[i] = g_announce[i];
+    g_rxLen = sizeof(g_announce);
     g_rxPos = 0;
-    shimLog("   re-armed %u byte(s), as the cable would answer after the pulse", g_rxLen);
+    g_key = g_announce[0];
+    shimLog("   re-armed the announcement, key back to 0x%02X", g_key);
 }
+
+/*
+ * Descrambles one outgoing frame, logs it in plaintext, and queues whatever the cable would answer.
+ *
+ * This is the whole point of the rewrite. Previously a write appeared in the log as raw scrambled
+ * hex and had to be brute-forced afterwards one frame at a time; with the key tracked, the command,
+ * parameter and payload are readable as they happen, and a frame whose length byte and checksum
+ * both come out right is proof the key is still in step.
+ */
+static void handleFrame(const BYTE *wire, DWORD count)
+{
+    BYTE plain[256];
+    DWORD i, sum = 0;
+    BYTE k = g_key;
+    int okLen, okSum;
+    unsigned cmd;
+
+    if (count == 0 || count > sizeof(plain)) return;
+    for (i = 0; i < count; i++) { plain[i] = (BYTE)(wire[i] ^ k); k = (BYTE)(k + 0x4B); }
+    g_key = k;
+
+    for (i = 0; i + 1 < count; i++) sum = (sum + plain[i]) & 0xFF;
+    okLen = (plain[0] == (BYTE)(count - 2));
+    okSum = (count >= 2 && sum == plain[count - 1]);
+
+    logBytes("   plaintext", plain, count);
+    if (!okLen || !okSum) {
+        shimLog("   NOT A FRAME at key 0x%02X (len %s, checksum %s) - the key has slipped",
+                (BYTE)(g_key - (BYTE)(0x4B * count)),
+                okLen ? "ok" : "wrong", okSum ? "ok" : "wrong");
+        return;
+    }
+
+    cmd = ((unsigned)plain[1] << 8) | plain[2];
+    shimLog("   COMMAND 0x%04X  parameter 0x%02X  payload %u byte(s)",
+            cmd, plain[3], count - 5);
+
+    if (cmd == 0x41AA && plain[3] == 0x12) {
+        queueReply(reply_ident, sizeof(reply_ident), "the cable's recorded ident reply [MEASURED]");
+    } else {
+        shimLog("   SUBSTITUTED reply - nobody has asked the real cable this. Try it on the car:");
+        shimLog("   >>> command 0x%04X parameter 0x%02X", cmd, plain[3]);
+        if (count > 5) logBytes("   >>> payload", plain + 4, count - 5);
+        queueReply(reply_nothing, sizeof(reply_nothing), "the 77 07 non-event [SUBSTITUTED]");
+    }
+}
+
 
 /* ------------------------------------------------------------------ memory dump */
 
@@ -657,7 +717,10 @@ FT_STATUS WINAPI FT_Write(FT_HANDLE h, LPVOID buffer, DWORD count, LPDWORD writt
     shimLog("FT_Write(%u byte(s))  [%u baud, %u%c%u]", count, g_baud, g_bits,
          g_parity == 0 ? 'N' : (g_parity == 1 ? 'O' : (g_parity == 2 ? 'E' : '?')),
          g_stop == 0 ? 1 : 2);
-    if (buffer && count) logBytes("TX", (const BYTE *)buffer, count);
+    if (buffer && count) {
+        logBytes("TX", (const BYTE *)buffer, count);
+        handleFrame((const BYTE *)buffer, count);
+    }
     if (written) *written = count;
     return FT_OK;
 }

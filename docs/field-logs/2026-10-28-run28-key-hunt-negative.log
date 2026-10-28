@@ -1,0 +1,35 @@
+20:05:22.171  BMW DS2 Probe 0.30-probe
+20:05:22.181  Looking for the cable: VID 0x0333 / PID 0x0137
+
+20:05:22.188  USB rescan: 1 device(s)
+20:05:22.190    /dev/bus/usb/001/002  0333:0137
+20:06:50.810  === SECOND-FRAME KEY HUNT ===
+20:06:50.811  Sends the known-good ident frame as the SECOND frame under each candidate key,
+20:06:50.811  with a fresh handshake before every attempt. Only that one recorded frame is sent.
+20:06:50.811  Candidates 0x00..0xFF
+
+20:07:05.378    ...through 0x0F, 0 hit(s), about 218 s left
+20:07:19.931    ...through 0x1F, 0 hit(s), about 203 s left
+20:07:34.483    ...through 0x2F, 0 hit(s), about 189 s left
+20:07:49.042    ...through 0x3F, 0 hit(s), about 174 s left
+20:08:03.597    ...through 0x4F, 0 hit(s), about 160 s left
+20:08:18.146    ...through 0x5F, 0 hit(s), about 145 s left
+20:08:32.694    ...through 0x6F, 0 hit(s), about 130 s left
+20:08:47.251    ...through 0x7F, 0 hit(s), about 116 s left
+20:09:01.810    ...through 0x8F, 0 hit(s), about 101 s left
+20:09:16.364    ...through 0x9F, 0 hit(s), about 87 s left
+20:09:30.915    ...through 0xAF, 0 hit(s), about 72 s left
+20:09:45.469    ...through 0xBF, 0 hit(s), about 58 s left
+20:10:00.010    ...through 0xCF, 0 hit(s), about 43 s left
+20:10:14.553    ...through 0xDF, 0 hit(s), about 29 s left
+20:10:29.098    ...through 0xEF, 0 hit(s), about 14 s left
+20:10:43.644    ...through 0xFF, 0 hit(s), about 0 s left
+
+20:10:43.651    attempts            256
+20:10:43.653    handshake failures  0
+20:10:43.654    frame-one failures  0  (attempt discarded, measures nothing)
+20:10:43.656    hits                0
+
+20:10:43.657    No key makes a second frame work. That is itself a result: the cable takes one
+20:10:43.658    frame per handshake and the key is not what gates the second one.
+20:10:43.659  === end key hunt ===

@@ -1,0 +1,66 @@
+19:43:50.570  BMW DS2 Probe 0.26-probe
+19:43:50.581  Looking for the cable: VID 0x0333 / PID 0x0137
+
+19:43:50.588  USB rescan: 1 device(s)
+19:43:50.590    /dev/bus/usb/001/002  0333:0137
+19:43:55.096  === VENDOR SEQUENCE (replayed) ===
+19:43:55.097  The captured exchange, in order, at the line settings it was captured at.
+19:43:55.097  Every frame below came out of the vendor software; none is invented.
+
+19:43:55.364    handshake ok: "V144Bn9", key 0x9B
+19:43:55.366    bus key candidates: 0xD4 (offset 11 from our announcement) and 0x7B (literal)
+
+19:43:55.371    step 1 - ident   [19200 8N1]
+19:43:55.373      frame   03 41 AA 12 00
+19:43:55.374      wire    98 A7 9B 6E C7   key 0x9B -> 0x12
+19:43:56.876      reply   41 AA 12 77 07 77 07 77 07 70  (10 byte(s), first at 5 ms)
+19:43:56.887      echo    0x41AA / 0x12   ours
+19:43:56.888      body    77 07 77 07 77 07 70  (7 byte(s))
+19:43:56.888      body is the 77 07 sentinel
+
+19:43:56.892    step 2 - bus 0x12, derived key   [9600 8E1]
+19:43:56.894      frame   09 83 F0 12 E5 50 47 66 C8 14 4C
+19:43:56.895      wire    DD 9C 9A A7 E5 1B D1 87 E4 63 8E   key 0xD4, fixed
+19:43:58.396      reply   C4 D0 C4 48 EF 5A 0A 9D B9 4C FC  (11 byte(s), first at 2 ms)
+19:43:58.399      echo    0xC4D0 / 0xC4   NOT ours
+19:43:58.402      body    48 EF 5A 0A 9D B9 4C FC  (8 byte(s))
+19:43:58.402      NO SENTINEL - this is the first body that is not a fixed non-event
+19:43:58.402      no valid DS2 frame in it; the raw bytes are the finding
+
+19:43:58.410    step 3 - bus 0x12, literal key   [9600 8E1]
+19:43:58.410      frame   09 83 F0 12 E5 50 47 66 C8 14 4C
+19:43:58.411      wire    72 45 E1 4E 42 A2 7A EE 1B 0A 25   key 0x7B, fixed
+19:43:59.915      reply   C4 48 2A A1 29 29 D4 67 48 A8 FF  (11 byte(s), first at 103 ms)
+19:43:59.918      echo    0xC448 / 0x2A   NOT ours
+19:43:59.921      body    A1 29 29 D4 67 48 A8 FF  (8 byte(s))
+19:43:59.922      NO SENTINEL - this is the first body that is not a fixed non-event
+19:43:59.923      no valid DS2 frame in it; the raw bytes are the finding
+
+19:43:59.927    step 4 - ident again   [19200 8N1]
+19:43:59.928      frame   03 41 AA 12 00
+19:43:59.929      wire    11 1C 02 E1 3E   key 0x12 -> 0x89
+19:44:01.431      reply   65 3D 02 11 1C 02 E1 3E  (8 byte(s), first at 93 ms)
+19:44:01.433      echo    0x653D / 0x02   NOT ours
+19:44:01.436      body    11 1C 02 E1 3E  (5 byte(s))
+19:44:01.437      NO SENTINEL - this is the first body that is not a fixed non-event
+19:44:01.438      no valid DS2 frame in it; the raw bytes are the finding
+
+19:44:01.443    step 5 - bus 0x80, derived key   [9600 8E1]
+19:44:01.445      frame   09 83 F0 80 E5 50 47 66 28 14 1A
+19:44:01.447      wire    DD 9C 9A 35 E5 1B D1 87 04 63 D8   key 0xD4, fixed
+19:44:02.950      reply   C4 A8 8B 4B 55 92 A1 AD 02 43 FB  (11 byte(s), first at 103 ms)
+19:44:02.951      echo    0xC4A8 / 0x8B   NOT ours
+19:44:02.952      body    4B 55 92 A1 AD 02 43 FB  (8 byte(s))
+19:44:02.953      NO SENTINEL - this is the first body that is not a fixed non-event
+19:44:02.954      no valid DS2 frame in it; the raw bytes are the finding
+
+19:44:02.958    step 6 - bus 0x80, literal key   [9600 8E1]
+19:44:02.960      frame   09 83 F0 80 E5 50 47 66 28 14 1A
+19:44:02.961      wire    72 45 E1 DC 42 A2 7A EE FB 0A 73   key 0x7B, fixed
+19:44:04.464      reply   C4 48 2A A1 3D 29 D4 67 0A EB  (10 byte(s), first at 103 ms)
+19:44:04.467      echo    0xC448 / 0x2A   NOT ours
+19:44:04.470      body    A1 3D 29 D4 67 0A EB  (7 byte(s))
+19:44:04.471      NO SENTINEL - this is the first body that is not a fixed non-event
+19:44:04.473      no valid DS2 frame in it; the raw bytes are the finding
+
+19:44:04.476  === end vendor sequence ===

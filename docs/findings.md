@@ -640,6 +640,106 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 28: one frame per handshake, and the driver folder is a dead end
+
+2026-10-28, on the car, plus a question from the owner that closed off a loose end.
+
+### The second-frame key hunt returns nothing, and that is the answer
+
+Run 27 left the project unable to send more than one frame: the ident frame worked as frame one and
+returned `41 AA 12 77 07 77 07 77 07 70`, and the *same frame* as frame two returned `65 3D 02`
+followed by a loopback of our own bytes. Reading the executable did not resolve it — `FUN_006ce388`
+sets the key from the announcement, `FUN_006ccdd4` adds `0x4B` per transmitted byte, and nothing in
+either resets it, which predicts frame two should work at `0x12`. It does not.
+
+So it was measured instead. The known-good ident frame was sent as frame two under all 256 possible
+keys, each attempt preceded by a fresh DTR pulse and handshake.
+(`field-logs/2026-10-28-run28-key-hunt-negative.log`)
+
+```
+attempts            256
+handshake failures  0
+frame-one failures  0
+hits                0
+```
+
+The handshake succeeded 256 times out of 256 and frame one was understood 256 times out of 256, so
+the rig was sound throughout; no key makes frame two work. **The cable accepts one command per
+handshake.** The key is not what gates the second one, and the key question raised in run 26 is
+therefore moot rather than answered.
+
+This is a working constraint, not a defect: a command costs one DTR pulse and about 300 ms, which is
+ample for reading fault codes and live values.
+
+### The shipped driver folder contains no protocol
+
+The owner asked whether the `Drivers/` folder had been examined, since tutorials point at it for
+driver installation. It had not been, beyond using its DLL as an interface template. It contains
+nothing of ours:
+
+| file | what it is |
+|---|---|
+| `FTD2XX.DLL` | stock FTDI D2XX, 81,920 bytes, the same 73 `FT_*` entry points the shim mirrors |
+| `FTD2XX.SYS` | stock FTDI kernel driver, 34,639 bytes |
+| `FTD2XX.INF` | stock FTDI INF, `DriverVer 12/01/2005` |
+
+Scanned for `bmw`, `pasoft`, `scanner`, `kline`, `ds2`: **no matches in either binary.** The only
+vendor content in the whole folder is display text in the INF — `"BMW Scanner"`,
+`"BMW Scanner Channel A"`, `"BMW Scanner Channel B"` — and the `0333:0137` binding. The cable's
+knowledge lives in its microcontroller and in `BMWScan140.exe`, nowhere else in the package.
+
+## Run 27: the bus command is understood, and refused
+
+2026-10-28, on the car. The recorded `0x83F0` frame, four ways, each from a fresh handshake, at
+19200 8N1 rather than the captured 9600 8E1.
+(`field-logs/2026-10-28-run27-bus-command-aborts.log`)
+
+As the first frame of a session, with the key from the cable's own announcement:
+
+```
+sent   09 83 F0 12 E5 50 47 66 C8 14 4C      (wire 92 65 C1 6E 22 42 1A CE 3B 2A C5, key 0x9B)
+reply  83 | 7A 07 7A 07 7A 07 7D
+```
+
+**The cable parsed the command and refused it.** `FUN_006ccdd4` treats a reply opening `7A 07` as
+the abort case and raises `DAT_00a1cb50`; `77 07` is the benign one it simply returns from. So the
+ident frame's `77 07` means "nothing to say" and the bus frame's `7A 07` means the request went no
+further.
+
+Both sentinel blocks are **structurally valid DS2 frames** — `[addr][len=7][data][XOR]`, checksum
+correct:
+
+```
+77 07 77 07 77 07 70     XOR of the first six = 0x70
+7A 07 7A 07 7A 07 7D     XOR of the first six = 0x7D
+```
+
+Two corrections fall out of this run.
+
+**The `0x7B` key from run 26 is wrong for this cable.** Trial 1 used `0x9B`, derived from our own
+cable's announcement, and got a clean answer; trial 4 used the literal `0x7B` from the capture and
+got nothing parseable. The key comes from the announcement. Run 26's three competing readings
+collapse to the one that scales with it.
+
+**Run 21's claim that `0x83F0` gets "a much longer wait" was wrong about the mechanism.**
+`FUN_006c97e8` is not a line wait. It calls through `DAT_00a4cef8`/`DAT_00a4cefc`, loads resource
+string `0x93`, and calls into the display layer: it is a **progress-and-cancel dialog**. The
+operation is indeed long, but nothing in that function waits on the serial line, and describing it
+as a timeout misled the design of two later experiments.
+
+### A caveat on the recorded payload
+
+The six payload bytes `E5 50 47 66 C8 14` should not be assumed meaningful. The run-20 capture that
+produced them was taken against the shim with **no cable and no car**, so the software had no module
+list, no identification and no session of any kind when it built that frame. The command code and
+the frame layout are confirmed — the cable's `7A 07` proves it parsed them — but the payload may be
+a default or uninitialised buffer. Replaying it further would be measuring a fiction.
+
+That caveat is what motivated the shim rewrite: see `tools/ftd2xx-shim/ftd2xx_shim.c`, which now
+answers with the real cable's recorded 27-byte announcement instead of the `"BMW Scanner v14x"`
+guess, tracks the scrambling key so writes are logged as plaintext commands, and labels every reply
+it serves as MEASURED or SUBSTITUTED so nothing downstream of a fixture gets mistaken for evidence.
+
 ## Run 26: the bus command is on a different key stream
 
 2026-10-28, at the desk. A correction to run 24 found by brute-forcing the second recorded `0x83F0`
