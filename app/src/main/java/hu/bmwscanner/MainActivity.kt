@@ -31,6 +31,7 @@ import androidx.core.view.WindowInsetsCompat
 import hu.bmwscanner.ds2.Ds2
 import hu.bmwscanner.ds2.Ds2Link
 import hu.bmwscanner.ds2.VendorHandshake
+import hu.bmwscanner.ds2.VendorProtocol
 import hu.bmwscanner.usb.FtdiDevice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -151,6 +152,7 @@ class MainActivity : AppCompatActivity() {
                 "cbusverify" -> guarded(what) { cbusVerify(device!!) }
                 "vendorinit" -> guarded(what) { vendorInit(device!!) }
                 "handshake2" -> guarded(what) { vendorHandshake(device!!) }
+                "vendorident" -> guarded(what) { vendorIdent(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -448,7 +450,8 @@ class MainActivity : AppCompatActivity() {
         row(button("RADIO BEACON") { withCable("beacon") { d -> radioBeacon(d) } },
             button("BURST CAPTURE") { withCable("burst") { d -> burstCapture(d) } })
 
-        row(button("VENDOR HANDSHAKE  <-- do this one") { withCable("handshake2") { d -> vendorHandshake(d) } })
+        row(button("VENDOR HANDSHAKE") { withCable("handshake2") { d -> vendorHandshake(d) } },
+            button("VENDOR IDENT  <-- next") { withCable("vendorident") { d -> vendorIdent(d) } })
 
         row(button("LATE-REPLY HUNT") { withCable("latehunt") { d -> mcuHunt(d) } })
 
@@ -1863,6 +1866,87 @@ class MainActivity : AppCompatActivity() {
         log("=== end vendor handshake ===")
     }
 
+    /**
+     * Handshake, then replay the one command the vendor was actually observed sending.
+     *
+     * The command is `0x41AA` with parameter `0x12` and no payload, which `BMWScan140.exe` sent
+     * twice at 19200 8N1 when *Car ident* was clicked (run 20). It is replayed rather than invented:
+     * nothing here constructs a command this project has not seen the vendor use, because an
+     * unknown command to an unknown microcontroller is not something to improvise on a car.
+     *
+     * The frame is built by `VendorProtocol`, scrambled with the key the handshake just recovered,
+     * and the reply is run back through `recoverFrame`, which tries every key and keeps only those
+     * giving a correct length byte and checksum. That is the same tool that established the format
+     * from the capture, so if the cable answers with a frame at all, it will say so and say with
+     * which key.
+     */
+    private fun vendorIdent(device: UsbDevice) {
+        log("=== VENDOR IDENT (replayed) ===")
+        log("Handshake first, then the exact frame the vendor sends for Car ident:")
+        log("  command 0x%04X, parameter 0x12, no payload.".format(VendorProtocol.Command.IDENT))
+        log("Nothing here is an invented command.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            dev.purge()
+            dev.setModemControl(dtr = true, rts = null)
+            Thread.sleep(100)
+            dev.setModemControl(dtr = false, rts = null)
+
+            val announcement = dev.readBytes(VendorHandshake.LENGTH, timeoutMs = 1500)
+            val hs = VendorHandshake.decode(announcement)
+            if (hs == null) {
+                log("  handshake failed: ${announcement.size} byte(s) back" +
+                    if (announcement.isNotEmpty()) ", ${Ds2.hex(announcement)}" else "")
+                log("  Without it there is no key, so there is nothing sound to send.")
+                return
+            }
+            log("  handshake ok: identity \"${hs.identity}\", key 0x%02X".format(hs.key))
+
+            val frame = VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12)
+            val (wire, nextKey) = VendorProtocol.scramble(frame, hs.key)
+            log("  frame        ${Ds2.hex(frame)}")
+            log("  on the wire  ${Ds2.hex(wire)}   (key 0x%02X -> 0x%02X)".format(hs.key, nextKey))
+
+            dev.purge()
+            dev.write(wire)
+
+            // No early exit: the vendor allows itself a long wait on bus-bound commands.
+            val batches = dev.readTimed(1200)
+            val reply = batches.flatMap { it.second.asIterable() }.toByteArray()
+            if (reply.isEmpty()) {
+                log("  no reply in 1.2 s")
+                return
+            }
+            log("  reply raw    ${Ds2.hex(reply)}  (${reply.size} byte(s), first at " +
+                "${batches.first().first} ms)")
+
+            val candidates = VendorProtocol.recoverFrame(reply)
+            if (candidates.isEmpty()) {
+                log("  no key makes that a well-formed frame - so it is not one, or it is a")
+                log("  partial read. The raw bytes above are the finding either way.")
+            } else {
+                for ((k, plain) in candidates) {
+                    log("  DESCRAMBLED with key 0x%02X -> %s".format(k, Ds2.hex(plain)))
+                    log("     command 0x%02X%02X, parameter 0x%02X".format(
+                        plain[1], plain[2], plain[3]))
+                }
+                if (candidates.any { it.first == nextKey }) {
+                    log("  and one of them is exactly the key the outgoing frame left off at.")
+                }
+            }
+        } catch (e: Throwable) {
+            log("  ident failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end vendor ident ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -2658,5 +2742,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.23-probe"
+    const val NAME = "0.24-probe"
 }
