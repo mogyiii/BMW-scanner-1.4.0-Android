@@ -30,6 +30,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import hu.bmwscanner.ds2.Ds2
 import hu.bmwscanner.ds2.Ds2Link
+import hu.bmwscanner.ds2.VendorHandshake
 import hu.bmwscanner.usb.FtdiDevice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -149,6 +150,7 @@ class MainActivity : AppCompatActivity() {
                 "cbus" -> guarded(what) { cbusHunt(device!!) }
                 "cbusverify" -> guarded(what) { cbusVerify(device!!) }
                 "vendorinit" -> guarded(what) { vendorInit(device!!) }
+                "handshake2" -> guarded(what) { vendorHandshake(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -392,7 +394,7 @@ class MainActivity : AppCompatActivity() {
         // The one button that matters in the car. Everything below it is for afterwards.
         root.addView(
             Button(this).apply {
-                text = "▶  FULL RUN"
+                text = "???  FULL RUN"
                 textSize = 18f
                 setTypeface(typeface, Typeface.BOLD)
                 setOnClickListener { fullRun() }
@@ -446,7 +448,9 @@ class MainActivity : AppCompatActivity() {
         row(button("RADIO BEACON") { withCable("beacon") { d -> radioBeacon(d) } },
             button("BURST CAPTURE") { withCable("burst") { d -> burstCapture(d) } })
 
-        row(button("LATE-REPLY HUNT  <-- do this one") { withCable("latehunt") { d -> mcuHunt(d) } })
+        row(button("VENDOR HANDSHAKE  <-- do this one") { withCable("handshake2") { d -> vendorHandshake(d) } })
+
+        row(button("LATE-REPLY HUNT") { withCable("latehunt") { d -> mcuHunt(d) } })
 
         row(button("LOOPBACK") { withCable("loopback") { d -> loopbackCheck(d) } })
 
@@ -1016,18 +1020,18 @@ class MainActivity : AppCompatActivity() {
      *
      * This settles a question the byte-level evidence cannot. Decoding the burst at eight
      * baud/parity settings gave a byte count that scales with the sample rate and a duration that
-     * stays near 14 ms — but that is equally true of a real message read at the wrong rate and of a
+     * stays near 14 ms ??? but that is equally true of a real message read at the wrong rate and of a
      * fixed-duration analogue disturbance. Counting bytes cannot separate them; only the edges can.
      *
      * If the burst is UART data at some rate we never tested, its edges fall on a consistent bit
      * grid and the shortest interval between them is one bit time. If it is a circuit transient,
      * the intervals have no common divisor and cluster around whatever the RC of the line is.
      *
-     * Earlier bitbang attempts found nothing, but both were run off the car — where the cable's
-     * automotive side is unpowered — and neither pulsed DTR, so neither had anything to capture.
+     * Earlier bitbang attempts found nothing, but both were run off the car ??? where the cable's
+     * automotive side is unpowered ??? and neither pulsed DTR, so neither had anything to capture.
      *
      * Run 8 added a third way of finding nothing. On the car, ignition on, it reported RXD low in
-     * 0 of 2400 samples — but that measured this code, not the cable. Between releasing DTR and
+     * 0 of 2400 samples ??? but that measured this code, not the cable. Between releasing DTR and
      * the first sample sat four control transfers and a bulk write (a baud change, two purges, a
      * bitmode change), which over OTG is comfortably longer than the 14 ms the burst lasts. The
      * comment that claimed the gap was "one control transfer" was wrong.
@@ -1391,18 +1395,18 @@ class MainActivity : AppCompatActivity() {
      *
      * Run 13 opened the cable and found a ~28-pin NEC part sitting between the OBD side and the
      * FT232R, where a microcontroller goes. If it is one, nothing we have ever sent was addressed to
-     * anything that could answer — and, more usefully, a microcontroller takes time. It boots after
+     * anything that could answer ??? and, more usefully, a microcontroller takes time. It boots after
      * a reset, it thinks before replying, and it answers whenever it is ready rather than inside the
      * window a K-line transaction would use.
      *
      * Every read in this project has closed far too early to see that. `Ds2Link.sendRaw` stops 40 ms
      * after the line falls quiet, `vendorInit` stops 150 ms after, and on this cable the first thing
-     * to arrive is *always* the artefact — so the quiet timer has been starting immediately and
+     * to arrive is *always* the artefact ??? so the quiet timer has been starting immediately and
      * every read has ended a few tens of milliseconds after transmission. A reply at 300 ms has
      * never once been visible. That is a flaw in the measurements, not in the cable.
      *
      * So: fixed windows, no early exit, arrival times recorded. The artefact is immediate and fixed
-     * in duration, which makes the discriminator simple — **anything arriving after the first 25 ms
+     * in duration, which makes the discriminator simple ??? **anything arriving after the first 25 ms
      * is not the artefact**, whatever it contains. That is the thing to look for, and it needs no
      * equipment beyond the phone and the car.
      *
@@ -1548,7 +1552,7 @@ class MainActivity : AppCompatActivity() {
      * This is the measurement the project should have made first and never made at all. A K-line is
      * a **single wire**: whatever the transmitter pulls onto it is what the receiver sees. So
      * driving a known square wave on TXD and sampling RXD on the same clock answers, with a number
-     * rather than a judgement, whether the cable's line pin is on a live bus — and it needs no
+     * rather than a judgement, whether the cable's line pin is on a live bus ??? and it needs no
      * multimeter, no listening, and no second car.
      *
      * Why the existing evidence cannot answer it. Off the car the receive line never moves while
@@ -1561,13 +1565,13 @@ class MainActivity : AppCompatActivity() {
      *
      *  - **A clean echo**, RXD mirroring TXD at a fixed small lag, means the pin is on a live bus and
      *    the line driver works. Then nothing is wrong with the hardware and the protocol was the
-     *    problem all along — which would be very good news, because no initialisation sequence has
+     *    problem all along ??? which would be very good news, because no initialisation sequence has
      *    ever been sent (see `docs/findings.md`, "Reopened").
      *  - **A smeared echo**, following TXD but with edges displaced by tens of microseconds, is a
      *    driver too slow or too weak for the rate, and predicts exactly the unreadable bytes that
      *    every baud sweep has produced.
      *  - **No relationship at all** means RXD is not seeing TXD, which is what an unconnected line
-     *    pin looks like — and `probeLineState` has been printing *"what an unconnected, undriven
+     *    pin looks like ??? and `probeLineState` has been printing *"what an unconnected, undriven
      *    input looks like"* on every car run since the first one.
      *
      * Four edge rates, from 2 ms per level down to 50 us. A bandwidth problem shows up as a match
@@ -1672,7 +1676,7 @@ class MainActivity : AppCompatActivity() {
      *
      * Step 12 used 2 s blocks and got back an honest report of something genuinely hard to see:
      * *"it blinks, very fast, and there is a pause, but there is a lot of short and a lot of long in
-     * it, if I wanted to write it musically — a bit like Morse SOS"*. Of course. Continuous 0x55 at
+     * it, if I wanted to write it musically ??? a bit like Morse SOS"*. Of course. Continuous 0x55 at
      * 9600 is a 4.8 kHz square wave, so whatever the LED does inside a block is far beyond what an
      * eye can resolve, and the eye is left integrating flicker and guessing at the envelope. No
      * rhythm can be concluded from that, in either direction.
@@ -1685,14 +1689,14 @@ class MainActivity : AppCompatActivity() {
      *  - **Part 1, write toggles.** Transmit, then stop. A dark block means the LED follows
      *    transmission, which is all the transmit-indicator claim needs.
      *  - **Part 2, gate toggles.** Transmit throughout, but assert DTR for alternate blocks. DTR
-     *    silences the bus completely — 0 of 11 520 samples in run 9, ten windows. So if the LED goes
+     *    silences the bus completely ??? 0 of 11 520 samples in run 9, ten windows. So if the LED goes
      *    dark here too it sits *downstream* of the gate and is reporting what actually reaches the
      *    bus. If it stays lit, it is an indicator upstream of the gate and says nothing about the
      *    bus at all.
      *
      * Run 11 answered it, and the answer was the unhelpful one: bursts of seven or eight very fast
      * flashes separated by about a tenth of a second, repeating. That is the USB fill-and-drain
-     * cycle — the 19-byte chunk below fills the FT232R's 128-byte transmit FIFO in seven writes, and
+     * cycle ??? the 19-byte chunk below fills the FT232R's 128-byte transmit FIFO in seven writes, and
      * 128 bytes at 9600 8N1 take 133 ms to drain while the host is held off. The LED flashes once
      * per bulk write, so it only ever confirmed that the host hands bytes to the chip. Kept because
      * establishing what an indicator does *not* indicate is worth the hundred lines.
@@ -1780,6 +1784,85 @@ class MainActivity : AppCompatActivity() {
      * decides whether the hardware is sound before it ever talks to the car, by pulsing DTR and
      * waiting for the cable to announce itself.
      */
+    /**
+     * The vendor's handshake, implemented from its own code rather than guessed at.
+     *
+     * `FUN_006ce388` in the unpacked executable (run 21) does exactly this: purge, pulse DTR, read
+     * `0x1B` bytes, require their XOR to be zero, take the first byte as a descrambling key, XOR
+     * the rest with it, and read a seven-character hardware identity out of bytes 1 to 7. It
+     * retries twice before giving up, and so does this.
+     *
+     * The ~14 ms burst this project has been recording since run 7 satisfies every one of those
+     * checks - 27 bytes, XOR zero, identity `V144Bn9`, matching the string in the vendor's own 2009
+     * session log. Run 9 measured that burst's edges, found no convincing bit grid and called it a
+     * transient; this is the measurement that settles it the other way, because a transient does
+     * not carry a valid checksum over a meaningful payload.
+     *
+     * Which makes this the first thing in the project the car can simply prove right or wrong.
+     */
+    private fun vendorHandshake(device: UsbDevice) {
+        log("=== VENDOR HANDSHAKE ===")
+        log("Implemented from the decompiled FUN_006ce388, not guessed:")
+        log("  19200 8N1, purge, DTR pulse, then read exactly 27 bytes.")
+        log("  The XOR of all 27 must be zero; byte 0 is the key for the rest;")
+        log("  bytes 1-7 are the hardware identity, and should read V144Bn9.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            // Two retries, matching the vendor's own loop counter.
+            for (attempt in 1..3) {
+                if (stopRequested) { log("stopped"); return }
+
+                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(100)
+                dev.setModemControl(dtr = false, rts = null)
+
+                // Generous, because the burst has been seen arriving ~125 ms after the release.
+                val raw = dev.readBytes(27, timeoutMs = 1500)
+                log("  attempt %d: %d of 27 byte(s)".format(attempt, raw.size))
+                if (raw.isEmpty()) { log("    silence"); continue }
+                log("    raw: ${Ds2.hex(raw)}")
+
+                if (raw.size != VendorHandshake.LENGTH) {
+                    log("    wrong length - the handshake needs exactly ${VendorHandshake.LENGTH}")
+                    continue
+                }
+                if (!VendorHandshake.checksumOk(raw)) {
+                    log("    XOR of all 27 is not zero - not a valid announcement")
+                    continue
+                }
+
+                // Decoded by the same object the unit tests pin against the run-7 capture.
+                val r = VendorHandshake.decode(raw) ?: continue
+                log("")
+                log("    XOR of all 27       0x00   <- valid, this is a real announcement")
+                log("    key (byte 0)        0x%02X".format(r.key))
+                log("    hardware identity   \"${r.identity}\"" +
+                    if (r.identity == VendorHandshake.EXPECTED_IDENTITY)
+                        "   <- matches the vendor's own log" else "")
+                log("    decoded             ${Ds2.hex(r.decoded)}")
+                log("    remainder (8..26)   ${Ds2.hex(r.remainder)}")
+                log("")
+                log("  HANDSHAKE COMPLETE. The cable answered exactly as its own software expects.")
+                return
+            }
+            log("")
+            log("  No valid announcement in three attempts.")
+            log("  On the desk that is expected: the cable's microcontroller is powered from")
+            log("  OBD pin 16, so it is switched off unless the cable is in the car (run 15).")
+        } catch (e: Throwable) {
+            log("  handshake failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end vendor handshake ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -2575,5 +2658,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.22-probe"
+    const val NAME = "0.23-probe"
 }
