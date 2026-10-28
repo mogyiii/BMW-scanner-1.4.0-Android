@@ -16,6 +16,12 @@ package hu.bmwscanner.ds2
  * with the right key yields frames whose length byte and checksum are both correct, and the key one
  * frame ends on is exactly the key the next frame begins with — `0x42 + 5 × 0x4B = 0xB9`, measured.
  *
+ * **That chaining does not hold across all traffic, and the earlier version of this comment was
+ * wrong to imply it did.** The two 19200 ident frames chain as described, but the two 9600 `0x83F0`
+ * frames recorded in the same session are *both* scrambled with key `0x7B` — the second did not
+ * continue from where the first ended, and neither continued from the ident frames between them.
+ * See [BUS_KEY_OFFSET] for what is and is not established about that.
+ *
  * Nothing here invents a command. The commands this project knows are the ones the vendor was
  * observed sending, and they are listed as such.
  */
@@ -100,6 +106,29 @@ object VendorProtocol {
     /** Where the key stands after [byteCount] bytes have gone out from [startKey]. */
     fun advanceKey(startKey: Int, byteCount: Int): Int =
         (startKey + KEY_STEP * byteCount) and 0xFF
+
+    /**
+     * How far past the announcement byte the recorded [Command.BUS] frames were scrambled from.
+     *
+     * Both `0x83F0` frames in the capture use key `0x7B`, and the session's announcement began with
+     * `0x42`, so each sat exactly eleven key steps past the start — eleven being also the length of
+     * the frame itself. That arithmetic is solid; **what produces it is not.** Three readings fit
+     * two samples equally well:
+     *
+     *  - the bus path keeps its own key register, reset per transaction to eleven steps in;
+     *  - the key is pre-advanced by the frame's own length before use on this path;
+     *  - `0x7B` is simply a constant for this command and the announcement is irrelevant.
+     *
+     * The first two make the key depend on the cable's announcement, the third does not, and they
+     * disagree on every cable whose announcement does not start with `0x42` — including ours, which
+     * starts with `0x9B`. Two samples cannot separate them, so this constant records the measured
+     * offset and nothing more, and the caller is expected to try both candidates rather than pick
+     * one. Resolving it needs either a capture from a second cable or the code that loads the key.
+     */
+    const val BUS_KEY_OFFSET = 11
+
+    /** The literal key both recorded [Command.BUS] frames were scrambled with. */
+    const val BUS_KEY_OBSERVED = 0x7B
 
     /**
      * How the cable answers, as observed on the car and as the receive half of `FUN_006ccdd4`

@@ -153,6 +153,7 @@ class MainActivity : AppCompatActivity() {
                 "vendorinit" -> guarded(what) { vendorInit(device!!) }
                 "handshake2" -> guarded(what) { vendorHandshake(device!!) }
                 "vendorident" -> guarded(what) { vendorIdent(device!!) }
+                "vendorseq" -> guarded(what) { vendorSequence(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -451,7 +452,9 @@ class MainActivity : AppCompatActivity() {
             button("BURST CAPTURE") { withCable("burst") { d -> burstCapture(d) } })
 
         row(button("VENDOR HANDSHAKE") { withCable("handshake2") { d -> vendorHandshake(d) } },
-            button("VENDOR IDENT  <-- next") { withCable("vendorident") { d -> vendorIdent(d) } })
+            button("VENDOR IDENT") { withCable("vendorident") { d -> vendorIdent(d) } })
+
+        row(button("VENDOR SEQUENCE  <-- next") { withCable("vendorseq") { d -> vendorSequence(d) } })
 
         row(button("LATE-REPLY HUNT") { withCable("latehunt") { d -> mcuHunt(d) } })
 
@@ -1952,6 +1955,164 @@ class MainActivity : AppCompatActivity() {
         log("=== end vendor ident ===")
     }
 
+    /**
+     * One step of the captured session: a frame, and the line settings it was sent at.
+     *
+     * Everything here was recorded coming out of `BMWScan140.exe` in run 20 and decoded in run 24.
+     * No frame is constructed from an understanding of what it means, because there isn't one yet.
+     */
+    private data class VendorStep(
+        val label: String,
+        val baud: Int,
+        val parity: FtdiDevice.Parity,
+        val command: Int,
+        val parameter: Int,
+        val payload: ByteArray = ByteArray(0),
+        /**
+         * When set, the step is scrambled from this fixed key instead of the running one, and the
+         * running key is left alone. Needed because the recorded `0x83F0` frames do not sit on the
+         * ident frames' key stream — see `VendorProtocol.BUS_KEY_OFFSET`.
+         */
+        val fixedKey: Int? = null,
+    )
+
+    /**
+     * Replays the vendor's captured exchange in order, tracking the scrambling key across it.
+     *
+     * The single ident frame of `vendorIdent` got an answer, but a `77 07` one — which the receive
+     * routine treats as a fixed-length non-event. The interesting command is `0x83F0`: it is the
+     * one `FUN_006ccdd4` singles out for a long wait, it is a mode-2 (DS2) command, and the vendor
+     * sent it at **9600 8E1**, which is the DS2 line setting. That is the frame aimed at the car.
+     *
+     * It is replayed in sequence rather than alone because the vendor did not send it alone: it
+     * alternated line settings and frames, and the microcontroller may well need the 19200 traffic
+     * before it will carry anything to the bus. Sending step four without steps one to three would
+     * be a guess about state, and guessing about state is how this project lost three weeks.
+     *
+     * The key matters here in a way it did not before. It advances `0x4B` per transmitted byte and
+     * is never reset, so each step must start where the previous one left off — which also means a
+     * step that fails to send leaves every later step scrambled with the wrong key.
+     */
+    private fun vendorSequence(device: UsbDevice) {
+        log("=== VENDOR SEQUENCE (replayed) ===")
+        log("The captured exchange, in order, at the line settings it was captured at.")
+        log("Every frame below came out of the vendor software; none is invented.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            dev.purge()
+            dev.setModemControl(dtr = true, rts = null)
+            Thread.sleep(100)
+            dev.setModemControl(dtr = false, rts = null)
+
+            val hs = VendorHandshake.decode(dev.readBytes(VendorHandshake.LENGTH, timeoutMs = 1500))
+            if (hs == null) {
+                log("  handshake failed - without its first byte there is no key, so nothing")
+                log("  further would be sound to send.")
+                return
+            }
+            log("  handshake ok: \"${hs.identity}\", key 0x%02X".format(hs.key))
+
+            // Two candidates for the bus frames' key, because the capture does not settle which.
+            // One carries the measured offset over to this cable's own announcement; the other is
+            // the recorded byte taken literally. Both come from the capture; neither is invented.
+            val busDerived = VendorProtocol.advanceKey(hs.key, VendorProtocol.BUS_KEY_OFFSET)
+            log("  bus key candidates: 0x%02X (offset %d from our announcement) and 0x%02X (literal)"
+                .format(busDerived, VendorProtocol.BUS_KEY_OFFSET, VendorProtocol.BUS_KEY_OBSERVED))
+            log("")
+
+            val busPayloadA = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0xC8.toByte(), 0x14)
+            val busPayloadB = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+            val steps = listOf(
+                VendorStep("ident", 19200, FtdiDevice.Parity.NONE,
+                    VendorProtocol.Command.IDENT, 0x12),
+                VendorStep("bus 0x12, derived key", 9600, FtdiDevice.Parity.EVEN,
+                    VendorProtocol.Command.BUS, 0x12, busPayloadA, fixedKey = busDerived),
+                VendorStep("bus 0x12, literal key", 9600, FtdiDevice.Parity.EVEN,
+                    VendorProtocol.Command.BUS, 0x12, busPayloadA,
+                    fixedKey = VendorProtocol.BUS_KEY_OBSERVED),
+                VendorStep("ident again", 19200, FtdiDevice.Parity.NONE,
+                    VendorProtocol.Command.IDENT, 0x12),
+                VendorStep("bus 0x80, derived key", 9600, FtdiDevice.Parity.EVEN,
+                    VendorProtocol.Command.BUS, 0x80, busPayloadB, fixedKey = busDerived),
+                VendorStep("bus 0x80, literal key", 9600, FtdiDevice.Parity.EVEN,
+                    VendorProtocol.Command.BUS, 0x80, busPayloadB,
+                    fixedKey = VendorProtocol.BUS_KEY_OBSERVED),
+            )
+
+            var key = hs.key
+            for ((n, step) in steps.withIndex()) {
+                if (stopRequested) { log("stopped"); return }
+
+                // Only the baud and parity, not a full `configure`: the shim log shows the vendor
+                // calling FT_SetBaudRate and FT_SetDataCharacteristics between frames and never
+                // FT_ResetDevice, and a reset here would both purge a reply in flight and drop the
+                // handshake state the key depends on.
+                dev.setBaudRate(step.baud)
+                dev.setLineProperties(8, step.parity, FtdiDevice.StopBits.ONE)
+
+                val frame = VendorProtocol.buildFrame(step.command, step.parameter, step.payload)
+                val usedKey = step.fixedKey ?: key
+                val (wire, next) = VendorProtocol.scramble(frame, usedKey)
+
+                log("  step %d - %s   [%d %s]".format(
+                    n + 1, step.label, step.baud,
+                    if (step.parity == FtdiDevice.Parity.EVEN) "8E1" else "8N1"))
+                log("    frame   ${Ds2.hex(frame)}")
+                if (step.fixedKey != null) {
+                    log("    wire    ${Ds2.hex(wire)}   key 0x%02X, fixed".format(usedKey))
+                } else {
+                    log("    wire    ${Ds2.hex(wire)}   key 0x%02X -> 0x%02X".format(usedKey, next))
+                }
+
+                dev.write(wire)
+                // A fixed-key step is off the running stream, so it must not advance it.
+                if (step.fixedKey == null) key = next
+
+                // The vendor allows 0x83F0 a long wait; give every step the same room.
+                val batches = dev.readTimed(1500)
+                val raw = batches.flatMap { it.second.asIterable() }.toByteArray()
+                if (raw.isEmpty()) {
+                    log("    reply   none in 1.5 s")
+                    log("")
+                    continue
+                }
+                log("    reply   ${Ds2.hex(raw)}  (${raw.size} byte(s), first at " +
+                    "${batches.first().first} ms)")
+
+                val p = VendorProtocol.parseReply(raw, step.command, step.parameter)
+                if (p == null) { log("    too short to split"); log(""); continue }
+                log("    echo    0x%04X / 0x%02X%s".format(
+                    p.command, p.parameter, if (p.echoMatches) "   ours" else "   NOT ours"))
+                log("    body    ${Ds2.hex(p.body)}  (${p.body.size} byte(s))")
+                when (p.sentinel) {
+                    VendorProtocol.Sentinel.SEVEN_A -> log("    body is the 77 07 sentinel")
+                    VendorProtocol.Sentinel.SEVEN_B -> log("    body is the 7A 07 sentinel (abort)")
+                    else -> {
+                        log("    NO SENTINEL - this is the first body that is not a fixed non-event")
+                        val f = Ds2.findFrame(p.body, 0, null)
+                        if (f != null) {
+                            log("    and it contains a valid DS2 frame at offset ${f.offset}:")
+                            log("      ${Ds2.hex(f.frame)}  address 0x%02X".format(f.frame[0]))
+                        } else {
+                            log("    no valid DS2 frame in it; the raw bytes are the finding")
+                        }
+                    }
+                }
+                log("")
+            }
+        } catch (e: Throwable) {
+            log("  sequence failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end vendor sequence ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -2747,5 +2908,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.25-probe"
+    const val NAME = "0.26-probe"
 }

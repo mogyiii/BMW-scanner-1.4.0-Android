@@ -640,6 +640,42 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 26: the bus command is on a different key stream
+
+2026-10-28, at the desk. A correction to run 24 found by brute-forcing the second recorded `0x83F0`
+frame, which run 24 never did because one sample seemed enough.
+
+Run 24 established that the scrambling key advances `0x4B` per transmitted byte and is not reset
+between frames, and offered as proof that the session's two ident frames use `0x42` and `0xB9`,
+exactly five steps apart — the length of the first. That part holds. The generalisation to *all*
+traffic does not:
+
+| recorded frame | line | key |
+|---|---|---|
+| `03 41 AA 12 00` (ident) | 19200 8N1 | `0x42` |
+| `09 83 F0 12 E5 50 47 66 C8 14 4C` (bus) | 9600 8E1 | `0x7B` |
+| `03 41 AA 12 00` (ident, again) | 19200 8N1 | `0xB9` |
+| `09 83 F0 80 E5 50 47 66 28 14 1A` (bus, again) | 9600 8E1 | `0x7B` |
+
+Both bus frames use **the same** key, and the second ident frame continues from the first as if no
+bus frame had been sent in between. So the `0x83F0` path either keeps its own key register or does
+not use the rolling key at all — consistent with `FUN_006ccdd4` giving that command its own branch,
+which run 21 had already noticed for the timeout but not for the key.
+
+`0x7B` is `0x42 + 11 × 0x4B`, and eleven is also the bus frame's own length. **That arithmetic is
+all that is established.** Three readings fit two samples: a separate register reset eleven steps
+in, a key pre-advanced by the frame's length, or a constant `0x7B` with the announcement irrelevant.
+The first two scale with the cable's announcement byte, the third does not, and our cable announces
+`0x9B` rather than `0x42` — so they predict different bytes on the wire for us: `0xD4` or `0x7B`.
+
+Two samples cannot separate them and nothing is gained by picking. `VendorProtocol.BUS_KEY_OFFSET`
+and `BUS_KEY_OBSERVED` record the measurement, and the `VENDOR SEQUENCE` diagnostic sends the bus
+frame under both candidates so the cable decides. Resolving it properly needs a capture from a
+second cable, or the code that loads the key.
+
+Worth noting as a method point: this cost nothing to find and was available the whole time. One
+sample looked like a confirmed rule because the rule was formed from it.
+
 ## Run 25: the cable answers a command — two-way communication
 
 2026-10-28, on the car. Handshake, then the replayed ident frame, then a reply.

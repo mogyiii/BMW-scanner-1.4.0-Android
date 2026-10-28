@@ -141,6 +141,51 @@ class VendorProtocolTest {
         assertTrue(!r.echoMatches)
     }
 
+    /** 9600 8E1, the second bus frame of the same session, later than both ident frames. */
+    private val busScrambledAgain = byteArrayOf(
+        0x72, 0x45, 0xE1.toByte(), 0xDC.toByte(), 0x42, 0xA2.toByte(),
+        0x7A, 0xEE.toByte(), 0xFB.toByte(), 0x0A, 0x73,
+    )
+
+    @Test
+    fun `both bus frames use the same key, so they are not on the idents' key stream`() {
+        val (keyA, plainA) = VendorProtocol.recoverFrame(busScrambled).single()
+        val (keyB, plainB) = VendorProtocol.recoverFrame(busScrambledAgain).single()
+
+        assertEquals("the second bus frame did not continue from the first", keyA, keyB)
+        assertEquals(VendorProtocol.BUS_KEY_OBSERVED, keyA)
+
+        // Same command, same payload, different parameter — so they are genuinely two sends and
+        // not one frame counted twice.
+        assertEquals(VendorProtocol.Command.BUS, (plainA[1].toInt() and 0xFF) shl 8 or (plainA[2].toInt() and 0xFF))
+        assertEquals(0x12, plainA[3].toInt() and 0xFF)
+        assertEquals(0x80, plainB[3].toInt() and 0xFF)
+    }
+
+    @Test
+    fun `the bus key sits exactly BUS_KEY_OFFSET steps past the session's announcement byte`() {
+        // 0x42 is the first byte of the announcement the shim served during the capture, and the
+        // key the ident stream started from.
+        assertEquals(
+            VendorProtocol.BUS_KEY_OBSERVED,
+            VendorProtocol.advanceKey(0x42, VendorProtocol.BUS_KEY_OFFSET),
+        )
+    }
+
+    @Test
+    fun `the second bus frame rebuilds byte for byte from its fields and the observed key`() {
+        val (_, plain) = VendorProtocol.recoverFrame(busScrambledAgain).single()
+        val rebuilt = VendorProtocol.buildFrame(
+            VendorProtocol.Command.BUS,
+            0x80,
+            byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14),
+        )
+        assertArrayEquals(plain, rebuilt)
+
+        val (wire, _) = VendorProtocol.scramble(rebuilt, VendorProtocol.BUS_KEY_OBSERVED)
+        assertArrayEquals("this is what goes on the wire", busScrambledAgain, wire)
+    }
+
     @Test
     fun `a body without a sentinel reports none rather than guessing`() {
         val raw = byteArrayOf(0x41, 0xAA.toByte(), 0x12, 0x01, 0x02, 0x03)
