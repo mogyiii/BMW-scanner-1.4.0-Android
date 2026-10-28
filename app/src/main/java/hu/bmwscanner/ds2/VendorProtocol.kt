@@ -41,9 +41,10 @@ object VendorProtocol {
         /**
          * Sent at 9600 8E1 — the DS2 line setting — with a six-byte payload.
          *
-         * `FUN_006ccdd4` singles this one out: when the frame's command bytes are `0x83 0xF0` it
-         * takes a different path with a much longer wait, which is what a request forwarded to a
-         * control module and back would need.
+         * **Not a request for vehicle data.** `FUN_006b92c0` builds all six of its occurrences
+         * identically: `E5 50 47 66` then `Delay2` and `Delay` from `bmwscan.ini`. It configures
+         * K-line timing for one module, selected by the parameter byte, which the module table
+         * holds at `+0x2F4` of each record. See `docs/findings.md`, run 29.
          */
         const val BUS = 0x83F0
     }
@@ -145,6 +146,14 @@ object VendorProtocol {
      * Observed: sending `03 41 AA 12 00` returned `41 AA 12 | 77 07 77 07 77 07 70`, which is a
      * three-byte echo followed by exactly seven bytes, the length `FUN_006ccdd4` assigns when a
      * reply opens with `77 07`.
+     *
+     * **The split is an assumption and the executable does not support it.** `FUN_006ca098` writes
+     * a byte and reads nothing back, so the vendor's receive buffer begins at the first byte that
+     * arrives, not three bytes in; under its mode-2 rule that buffer's second byte is a length, and
+     * `0xAA` is not one. Either the cable answers us differently than it answers the vendor, or
+     * those three bytes are something other than an echo, or the mode in play is not 2. Treat
+     * [Reply.body] and [Reply.sentinel] as provisional until a reply turns up whose length can be
+     * checked against the code - see `docs/findings.md`, run 29.
      */
     object Sentinel {
         /** Reply opens `77 07`: fixed length seven, and the routine simply returns. */

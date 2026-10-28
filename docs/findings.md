@@ -640,6 +640,81 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 29: what 0x83F0 actually is, and the module table behind it
+
+2026-10-28, static. No car and no VM: the payload was read out of the executable rather than guessed
+at or captured, which is what should have happened before any of it was replayed.
+
+Searching the image for the immediate `0x83F0` gives six matches, all inside **one** function,
+`FUN_006b92c0`. Every one of them builds the same six bytes:
+
+```c
+local_14 = 0xE5;  local_13 = 0x50;  local_12 = 0x47;  local_11 = 0x66;
+local_10 = (byte)DAT_008dda54;    /* one branch uses the literal 200 instead */
+local_f  = DAT_008dda50;
+FUN_006cd150(session, <per-module value>, 0x83f0, 5, &local_14);
+```
+
+So the payload is `E5 50 47 66 [X] [Y]`: a fixed four-byte signature and two numbers. The captured
+frames carried `C8 14` and `28 14` — 200/20 and 40/20 — and `bmwscan.ini` says `Delay=20` and
+`Delay2=40`. **`0x83F0` is a timing-configuration command**, sent per module, not a request for
+vehicle data.
+
+> **This retracts the caveat written earlier today in run 27.** That entry warned the six payload
+> bytes might be an uninitialised buffer, because the run-20 capture came from a program with no
+> cable and no car. The warning was reasonable and it was wrong: the bytes are two configuration
+> values from the ini file and a constant, none of which needs a cable to be correct. The capture is
+> sound on this point.
+
+### The module table
+
+`FUN_006cccd0` resolves a module name to an index by walking an array of `0x304`-byte records, with
+the count at `+0x13320`. Taking the record base as `+0x28c + i*0x304`, the fields used here are:
+
+| offset in record | contents |
+|---|---|
+| `+0x000` | short name, Delphi string |
+| `+0x02C` | a type or variant code, compared against `0x1F`, `0x1C`, `0x21`, `0x20`, `1`–`4` |
+| `+0x2F4` | the value passed as the command's **parameter byte** |
+
+The six names `FUN_006b92c0` special-cases are stored inline at `0x6b97fc` onward:
+
+```
+03 "DME"    04 "DME2"    03 "SRS"    03 "TEL"    03 "SBE"    03 "URS"
+```
+
+`SRS` is the airbag controller — one of the features this project exists for.
+
+The parameter byte therefore identifies the module, and the two values seen on the wire, `0x12` and
+`0x80`, are the published DS2 addresses of the engine controller and the instrument cluster. That
+correspondence is an **inference**: it matches the public address tables exactly, but the table this
+program loads lives in the object at runtime and has not yet been located in the image, so nothing
+here proves it. Finding where those records are populated would settle it and would hand over the
+whole module list at once.
+
+### What the mode byte selects
+
+`FUN_006ccdd4`'s reply-length rules, read against this, look like protocol families rather than
+arbitrary cases:
+
+| `DAT_00a4cf20` | length taken from | fits |
+|---|---|---|
+| 1 | byte 2 | — |
+| 2 | byte 1 | **DS2** — its second byte is the frame length |
+| 3 | byte 3, plus 5 | — |
+| 4 | `byte0 & 0x3F` plus 4, or byte 3 plus 5 | KWP2000's format byte |
+
+### A caveat of our own that needs checking
+
+`VendorProtocol.parseReply` models a reply as a three-byte plaintext echo followed by a body, which
+is how `41 AA 12 | 77 07 77 07 77 07 70` was read. The executable does not support that split:
+`FUN_006ca098` writes a byte and reads nothing back, so the vendor's receive buffer begins at the
+first byte that arrives, and under mode 2 it would take `0xAA` as a length. Either the cable
+behaves differently for us than for the vendor, or the three leading bytes are something else, or
+the mode in use is not 2. **The split is an assumption, not a finding**, and the sentinel detection
+that rests on it should be treated as provisional until a reply is observed whose length rule can be
+checked against the code.
+
 ## Run 28: one frame per handshake, and the driver folder is a dead end
 
 2026-10-28, on the car, plus a question from the owner that closed off a loose end.
