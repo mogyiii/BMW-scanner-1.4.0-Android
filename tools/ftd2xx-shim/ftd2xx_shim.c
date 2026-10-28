@@ -328,6 +328,82 @@ static void rearmCandidate(void)
     shimLog("   re-armed %u byte(s), as the cable would answer after the pulse", g_rxLen);
 }
 
+/* ------------------------------------------------------------------ memory dump */
+
+/*
+ * Writes the executable's own unpacked image out of its own address space.
+ *
+ * This is the thing the project set out to do and then abandoned. findings.md records the reason:
+ * "Static decompilation of this binary is not viable. There is no code to decompile until the
+ * protector unpacks itself in memory, which would require running it under a debugger and defeating
+ * its anti-analysis measures." That was true of *static* analysis, and it stopped being the whole
+ * picture the moment this shim started running - because the shim is a DLL inside the process, and
+ * by the time the software asks for a device the protector has already finished unpacking.
+ *
+ * So there is nothing to defeat. We do not attach a debugger, do not single-step, do not break on
+ * anything. We wait until the program is running its own real code and then copy it out from the
+ * inside, which no anti-debugging measure is looking for.
+ *
+ * What gets written: every committed, readable region of the main module's image, each preceded by
+ * a 16-byte header giving its address and length, so the host can reassemble or search it. Guard
+ * pages and no-access regions are skipped rather than touched, since reading one would raise an
+ * exception inside somebody else's process.
+ */
+static void dumpOwnImage(void)
+{
+    static BOOL done = FALSE;
+    CHAR path[MAX_PATH];
+    HANDLE out;
+    MEMORY_BASIC_INFORMATION mbi;
+    BYTE *addr;
+    BYTE *base;
+    IMAGE_DOS_HEADER *dos;
+    IMAGE_NT_HEADERS *nt;
+    DWORD imageSize, written, regions = 0, total = 0;
+
+    if (done) return;
+    done = TRUE;
+
+    base = (BYTE *)GetModuleHandleA(NULL);
+    if (!base) return;
+    dos = (IMAGE_DOS_HEADER *)base;
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) return;
+    nt = (IMAGE_NT_HEADERS *)(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE) return;
+    imageSize = nt->OptionalHeader.SizeOfImage;
+
+    wsprintfA(path, "%s\\unpacked.bin", g_dir);
+    out = CreateFileA(path, GENERIC_WRITE, FILE_SHARE_READ, NULL,
+                      CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (out == INVALID_HANDLE_VALUE) {
+        shimLog("could not create %s", path);
+        return;
+    }
+
+    shimLog("dumping the unpacked image: base %p, SizeOfImage %u", base, imageSize);
+
+    addr = base;
+    while (addr < base + imageSize) {
+        if (!VirtualQuery(addr, &mbi, sizeof(mbi))) break;
+        if (mbi.State == MEM_COMMIT &&
+            !(mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD))) {
+            DWORD hdr[4];
+            hdr[0] = 0x504D5544;                 /* "DUMP" */
+            hdr[1] = (DWORD)(ULONG_PTR)mbi.BaseAddress;
+            hdr[2] = (DWORD)mbi.RegionSize;
+            hdr[3] = mbi.Protect;
+            WriteFile(out, hdr, sizeof(hdr), &written, NULL);
+            WriteFile(out, mbi.BaseAddress, (DWORD)mbi.RegionSize, &written, NULL);
+            regions++;
+            total += (DWORD)mbi.RegionSize;
+        }
+        addr = (BYTE *)mbi.BaseAddress + mbi.RegionSize;
+    }
+
+    CloseHandle(out);
+    shimLog("wrote %u region(s), %u byte(s) to unpacked.bin", regions, total);
+}
+
 /* ------------------------------------------------------------------ lifecycle */
 
 BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
@@ -487,6 +563,7 @@ FT_STATUS WINAPI FT_GetDeviceInfo(FT_HANDLE h, LPDWORD type, LPDWORD id,
 FT_STATUS WINAPI FT_Open(int device, FT_HANDLE *handle)
 {
     shimLog("FT_Open(device=%d)", device);
+    dumpOwnImage();
     if (!handle) return FT_INVALID_HANDLE;
     *handle = SHIM_HANDLE;
     refreshRx();
@@ -498,6 +575,7 @@ FT_STATUS WINAPI FT_OpenEx(PVOID arg1, DWORD flags, FT_HANDLE *handle)
     /* flags: 1 = by serial, 2 = by description, 4 = by location */
     if (flags & 3) shimLog("FT_OpenEx(flags=0x%X, \"%s\")", flags, (CHAR *)arg1);
     else shimLog("FT_OpenEx(flags=0x%X)", flags);
+    dumpOwnImage();
     if (!handle) return FT_INVALID_HANDLE;
     *handle = SHIM_HANDLE;
     refreshRx();
