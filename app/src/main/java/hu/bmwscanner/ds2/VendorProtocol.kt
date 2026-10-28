@@ -122,9 +122,14 @@ object VendorProtocol {
      *
      * The first two make the key depend on the cable's announcement, the third does not, and they
      * disagree on every cable whose announcement does not start with `0x42` — including ours, which
-     * starts with `0x9B`. Two samples cannot separate them, so this constant records the measured
-     * offset and nothing more, and the caller is expected to try both candidates rather than pick
-     * one. Resolving it needs either a capture from a second cable or the code that loads the key.
+     * starts with `0x9B`.
+     *
+     * **Run 27 settled it on the hardware, against the third reading.** Sent as the first frame of
+     * a session, the bus frame scrambled from our own announcement key `0x9B` drew a clean answer,
+     * while the same frame scrambled from the literal `0x7B` drew nothing parseable. The key comes
+     * from the announcement. These two constants are kept because they record what the capture
+     * showed, but [BUS_KEY_OBSERVED] is that session's key and not this cable's — do not send with
+     * it.
      */
     const val BUS_KEY_OFFSET = 11
 
