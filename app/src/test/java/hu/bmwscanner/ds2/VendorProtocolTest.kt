@@ -109,4 +109,43 @@ class VendorProtocolTest {
         f[f.size - 1] = (f[f.size - 1].toInt() xor 1).toByte()
         assertTrue(!VendorProtocol.frameOk(f))
     }
+
+    /**
+     * The first reply the cable ever gave us, recorded on the car on 2026-10-28 after the handshake
+     * and the replayed ident frame. Three bytes of plain echo, then seven bytes opening with the
+     * `77 07` sentinel - exactly the length FUN_006ccdd4 assigns to that opening.
+     */
+    private val liveReply = byteArrayOf(
+        0x41, 0xAA.toByte(), 0x12,
+        0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70,
+    )
+
+    @Test
+    fun `the live reply echoes the command and parameter in plain`() {
+        val r = VendorProtocol.parseReply(liveReply, VendorProtocol.Command.IDENT, 0x12)!!
+        assertEquals(VendorProtocol.Command.IDENT, r.command)
+        assertEquals(0x12, r.parameter)
+        assertTrue("the echo identifies the reply as ours", r.echoMatches)
+    }
+
+    @Test
+    fun `the live reply body is seven bytes and opens with the 77 07 sentinel`() {
+        val r = VendorProtocol.parseReply(liveReply, VendorProtocol.Command.IDENT, 0x12)!!
+        assertEquals(7, r.body.size)
+        assertEquals(VendorProtocol.Sentinel.SEVEN_A, r.sentinel)
+    }
+
+    @Test
+    fun `an echo from a different command is reported as not ours`() {
+        val r = VendorProtocol.parseReply(liveReply, 0x1234, 0x12)!!
+        assertTrue(!r.echoMatches)
+    }
+
+    @Test
+    fun `a body without a sentinel reports none rather than guessing`() {
+        val raw = byteArrayOf(0x41, 0xAA.toByte(), 0x12, 0x01, 0x02, 0x03)
+        val r = VendorProtocol.parseReply(raw, VendorProtocol.Command.IDENT, 0x12)!!
+        assertEquals(null, r.sentinel)
+        assertEquals(3, r.body.size)
+    }
 }

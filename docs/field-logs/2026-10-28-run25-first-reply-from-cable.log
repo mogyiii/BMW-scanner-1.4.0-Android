@@ -1,0 +1,17 @@
+19:26:23.062  BMW DS2 Probe 0.24-probe
+19:26:23.073  Looking for the cable: VID 0x0333 / PID 0x0137
+
+19:26:23.079  USB rescan: 1 device(s)
+19:26:23.080    /dev/bus/usb/001/002  0333:0137
+19:27:30.639  === VENDOR IDENT (replayed) ===
+19:27:30.639  Handshake first, then the exact frame the vendor sends for Car ident:
+19:27:30.640    command 0x41AA, parameter 0x12, no payload.
+19:27:30.640  Nothing here is an invented command.
+
+19:27:30.910    handshake ok: identity "V144Bn9", key 0x9B
+19:27:30.918    frame        03 41 AA 12 00
+19:27:30.919    on the wire  98 A7 9B 6E C7   (key 0x9B -> 0x12)
+19:27:32.132    reply raw    41 AA 12 77 07 77 07 77 07 70  (10 byte(s), first at 5 ms)
+19:27:32.136    no key makes that a well-formed frame - so it is not one, or it is a
+19:27:32.137    partial read. The raw bytes above are the finding either way.
+19:27:32.139  === end vendor ident ===

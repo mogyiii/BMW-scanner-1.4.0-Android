@@ -640,6 +640,50 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 25: the cable answers a command — two-way communication
+
+2026-10-28, on the car. Handshake, then the replayed ident frame, then a reply.
+(`field-logs/2026-10-28-run25-first-reply-from-cable.log`)
+
+```
+handshake ok: identity "V144Bn9", key 0x9B
+frame        03 41 AA 12 00
+on the wire  98 A7 9B 6E C7      (key 0x9B -> 0x12)
+reply raw    41 AA 12 77 07 77 07 77 07 70   (10 bytes, first at 5 ms)
+```
+
+**This is the thing the project was for.** We hand the cable a command built from its own
+specification, scrambled with the key its own announcement gave us, and it answers — in five
+milliseconds.
+
+### Three facts the reply settles
+
+**Replies are not scrambled.** The first three bytes, `41 AA 12`, are the command and parameter we
+had just sent, in plain, while the frame carrying them went out as `98 A7 9B 6E C7`. Only the host
+to cable direction is obfuscated. Nothing in the decompiled code said this; the car did.
+
+**The echo is separate from the reply body.** After those three bytes come seven more.
+
+**The body opens with a sentinel the code already named.** `FUN_006ccdd4` special-cases exactly two
+openings, and this is one of them:
+
+```c
+if (DAT_008ddb60 == 0x77 && DAT_008ddb61 == '\a') { DAT_00a4ced0 = 7; return; }
+```
+
+A body opening `77 07` is fixed at seven bytes — and the body is `77 07 77 07 77 07 70`, seven bytes
+exactly. The other sentinel, `7A 07`, additionally raises the routine's abort flag, which suggests
+`7A 07` is the failure and `77 07` something milder.
+
+### What it does not yet establish
+
+What `77 07` means. `0x41AA` is a mode-3 command and we sent it with no bus activity requested, so
+"nothing to report" is plausible and unproven. The repetition — three copies of `77 07` then `70` —
+is not explained either.
+
+`VendorProtocol.parseReply` now splits echo from body and names the sentinels, held still by four
+further tests built on these exact bytes. Thirty-four tests green.
+
 ## Run 24: the command set, and what the mode byte actually selects
 
 Three thin wrappers sit immediately after the frame builder at `0x6cd09c`, and they are identical

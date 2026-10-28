@@ -102,6 +102,65 @@ object VendorProtocol {
         (startKey + KEY_STEP * byteCount) and 0xFF
 
     /**
+     * How the cable answers, as observed on the car and as the receive half of `FUN_006ccdd4`
+     * expects it.
+     *
+     * Two things the first live exchange settled, neither of which was obvious from the code alone:
+     *
+     *  - **Replies are not scrambled.** The first three bytes come back as the command and parameter
+     *    that were sent, in plain, while the outgoing frame carrying them was XORed. Only the host
+     *    to cable direction is obfuscated.
+     *  - **The echo is separate from the frame.** After those three bytes the reply proper begins,
+     *    and its length follows the mode rules — or one of two fixed sentinels.
+     *
+     * Observed: sending `03 41 AA 12 00` returned `41 AA 12 | 77 07 77 07 77 07 70`, which is a
+     * three-byte echo followed by exactly seven bytes, the length `FUN_006ccdd4` assigns when a
+     * reply opens with `77 07`.
+     */
+    object Sentinel {
+        /** Reply opens `77 07`: fixed length seven, and the routine simply returns. */
+        const val SEVEN_A = 0x7707
+
+        /** Reply opens `7A 07`: fixed length seven, and the routine also raises its abort flag. */
+        const val SEVEN_B = 0x7A07
+    }
+
+    data class Reply(
+        /** Command echoed back by the cable, plain. */
+        val command: Int,
+        /** Parameter echoed back by the cable, plain. */
+        val parameter: Int,
+        /** Everything after the echo. */
+        val body: ByteArray,
+        /** Set when [body] opens with one of the two fixed-length sentinels. */
+        val sentinel: Int?,
+        /** True when the echo matches what was sent, so the reply belongs to this request. */
+        val echoMatches: Boolean,
+    )
+
+    /**
+     * Splits a raw reply into its echo and body, and reports whether the echo is the expected one.
+     *
+     * Deliberately does no length arithmetic of its own: the mode rules live in the caller, and a
+     * reply that arrived short should be visible as short rather than quietly reinterpreted.
+     */
+    fun parseReply(raw: ByteArray, sentCommand: Int, sentParameter: Int): Reply? {
+        if (raw.size < 3) return null
+        val command = ((raw[0].toInt() and 0xFF) shl 8) or (raw[1].toInt() and 0xFF)
+        val parameter = raw[2].toInt() and 0xFF
+        val body = raw.copyOfRange(3, raw.size)
+        val head = if (body.size >= 2)
+            ((body[0].toInt() and 0xFF) shl 8) or (body[1].toInt() and 0xFF) else -1
+        return Reply(
+            command = command,
+            parameter = parameter,
+            body = body,
+            sentinel = if (head == Sentinel.SEVEN_A || head == Sentinel.SEVEN_B) head else null,
+            echoMatches = command == sentCommand && parameter == sentParameter,
+        )
+    }
+
+    /**
      * Tries every starting key and returns those that make [scrambled] a well-formed frame.
      *
      * Useful for reading a capture whose key history is unknown, and the tool that established the

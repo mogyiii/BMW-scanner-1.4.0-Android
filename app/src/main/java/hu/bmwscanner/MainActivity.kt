@@ -1925,19 +1925,24 @@ class MainActivity : AppCompatActivity() {
             log("  reply raw    ${Ds2.hex(reply)}  (${reply.size} byte(s), first at " +
                 "${batches.first().first} ms)")
 
-            val candidates = VendorProtocol.recoverFrame(reply)
-            if (candidates.isEmpty()) {
-                log("  no key makes that a well-formed frame - so it is not one, or it is a")
-                log("  partial read. The raw bytes above are the finding either way.")
-            } else {
-                for ((k, plain) in candidates) {
-                    log("  DESCRAMBLED with key 0x%02X -> %s".format(k, Ds2.hex(plain)))
-                    log("     command 0x%02X%02X, parameter 0x%02X".format(
-                        plain[1], plain[2], plain[3]))
-                }
-                if (candidates.any { it.first == nextKey }) {
-                    log("  and one of them is exactly the key the outgoing frame left off at.")
-                }
+            // Replies come back in plain - established on the car, where the first three bytes
+            // were the command and parameter we had just sent, unscrambled.
+            val parsed = VendorProtocol.parseReply(reply, VendorProtocol.Command.IDENT, 0x12)
+            if (parsed == null) {
+                log("  too short to split into an echo and a body")
+                return
+            }
+            log("  echo         command 0x%04X, parameter 0x%02X%s".format(
+                parsed.command, parsed.parameter,
+                if (parsed.echoMatches) "   <- ours" else "   <- NOT what we sent"))
+            log("  body         ${Ds2.hex(parsed.body)}  (${parsed.body.size} byte(s))")
+            when (parsed.sentinel) {
+                VendorProtocol.Sentinel.SEVEN_A ->
+                    log("  body opens 77 07 - the sentinel the receive routine fixes at 7 bytes")
+                VendorProtocol.Sentinel.SEVEN_B ->
+                    log("  body opens 7A 07 - the sentinel that also raises the abort flag")
+                else ->
+                    log("  no sentinel; length would come from the mode rules")
             }
         } catch (e: Throwable) {
             log("  ident failed: ${e.javaClass.simpleName}: ${e.message}")
@@ -2742,5 +2747,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.24-probe"
+    const val NAME = "0.25-probe"
 }
