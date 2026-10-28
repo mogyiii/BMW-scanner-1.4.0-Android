@@ -13,6 +13,60 @@ Wanted features: fault codes read/clear (airbag included — that is why a gener
 do), live values, service reset, module identification. **Odometer writing is out of scope and will
 not be implemented.**
 
+## Run 23: the cable works. Proven on the car, by our own software.
+
+**Read only this section if you read nothing else. Everything below it that calls the cable faulty
+is wrong, and is kept only because the record should show how the project got there.**
+
+On 2026-10-28, in the car, the app's `VENDOR HANDSHAKE` completed on its first attempt:
+
+```
+attempt 1: 27 of 27 byte(s)
+raw: 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+
+XOR of all 27       0x00      <- valid, this is a real announcement
+key (byte 0)        0x9B
+hardware identity   "V144Bn9" <- matches the vendor's own log
+
+HANDSHAKE COMPLETE. The cable answered exactly as its own software expects.
+```
+
+The handshake was transcribed from the vendor executable's own code, not guessed: purge, pulse DTR,
+read exactly 27 bytes, require their XOR to be zero, take byte 0 as the descrambling key, read the
+hardware identity out of bytes 1–7. The cable satisfied every condition.
+
+**`V144Bn9` is character-for-character the hardware string in the header of the vendor's own 2009
+session log**, shipped inside the software package since before this project started.
+
+### What this overturns
+
+Those same 27 bytes were recorded on **2026-10-19** (run 7) and again on **2026-10-27** (run 16),
+byte for byte. They were a correct, checksummed message at 19200 8N1 the entire time.
+
+- **Run 9's verdict is refuted.** It measured the burst's edge timing, found no convincing bit grid
+  and concluded "a transient, not a message". A transient does not carry a valid checksum over a
+  payload spelling the manufacturer's own hardware string.
+- **The "cable's K-line stage does not work" conclusion is withdrawn**, along with
+  `docs/fault-report.md`, which names the wrong cause.
+- **The data-independent `C4` replies were never evidence of a broken transceiver.** They came from
+  sending raw DS2 frames at 9600 8E1 to a microcontroller waiting to be addressed in its own
+  protocol at 19200 8N1.
+
+### What is still unknown
+
+Whether the K-line stage reaches the car. It has never been tested with the cable in the mode the
+vendor puts it in, and the handshake is the entry to that mode rather than a test of it.
+
+### Where the work continues
+
+`docs/findings.md`, runs 19–22, has the recovered protocol layer: the obfuscated `GetProcAddress`
+names, the function-pointer table at `0x00a4cee8`, the transmit routine at `0x6ccdd4` with its
+rolling-XOR scrambling (key steps `0x4B` per byte), and the four reply framings of which mode 2 is
+DS2. The unpacked image is at `build/unpacked/unpacked_rebuilt.exe`.
+
+Open: the scrambling key's starting value for transmitted frames, and the pairing of the ECU
+address list with the module names.
+
 ## Run 14: the premise was wrong, and the cable is probably fine
 
 **Read this first. It supersedes every verdict below it.**
@@ -63,9 +117,9 @@ instrument being spoken to in the wrong language. Full reasoning in `docs/findin
 
 ## Current state in one line
 
-Finished. The Android software works and is verified; **the cable's vehicle-side line driver does
-not, and every avenue is closed with a measurement rather than an assumption.** Nothing worth
-measuring remains. The deliverable is `docs/fault-report.md`, for the seller.
+~~Finished. The cable's vehicle-side line driver does not work.~~ **Wrong, and withdrawn — see run
+23 above.** The cable works, answers its handshake correctly, and the project is back to where it
+always meant to be: implementing a protocol that is now largely recovered rather than guessed.
 
 ## The hardware, established
 

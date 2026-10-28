@@ -1,0 +1,21 @@
+13:18:30.487  BMW DS2 Probe 0.23-probe
+13:18:30.498  Looking for the cable: VID 0x0333 / PID 0x0137
+
+13:18:30.506  USB rescan: 1 device(s)
+13:18:30.508    /dev/bus/usb/001/002  0333:0137
+13:19:10.938  === VENDOR HANDSHAKE ===
+13:19:10.938  Implemented from the decompiled FUN_006ce388, not guessed:
+13:19:10.938    19200 8N1, purge, DTR pulse, then read exactly 27 bytes.
+13:19:10.939    The XOR of all 27 must be zero; byte 0 is the key for the rest;
+13:19:10.939    bytes 1-7 are the hardware identity, and should read V144Bn9.
+
+13:19:11.204    attempt 1: 27 of 27 byte(s)
+13:19:11.214      raw: 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+
+13:19:11.215      XOR of all 27       0x00   <- valid, this is a real announcement
+13:19:11.215      key (byte 0)        0x9B
+13:19:11.216      hardware identity   "V144Bn9"   <- matches the vendor's own log
+13:19:11.217      decoded             9B 56 31 34 34 42 6E 39 00 8C B3 65 E9 4A 8C D7 C5 1B A3 92 76 B5 2E 54 31 9C B0
+13:19:11.218      remainder (8..26)   8C B3 65 E9 4A 8C D7 C5 1B A3 92 76 B5 2E 54 31 9C B0
+
+13:19:11.219    HANDSHAKE COMPLETE. The cable answered exactly as its own software expects.

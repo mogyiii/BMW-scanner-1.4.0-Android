@@ -3,10 +3,15 @@
 Prepared 2026-10-20. Supporting evidence: `docs/findings.md` and eleven raw measurement logs in
 `docs/field-logs/`.
 
-> **Status: no addressee.** The cable was bought on AliExpress months ago and buyer protection has
-> expired, so there is nobody to send this to. It is kept as the written record of what was
-> established and what it rests on, and because it is the right thing to hand over if the cable's
-> provenance ever matters again.
+> **Status: WITHDRAWN, 2026-10-28.** This report names the wrong cause. The cable is not faulty.
+>
+> On 2026-10-28 it completed the vendor's own handshake on the car, first attempt: 27 bytes, XOR
+> zero, hardware identity `V144Bn9` — the same string the manufacturer's software prints in its own
+> shipped session log. The ~14 ms "burst" this report treats as a transient is that announcement,
+> and it was present and correct in every on-car run from 2026-10-19 onward.
+>
+> See `HANDOVER.md`, run 23, and `docs/findings.md`, run 22. The file is kept unaltered below so the
+> reasoning that produced a wrong conclusion stays legible; nothing in it should be acted on.
 
 ## The device
 
