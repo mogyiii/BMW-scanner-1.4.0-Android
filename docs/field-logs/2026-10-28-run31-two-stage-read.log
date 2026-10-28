@@ -1,0 +1,27 @@
+20:38:45.124  BMW DS2 Probe 0.31-probe
+20:38:45.134  Looking for the cable: VID 0x0333 / PID 0x0137
+
+20:38:45.140  USB rescan: 1 device(s)
+20:38:45.142    /dev/bus/usb/001/002  0333:0137
+20:39:18.225  === TWO-STAGE READ ===
+20:39:18.226  The recorded ident frame, then a four-second window, looking for a second frame.
+
+20:39:18.497    handshake ok: "V144Bn9", key 0x9B
+20:39:18.499    sent    03 41 AA 12 00  as  98 A7 9B 6E C7
+
+20:39:22.506    arrivals:
+20:39:22.507          1 ms  41 AA 12
+20:39:22.508        285 ms  77
+20:39:22.508        286 ms  07 77
+20:39:22.509        287 ms  07 77
+20:39:22.514        288 ms  07
+20:39:22.514        289 ms  70
+
+20:39:22.516    total 10 byte(s) over 289 ms
+20:39:22.517    frame 1 at offset 3: 77 07 77 07 77 07 70   cable: nothing to say
+20:39:22.518      (3 byte(s) skipped before it: 41 AA 12)
+
+20:39:22.519    ONE FRAME ONLY. Stage two produced nothing in four seconds, so it needs
+20:39:22.520    something we have not done - most likely a command that asks a module for
+20:39:22.520    data, which we do not yet have.
+20:39:22.522  === end two-stage read ===

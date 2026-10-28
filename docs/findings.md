@@ -640,6 +640,42 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 31: the cable waits 285 ms, then says it has nothing
+
+2026-10-28, on the car. The ident frame, then a four-second window, to answer one question: after
+the `77 07` block, does a second frame arrive?
+(`field-logs/2026-10-28-run31-two-stage-read.log`)
+
+```
+  1 ms  41 AA 12
+285 ms  77
+286 ms  07 77
+287 ms  07 77
+288 ms  07
+289 ms  70
+```
+
+**One frame.** Nothing followed in four seconds, so the second read stage found by run 30 produces
+nothing for this command, and the missing piece really is a command that asks a module for data.
+
+The timing is the find, though. The three-byte prefix arrives at **1 ms** and the frame at
+**285 ms** — they are not one transmission. `41 AA 12` is an immediate acknowledgement of receipt,
+and the cable then goes away for 284 ms before reporting that it has nothing. That gap has the shape
+of a K-line request timeout: the cable waited for something and gave up.
+
+This settles what the prefix *is*, even though it does not settle why the executable has no place
+for it. `FUN_006ccdd4` starts its buffer at the first byte and would read `0xAA` as a length; it
+still would. But the prefix is a distinct, immediate message rather than part of the frame, so the
+two are separable in a way they did not appear to be from the bytes alone.
+
+### It also gives run 27 a control
+
+Run 27 argued that `0x83F0`'s abort at 15 ms was too fast for the cable to have waited on the
+vehicle, and therefore that the refusal was local. That was an inference from one sample with
+nothing to compare against. Now there is one: the same cable, the same line settings, **285 ms**
+when it does wait. Fifteen milliseconds is local refusal, and `0x83F0` not touching the bus is
+exactly what run 29 read out of the code.
+
 ## Run 30: the transaction has two read stages, and mode 2 is DS2 beyond doubt
 
 2026-10-28, static. Following `FUN_006b92c0` upward through its callers reached the function that

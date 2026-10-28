@@ -32,6 +32,7 @@ import hu.bmwscanner.ds2.Ds2
 import hu.bmwscanner.ds2.Ds2Link
 import hu.bmwscanner.ds2.VendorHandshake
 import hu.bmwscanner.ds2.VendorProtocol
+import hu.bmwscanner.ds2.VendorTransaction
 import hu.bmwscanner.usb.FtdiDevice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -156,6 +157,7 @@ class MainActivity : AppCompatActivity() {
                 "vendorseq" -> guarded(what) { vendorSequence(device!!) }
                 "bustrials" -> guarded(what) { vendorBusTrials(device!!) }
                 "keyhunt" -> guarded(what) { vendorKeyHunt(device!!) }
+                "twostage" -> guarded(what) { twoStageRead(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -417,10 +419,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "KEY HUNT  (about 4 min)"
+                text = "TWO-STAGE READ  (5 s)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("keyhunt") { d -> vendorKeyHunt(d) } }
+                setOnClickListener { withCable("twostage") { d -> twoStageRead(d) } }
             },
             wide(),
         )
@@ -2411,6 +2413,99 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
+    /**
+     * Sends the one command the cable answers, and watches for a **second** frame after the first.
+     *
+     * Run 30 found that `FUN_006cd1e4` reads twice: `FUN_006ccdd4` takes the cable's
+     * acknowledgement, and then - unless that raised the abort flag, or the 0x83F0 guard is set -
+     * `FUN_006ccf80` reads a module's own frame into a different buffer. The ident frame's reply is
+     * the benign `77 07`, which ends stage one without aborting, so under the code the vendor would
+     * go on to read stage two. This project never has.
+     *
+     * So the question this asks is narrow and worth one button press: **after the `77 07` block,
+     * does anything else arrive?** A long window and per-batch timing answer it either way. If
+     * nothing comes, stage two needs something we have not done; if something comes, we have been
+     * hanging up on the cable mid-sentence for weeks.
+     *
+     * Only the recorded ident frame is sent.
+     */
+    private fun twoStageRead(device: UsbDevice) {
+        log("=== TWO-STAGE READ ===")
+        log("The recorded ident frame, then a four-second window, looking for a second frame.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            dev.purge()
+            dev.setModemControl(dtr = true, rts = null)
+            Thread.sleep(100)
+            dev.setModemControl(dtr = false, rts = null)
+
+            val hs = VendorHandshake.decode(dev.readBytes(VendorHandshake.LENGTH, 1500))
+            if (hs == null) { log("  handshake failed"); return }
+            log("  handshake ok: \"${hs.identity}\", key 0x%02X".format(hs.key))
+
+            val frame = VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12)
+            val (wire, _) = VendorProtocol.scramble(frame, hs.key)
+            log("  sent    ${Ds2.hex(frame)}  as  ${Ds2.hex(wire)}")
+            dev.write(wire)
+
+            val batches = dev.readTimed(4000)
+            if (batches.isEmpty()) { log("  nothing came back at all"); return }
+
+            log("")
+            log("  arrivals:")
+            for ((ms, bytes) in batches) log("    %5d ms  ${Ds2.hex(bytes)}".format(ms))
+
+            val raw = batches.flatMap { it.second.asIterable() }.toByteArray()
+            log("")
+            log("  total ${raw.size} byte(s) over ${batches.last().first} ms")
+
+            // Walk the reply as the executable would, one frame at a time.
+            var at = 0
+            var n = 0
+            while (at < raw.size) {
+                val f = VendorTransaction.resync(
+                    VendorTransaction.Mode.DS2, raw.copyOfRange(at, raw.size))
+                if (f == null) {
+                    val left = raw.copyOfRange(at, raw.size)
+                    log("  trailing ${left.size} byte(s) form no valid frame: ${Ds2.hex(left)}")
+                    break
+                }
+                n++
+                val skipped = f.offset
+                log("  frame $n at offset ${at + skipped}: ${Ds2.hex(f.bytes)}" +
+                    when (f.ack) {
+                        VendorTransaction.Ack.NOTHING_TO_SAY -> "   cable: nothing to say"
+                        VendorTransaction.Ack.ABORT -> "   cable: abort"
+                        null -> "   NOT a sentinel - address 0x%02X".format(f.bytes[0])
+                    })
+                if (skipped > 0) {
+                    log("    (${skipped} byte(s) skipped before it: " +
+                        "${Ds2.hex(raw.copyOfRange(at, at + skipped))})")
+                }
+                at += skipped + f.bytes.size
+            }
+
+            log("")
+            if (n >= 2) {
+                log("  TWO OR MORE FRAMES - the second read stage does produce something,")
+                log("  and every earlier run stopped before it.")
+            } else {
+                log("  ONE FRAME ONLY. Stage two produced nothing in four seconds, so it needs")
+                log("  something we have not done - most likely a command that asks a module for")
+                log("  data, which we do not yet have.")
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end two-stage read ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -3206,5 +3301,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.30-probe"
+    const val NAME = "0.31-probe"
 }
