@@ -684,12 +684,28 @@ request forwarded to a control module and back needs. Everything points the same
 `0x83F0` are the route to the car, and 718 call sites is the size of what the vendor software can
 ask for over it.
 
-### Not yet established
+### Not yet established, with one search already ruled out
 
 What the sixteen-bit command values mean individually, and what the six-byte payload of the captured
-`0x83F0` frame (`E5 50 47 66 C8 14`) contains. It is not a plain DS2 frame — neither byte pair reads
-as an address and length — so there is a further transform or an envelope between the cable and the
-bus that is still unread.
+`0x83F0` frame contains:
+
+```
+09 83 F0 12  E5 50 47 66 C8 14  4C
+09 83 F0 80  E5 50 47 66 28 14  1A
+```
+
+The two differ in exactly one payload byte (`C8` against `28`) and in the frame parameter (`0x12`
+against `0x80`), so the payload is structured rather than opaque.
+
+It is **not** a DS2 frame under any simple per-byte transform. Searching XOR, addition and
+subtraction against every starting key and every step — 196 608 combinations — produced three
+candidates passing both the DS2 length and checksum tests. That is exactly the number pure chance
+predicts for a two-byte test over that many trials, so **none of them is evidence**, and they are
+recorded here as the negative result rather than as leads. Reading the payload needs the code that
+assembles it, not another guess at a cipher.
+
+This project has twice mistaken a coincidence for a finding — run 9's bit grid and run 18's "27 of
+27" — so the arithmetic above is the point of the entry, not the three candidates.
 
 ## Run 22: the burst is the cable's announcement, and the cable works
 
