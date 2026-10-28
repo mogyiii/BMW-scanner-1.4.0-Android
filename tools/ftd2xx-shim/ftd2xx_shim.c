@@ -425,6 +425,12 @@ static void dumpOwnImage(void)
 
 /* ------------------------------------------------------------------ lifecycle */
 
+/* Declared ahead of DllMain only so their addresses can be printed there. */
+FT_STATUS WINAPI FT_Write(FT_HANDLE h, LPVOID buffer, DWORD count, LPDWORD written);
+FT_STATUS WINAPI FT_Read(FT_HANDLE h, LPVOID buffer, DWORD count, LPDWORD returned);
+FT_STATUS WINAPI FT_SetBaudRate(FT_HANDLE h, ULONG baud);
+FT_STATUS WINAPI FT_Purge(FT_HANDLE h, ULONG mask);
+
 BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
 {
     (void)reserved;
@@ -457,6 +463,24 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
         shimLog("directory: %s", g_dir);
         refreshRx();
         loadCandidate();
+
+        /*
+         * Report where our own exports live, so the dump can be searched for them.
+         *
+         * The protector destroyed the import table, and the unpacked image has no recognisable
+         * IAT - hunting for one by looking for clusters of out-of-image pointers finds only text
+         * and code that happens to fall in range. But the executable must hold our addresses
+         * somewhere in order to call us, so printing them turns that search into an exact lookup:
+         * find the stored pointer, and the instruction that reads it is the call site. From a call
+         * site the routine that builds the transmitted bytes is a short walk back.
+         */
+        shimLog("export addresses for dump lookup:");
+        shimLog("   FT_Write        %p", (void *)&FT_Write);
+        shimLog("   FT_Read         %p", (void *)&FT_Read);
+        shimLog("   FT_SetBaudRate  %p", (void *)&FT_SetBaudRate);
+        shimLog("   FT_Purge        %p", (void *)&FT_Purge);
+        shimLog("   shim base       %p", (void *)inst);
+
         DisableThreadLibraryCalls(inst);
     } else if (reason == DLL_PROCESS_DETACH && g_lockReady) {
         shimLog("================ shim unloaded ==============");
