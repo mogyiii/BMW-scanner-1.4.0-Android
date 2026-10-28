@@ -289,6 +289,25 @@ static void loadCandidate(void)
         shimLog("ftd2xx-rx.hex has %u byte(s), so it wins over the built-in candidates", g_rxLen);
         return;
     }
+    /*
+     * The search is over. Candidate 11 was accepted: answering the DTR pulse with the ASCII string
+     * "BMW Scanner v14x" gets the software past its hardware check and all the way to its main
+     * window, module list and all. It is the same string it passes to FT_OpenEx to find the device,
+     * and the same one stored in the cable's EEPROM - the cable identifies itself by repeating its
+     * own description back down the wire.
+     *
+     * So that is now the fixed answer rather than one guess among many. Rotating candidates would
+     * mean ten runs out of eleven failing the check for no reason, when what is wanted from here on
+     * is a session that gets far enough to send commands.
+     */
+    for (i = 0; i < sizeof(cand_desc); i++) g_rx[i] = cand_desc[i];
+    g_rxLen = sizeof(cand_desc);
+    g_rxPos = 0;
+    shimLog("SIGN-ON: answering with \"BMW Scanner v14x\" (%u bytes) - the accepted one", g_rxLen);
+    return;
+
+    /* Kept below, unreachable, because the candidate machinery is how the answer was found and
+     * will be wanted again if the software ever asks for something different. */
     g_candIndex = nextCandidateIndex();
     g_rxPos = 0;
 
@@ -421,7 +440,15 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
         for (i = 0; i < cut; i++) g_dir[i] = path[i];
         g_dir[cut] = 0;
 
-        wsprintfA(g_logPath, "%s\\ftd2xx-shim.log", g_dir);
+        /*
+         * Prefer the VirtualBox shared folder when one is mounted. Reading the log then costs a
+         * file read on the host instead of a screenshot of Notepad inside the guest, which is the
+         * difference between examining a session in seconds and in minutes.
+         */
+        if (GetFileAttributesA("\\\\vboxsvr\\xfer") != INVALID_FILE_ATTRIBUTES)
+            wsprintfA(g_logPath, "\\\\vboxsvr\\xfer\\ftd2xx-shim.log");
+        else
+            wsprintfA(g_logPath, "%s\\ftd2xx-shim.log", g_dir);
         wsprintfA(g_rxPath, "%s\\ftd2xx-rx.hex", g_dir);
         wsprintfA(g_statePath, "%s\\ftd2xx-state.txt", g_dir);
 
