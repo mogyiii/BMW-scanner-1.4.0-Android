@@ -640,6 +640,75 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 30: the transaction has two read stages, and mode 2 is DS2 beyond doubt
+
+2026-10-28, static. Following `FUN_006b92c0` upward through its callers reached the function that
+drives a whole exchange, `FUN_006cd1e4`, and it does something no run of this project has ever done.
+
+### Three steps, not two
+
+```
+write the scrambled command frame
+  FUN_006ccdd4  -> the cable's acknowledgement, into DAT_008ddb60
+  FUN_006ccf80  -> the module's own frame, into DAT_008ddc60   <-- never read by us
+```
+
+The second buffer is a different buffer at a different address, read by a different function. Every
+run up to 27 read once and treated the result as the answer. The `77 07` block that came back is
+stage one — `FUN_006ccdd4` checks for that opening explicitly — and stage two was never attempted.
+That alone would explain why no control module has ever said anything to us.
+
+The 0x83F0 path is the exception and confirms the shape: it sets `DAT_00a1cb4c`, and
+`FUN_006cd1e4` returns as soon as stage one completes when that flag is set. A timing command has
+no module reply to wait for.
+
+There are also **two attempts**: `FUN_006cd1e4` runs the whole thing with a retry counter, and
+several reply conditions send it back round rather than failing.
+
+### Mode 2 is DS2, mode 4 is KWP2000 — settled
+
+`FUN_006ccf80` sizes its read from the frame and then verifies it:
+
+| mode | length from | checksum |
+|---|---|---|
+| 1 | byte 2 | XOR, must be zero |
+| **2** | **byte 1** | **XOR, must be zero** |
+| 3 | byte 3, plus 5 | XOR, must be zero |
+| **4** | `byte0 & 0x3F` plus 4, or byte 3 plus 5 | **additive**, must be zero |
+
+Mode 2 is `[address][length][data][XOR]` with the whole frame XORing to zero. That is DS2 exactly.
+Mode 4 takes its length from a format byte's low six bits and sums instead — ISO 14230.
+
+`FUN_006cd1e4`'s success tests say the same thing independently. Mode 2 succeeds when byte 2 of the
+module frame is `0xA0` and retries on `0xA1`; `0xA0` is DS2's positive acknowledgement. Mode 4 fails
+on `0x7F` and singles out `0x78`, `0x21` and `0x23` after it — KWP2000's responsePending,
+busyRepeatRequest and conditionsNotCorrect.
+
+Both stages are now transcribed in `ds2/VendorTransaction.kt`, with the live bytes as tests.
+
+### The three-byte discrepancy is still open
+
+`FUN_006ccf80` and `FUN_006ccdd4` both start their buffer at the first byte that arrives, and
+`FUN_006ca098` writes without reading anything back, so nothing in the executable consumes a prefix.
+Yet our replies carry three bytes before the frame: `41 AA 12` ahead of `77 07 77 07 77 07 70`, and
+one byte, `83`, ahead of the `7A 07` block. Under the code those leading bytes would be read as the
+frame's own address and length, and `0xAA` is not a length.
+
+So either the cable answers us differently than it answers the vendor, or those bytes are something
+not yet understood. `VendorTransaction.resync` therefore searches for the offset at which the rule
+yields a frame that checks out, and **reports that offset** instead of assuming it. For the two
+live replies it finds 3 and 1 — which is a measurement of the discrepancy rather than a way around
+it.
+
+### What is still missing
+
+A command that carries a request *to a module*. `0x41AA` and `0x83F0` are the only two ever observed
+leaving the vendor software, and neither asks for vehicle data: one is answered `77 07`, nothing to
+say, and the other configures timing. The 276 mode-2 command codes in `vendor-command-set.txt` came
+from a heuristic scan and are too noisy to pick from. Searching the image's strings found the fault
+description database around `0x4A4851` and the option-code database around `0x6B2AF5`, both useful
+later, but not the command table.
+
 ## Run 29: what 0x83F0 actually is, and the module table behind it
 
 2026-10-28, static. No car and no VM: the payload was read out of the executable rather than guessed
