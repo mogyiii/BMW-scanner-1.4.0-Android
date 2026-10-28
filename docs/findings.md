@@ -640,6 +640,84 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 21: the executable gives up its serial layer
+
+With the dump rebuilt as a loadable PE, Ghidra analyses it normally and the path from the
+FTDI API to the frame builder is short. Addresses below are VAs in the rebuilt image
+(`build/unpacked/unpacked_rebuilt.exe`, ImageBase `0x400000`).
+
+### There is no import table because the names are scrambled
+
+`FUN_006c9970` is the loader. It calls `LoadLibrary` once and `GetProcAddress` eleven times, each
+with an obfuscated literal, and stores the results in a pointer table at `0x00a4cee8`. The
+obfuscation is **interleaving with a decoy string** — take every second character:
+
+```
+afstddf2gxhx__gdtlyl              ->  ftd2xx.dll
+DFET__RLTihsjtoDReavcibcnems      ->  FT_ListDevices
+BFNTC_AWErriytue                  ->  FT_Write
+```
+
+Decoding all eleven gives the table, and **four entries are confirmed independently**: the shim was
+made to print its own export addresses, and the pointers stored at those four slots match exactly.
+
+| Slot | Function | Verified |
+|---|---|---|
+| `0x00a4cee8` | module handle | — |
+| `0x00a4ceec` | `FT_ListDevices` | |
+| `0x00a4cef0` | `FT_OpenEx` | |
+| `0x00a4cef4` | `FT_Close` | |
+| `0x00a4cef8` | `FT_SetBaudRate` | **✓ `0x703C19D0`** |
+| `0x00a4cefc` | `FT_SetDataCharacteristics` | |
+| `0x00a4cf00` | `FT_Purge` | **✓ `0x703C1DB0`** |
+| `0x00a4cf04` | `FT_SetTimeouts` | |
+| `0x00a4cf08` | `FT_SetDtr` | |
+| `0x00a4cf0c` | `FT_ClrDtr` | |
+| `0x00a4cf10` | `FT_Read` | **✓ `0x703C1D90`** |
+| `0x00a4cf14` | `FT_Write` | **✓ `0x703C1E50`** |
+
+### The payload obfuscation is a rolling XOR, step 0x4B
+
+`0x00a4cf14` is called from a 57-byte wrapper at `0x6ca098`, whose only caller is the transmit
+routine at `0x6ccdd4`. Its send loop is explicit:
+
+```c
+pbVar5 = &DAT_008dda60;              /* the plaintext frame */
+iVar3  = DAT_00a4cecc;               /* its length */
+do {
+    FUN_006ca098(param_1, *pbVar5 ^ DAT_0098289c);   /* byte XOR key */
+    DAT_0098289c = DAT_0098289c + 0x4b;              /* key advances by 0x4B */
+    pbVar5 = pbVar5 + 1;
+} while (--iVar3 != 0);
+```
+
+So the bytes captured on the wire are the real frame XORed with a key that steps by **0x4B per
+byte**. The plaintext frame is assembled at `0x008dda60` before any of this.
+
+**Not yet solved: where the key starts.** Brute-forcing all 256 starting values over the captured
+frames produces no valid DS2 frame, so the key is neither zero nor per-frame constant —
+`DAT_0098289c` is a global that carries across frames. It is written at eight sites, five of them
+clustered at `0x6ce44e`–`0x6ce477`, which is the next thing to read.
+
+### The receive side names four protocol families
+
+The same routine reads the reply and decides its length from `DAT_00a4cf20`, which selects between
+four framings:
+
+| `DAT_00a4cf20` | Where the length comes from |
+|---|---|
+| 1 | byte at index 2 |
+| 2 | **byte at index 1 — this is DS2** |
+| 3 | byte at index 3, plus 5 |
+| 4 | `byte0 & 0x3F` plus 4, or if that is zero, byte3 plus 5 |
+
+Mode 2 is exactly the DS2 framing `Ds2.kt` already implements: address, then a length byte counting
+the whole frame. So the software speaks four protocol families and DS2 is one selectable mode —
+consistent with the capture switching the line between 19200 8N1 and 9600 8E1 mid-session.
+
+Two sentinels are also visible: a reply beginning `7A 07` or `77 07` is special-cased to a fixed
+length of 7 and ends the exchange.
+
 ## Run 19–20: the sign-on, the protocol, and the unpacked executable
 
 Three things fell out at once, and together they are what the project set out to get.
