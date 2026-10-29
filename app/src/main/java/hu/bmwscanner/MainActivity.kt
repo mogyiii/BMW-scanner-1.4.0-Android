@@ -2714,7 +2714,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Sends the connection-setup frame once per module address, and records what comes back.
+     * Opens a whole connection per module address and sends the setup frame, as the vendor does.
+     *
+     * The first version signed on once and then sent sixty-three frames down the one link. Run 37
+     * showed that stops working after two: addresses `0x00` and `0x08` answered cleanly and every
+     * one after them came back `65 3D 02 ...`, which fits no length rule under any key. Run 34 had
+     * already shown the same decay after three frames and blamed `0x83F0`; run 37 had no `0x83F0`
+     * in it and decayed anyway, so that explanation does not survive.
+     *
+     * The vendor's own capture never sends more than one query per connection — its pattern is
+     * `A77A, B318, 83F0, 83F0` per address, re-signing on each time. Sending sixty-three frames
+     * down one link was an optimisation this project invented, on the strength of a run-34 count
+     * that tallied "bytes came back" rather than "a valid frame came back". This follows the
+     * capture instead.
      *
      * `0xB318` is **not** a per-module query, although run 35 made it look like one by showing it
      * eighty-four times, once per address. Its single call site sits in the link-establishment path
@@ -2746,76 +2758,67 @@ class MainActivity : AppCompatActivity() {
      */
     private fun moduleScan(device: UsbDevice) {
         log("=== MODULE SCAN ===")
-        log("0xB318 with payload 01, once per address. This is the vendor's connection-setup")
-        log("frame, not a per-module query - what we want from it is one genuine reply.")
+        log("One full connection per address, as the vendor does: DTR pulse, handshake,")
+        log("sign-on, then 0xB318. Not one sign-on and sixty-three frames - run 37 showed")
+        log("that degrades after two.")
         log("")
 
         var dev: FtdiDevice? = null
-        val found = mutableListOf<Pair<Int, ByteArray>>()
+        val good = mutableListOf<Pair<Int, ByteArray>>()
+        var degraded = 0
         try {
             dev = FtdiDevice.open(usbManager, device, 0)
             dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
-            dev.purge()
-            dev.setModemControl(dtr = true, rts = null)
-            Thread.sleep(100)
-            dev.setModemControl(dtr = false, rts = null)
-
-            val raw = dev.readBytes(VendorHandshake.LENGTH, 1500)
-            val hs = VendorHandshake.decode(raw)
-            if (hs == null) { log("  handshake failed"); return }
-            if (!VendorProtocol.matchesRecordedCable(raw)) {
-                log("  announcement differs from the recorded challenge - stopping rather than")
-                log("  sending a response computed for a different one.")
-                return
-            }
-            log("  handshake ok, challenge matches, key 0x%02X".format(hs.key))
-
-            var key = hs.key
-            val (signOn, afterSignOn) = VendorProtocol.scramble(VendorProtocol.SIGN_ON_FRAME, key)
-            dev.write(signOn)
-            key = afterSignOn
-            val sr = dev.readTimed(900).flatMap { it.second.asIterable() }.toByteArray()
-            log("  sign-on reply: ${if (sr.isEmpty()) "none" else Ds2.hex(sr)}")
-            log("")
 
             for (addr in VendorProtocol.MODULE_ADDRESSES) {
                 if (stopRequested) { log("stopped"); break }
+
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(80)
+                dev.setModemControl(dtr = false, rts = null)
+
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
+                if (VendorHandshake.decode(raw) == null) {
+                    log("  0x%02X  handshake failed".format(addr)); continue
+                }
+                if (!VendorProtocol.matchesRecordedCable(raw)) {
+                    log("  announcement changed - stopping rather than answering a challenge")
+                    log("  the recorded response was not computed for."); break
+                }
+
+                var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                val (signOn, next) = VendorProtocol.scramble(VendorProtocol.SIGN_ON_FRAME, key)
+                dev.write(signOn)
+                key = next
+                dev.readTimed(500)
+
                 val frame = VendorProtocol.buildFrame(
                     VendorProtocol.Command.MODULE, addr,
                     byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))
-                val (wire, next) = VendorProtocol.scramble(frame, key)
+                val (wire, _) = VendorProtocol.scramble(frame, key)
                 dev.write(wire)
-                key = next
 
-                val batches = dev.readTimed(700)
-                val reply = batches.flatMap { it.second.asIterable() }.toByteArray()
-                if (reply.isEmpty()) {
-                    log("  0x%02X  -".format(addr))
-                    continue
-                }
+                val reply = dev.readTimed(700).flatMap { it.second.asIterable() }.toByteArray()
+                if (reply.isEmpty()) { log("  0x%02X  -".format(addr)); continue }
+
                 val hit = VendorTransaction.resyncAnyMode(reply)
                 val note = when {
-                    hit == null -> "  no rule fits"
+                    hit == null -> { degraded++; "  no rule fits" }
                     hit.second.ack == VendorTransaction.Ack.NOTHING_TO_SAY -> "  nothing to say"
                     hit.second.ack == VendorTransaction.Ack.ABORT -> "  abort"
-                    else -> {
-                        found += addr to hit.second.bytes
-                        "  <<<<<< MODULE ANSWERED (mode ${hit.first.code})"
-                    }
+                    else -> { good += addr to hit.second.bytes
+                              "  <<<<<< ANSWERED (mode ${hit.first.code})" }
                 }
                 log("  0x%02X  ${Ds2.hex(reply)}$note".format(addr))
             }
 
             log("")
-            if (found.isEmpty()) {
-                log("  No address returned a frame that was not one of the two fixed non-events.")
-                log("  The command and payload are the vendor's own, so what is missing is")
-                log("  elsewhere - the omitted 0x83F0 step is the first thing to suspect.")
-                log("  Note this frame is connection setup, so a reply may not depend on the")
-                log("  address at all; one answer from any of them is what is wanted.")
-            } else {
-                log("  ${found.size} module(s) answered:")
-                for ((a, b) in found) log("    0x%02X  ${Ds2.hex(b)}".format(a))
+            log("  ${good.size} answered with a frame, $degraded came back unreadable.")
+            if (good.isNotEmpty()) for ((a, b) in good) log("    0x%02X  ${Ds2.hex(b)}".format(a))
+            if (degraded == 0) {
+                log("  Nothing degraded this time, so rebuilding the connection per address is")
+                log("  what the cable wants - which is exactly what the vendor capture does.")
             }
         } catch (e: Throwable) {
             log("  failed: ${e.javaClass.simpleName}: ${e.message}")
@@ -3620,5 +3623,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.35-probe"
+    const val NAME = "0.36-probe"
 }

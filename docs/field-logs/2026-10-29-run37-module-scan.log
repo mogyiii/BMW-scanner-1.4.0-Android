@@ -1,0 +1,80 @@
+14:30:31.591  BMW DS2 Probe 0.35-probe
+14:30:31.606  Looking for the cable: VID 0x0333 / PID 0x0137
+
+14:30:31.614  USB rescan: 1 device(s)
+14:30:31.615    /dev/bus/usb/001/002  0333:0137
+14:30:44.323  === MODULE SCAN ===
+14:30:44.325  0xB318 with payload 01 to each of the 63 addresses
+14:30:44.326  the vendor software scans. This is its identification query.
+
+14:30:44.590    handshake ok, challenge matches, key 0x9B
+14:30:45.493    sign-on reply: 77 07 77 07 77 07 70
+
+14:30:46.198    0x00  77 07 77 07 77 07 70  nothing to say
+14:30:46.900    0x08  77 07 77 07 77 07 70  nothing to say
+14:30:47.603    0x12  65 3D 02 71 26 54 C3 A0  no rule fits
+14:30:48.307    0x13  65 3D 02 C2 FD 5A D1 4F 25  no rule fits
+14:30:49.010    0x16  65 3D 02 46 71 DE 48 C3 A4  no rule fits
+14:30:49.713    0x18  65 3D 02 DA F5 5A DA 47 26  no rule fits
+14:30:50.419    0x1B  65 3D 02 46 71 D6 5D C3 A9  no rule fits
+14:30:51.122    0x1E  65 3D 02 C2 8D 5A DC 7F 28  no rule fits
+14:30:51.824    0x22  65 3D 02 46 F1 DE 6C C3 B0  no rule fits
+14:30:52.528    0x24  65 3D 02 CA 75 5A E6 47 2A  no rule fits
+14:30:53.231    0x28  65 3D 02 46 F1 C6 6E C3 BA  no rule fits
+14:30:53.935    0x29  65 3D 02 C2 7D 5A EB 4F 3F  no rule fits
+14:30:54.638    0x2E  65 3D 02 46 F1 DE 50 C3 BC  no rule fits
+14:30:55.341    0x30  65 3D 02 3A 75 5A F2 47 CE  no rule fits
+14:30:56.044    0x32  65 3D 02 C6 F1 D6 74 C3 40  no rule fits
+14:30:56.750    0x34  65 3D 02 42 6D 5A F6 5F C2  no rule fits
+14:30:57.455    0x3B  65 3D 02 C6 F1 DE 75 C3 49  no rule fits
+14:30:58.159    0x40  65 3D 02 4A 75 5A 82 47 2E  no rule fits
+14:30:58.863    0x44  65 3D 02 C6 F1 E6 02 C3 D6  no rule fits
+14:30:59.566    0x47  65 3D 02 42 7D 5A 85 4F 51  no rule fits
+14:31:00.271    0x48  65 3D 02 C6 F1 DE 16 C3 DA  no rule fits
+14:31:00.977    0x4A  65 3D 02 5A 75 5A 88 47 54  no rule fits
+14:31:01.678    0x50  65 3D 02 C6 F1 D6 16 C3 E2  no rule fits
+14:31:02.385    0x51  65 3D 02 42 4D 5A 93 3F 67  no rule fits
+14:31:03.089    0x56  65 3D 02 C6 F1 DE 18 43 E4  no rule fits
+14:31:03.792    0x57  65 3D 02 4A 75 5A 95 C7 79  no rule fits
+14:31:04.494    0x5A  65 3D 02 C6 F1 C6 1C 43 E8  no rule fits
+14:31:05.202    0x5B  65 3D 02 42 7D 5A 99 CF 6D  no rule fits
+14:31:05.905    0x60  65 3D 02 C6 F1 DE 5E 43 F2  no rule fits
+14:31:06.613    0x65  65 3D 02 7A 75 5A 27 C7 7B  no rule fits
+14:31:07.316    0x66  65 3D 02 C6 F1 D6 A0 43 F4  no rule fits
+14:31:08.019    0x68  65 3D 02 42 6D 5A 2A DF 7E  no rule fits
+14:31:08.723    0x6A  65 3D 02 C6 F1 DE A4 43 F8  no rule fits
+14:31:09.428    0x6B  65 3D 02 4A 75 5A 29 C7 45  no rule fits
+14:31:10.132    0x70  65 3D 02 C6 F1 26 B6 43 82  no rule fits
+14:31:10.836    0x72  65 3D 02 42 7D DA 30 CF 04  no rule fits
+14:31:11.539    0x74  65 3D 02 C6 F1 5E AA 43 86  no rule fits
+14:31:12.246    0x7F  65 3D 02 5A 75 DA 3D C7 01  no rule fits
+14:31:12.949    0x80  65 3D 02 C6 F1 56 46 43 92  no rule fits
+14:31:13.652    0x81  65 3D 02 42 8D DA C3 FF 17  no rule fits
+14:31:14.355    0x86  65 3D 02 C6 71 5E 48 43 94  no rule fits
+14:31:15.058    0x98  65 3D 02 4A F5 DA DA C7 36  no rule fits
+14:31:15.761    0x9A  65 3D 02 C6 71 46 5C 43 A8  no rule fits
+14:31:16.464    0x9B  65 3D 02 42 FD DA D9 CF 2D  no rule fits
+14:31:17.172    0x9C  65 3D 02 C6 71 5E 62 43 AE  no rule fits
+14:31:17.877    0x9E  65 3D 02 3A F5 DA DC C7 20  no rule fits
+14:31:18.581    0xA0  65 3D 02 46 71 56 66 43 B2  no rule fits
+14:31:19.285    0xA4  65 3D 02 C2 ED DA E6 DF 32  no rule fits
+14:31:19.988    0xA6  65 3D 02 46 71 5E 68 43 B4  no rule fits
+14:31:20.692    0xA7  65 3D 02 CA F5 DA E5 C7 49  no rule fits
+14:31:21.397    0xAC  65 3D 02 46 71 66 6A 43 3E  no rule fits
+14:31:22.102    0xB0  65 3D 02 C2 FD DA F2 CF 46  no rule fits
+14:31:22.805    0xBB  65 3D 02 46 71 5E 65 43 C9  no rule fits
+14:31:23.507    0xC0  65 3D 02 DA F5 DA 82 C7 5E  no rule fits
+14:31:24.208    0xC2  65 3D 02 46 71 56 04 43 D0  no rule fits
+14:31:24.911    0xC8  65 3D 02 C2 CD DA 8A 3F 5E  no rule fits
+14:31:25.615    0xCE  65 3D 02 46 71 5E 00 C3 DC  no rule fits
+14:31:26.319    0xD0  65 3D 02 CA F5 DA 92 47 7E  no rule fits
+14:31:27.022    0xDA  65 3D 02 46 71 46 1C C3 E8  no rule fits
+14:31:27.727    0xE8  65 3D 02 C2 FD DA AA 4F 7E  no rule fits
+14:31:28.433    0xED  65 3D 02 46 71 5E D3 C3 FF  no rule fits
+14:31:29.137    0xF0  65 3D 02 FA F5 DA 32 47 0E  no rule fits
+14:31:29.841    0xF5  65 3D 02 46 71 56 B3 C3 87  no rule fits
+
+14:31:29.842    No address returned a frame that was not one of the two fixed non-events.
+14:31:29.843    The command and payload are the vendor's own, so what is missing is
+14:31:29.844    elsewhere - the omitted 0x83F0 step is the first thing to suspect.
+14:31:29.852  === end module scan ===

@@ -640,6 +640,52 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 37: the link decays after two frames, and run 34's conclusion was mine to get wrong
+
+2026-10-29, on the car. `0xB318` to all sixty-three addresses down one connection.
+(`field-logs/2026-10-29-run37-module-scan.log`)
+
+```
+0x00  77 07 77 07 77 07 70        nothing to say
+0x08  77 07 77 07 77 07 70        nothing to say
+0x12  65 3D 02 71 26 54 C3 A0     no rule fits
+0x13  65 3D 02 C2 FD 5A D1 4F 25  no rule fits
+...                               sixty-one more, all 65 3D 02
+```
+
+Two clean replies, then `65 3D 02` for every remaining address — the same token that appeared in
+runs 26 and 27 whenever something had gone wrong and which has never been explained.
+
+The tails are not loopbacks of what we sent, and they are not frames: brute-forcing every reply
+against all 256 starting keys and all four length rules produced one hit in six replies, which is
+what chance gives over that many trials. Recorded as a negative result.
+
+### The correction
+
+Run 34 concluded "the session stays open; one DTR pulse can serve a whole scan", and built that into
+the scan. **It is wrong, and the fault is in how I counted.** That run tallied a frame as answered
+if *any bytes came back*. Re-reading its own log against the stricter test:
+
+| run | valid frames | after that |
+|---|---|---|
+| 34 | first **3** | replies 4 and 5 unreadable |
+| 37 | first **2** | `65 3D 02 …` for sixty-one addresses |
+
+The link decays after two or three frames. Run 34 blamed `0x83F0` for its decay; run 37 contains no
+`0x83F0` and decays anyway, so that explanation does not survive either.
+
+### What the capture says, and what we did instead
+
+The vendor never sends more than one query per connection. Its pattern per address is
+`A77A, B318, 83F0, 83F0` — **it re-signs on every time**, which is why run 35 saw eighty-four
+sign-ons for sixty-three addresses. Sending sixty-three frames down one link was an optimisation
+this project invented on the strength of a miscount, and the scan now does what the capture does:
+DTR pulse, handshake, sign-on, one query, per address.
+
+That is slower — about a second each — and it is what the evidence supports. Whether the decay is
+the real reason the vendor rebuilds each time is not established; what is established is that we
+deviated from the capture without grounds and the deviation broke.
+
 ## Run 36: correcting run 35 — `0xB318` is connection setup, not a module query
 
 2026-10-29, static. Run 35 was written an hour earlier and its central claim is wrong. The
