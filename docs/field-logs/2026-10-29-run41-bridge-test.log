@@ -1,0 +1,70 @@
+15:01:48.986  BMW DS2 Probe 0.38-probe
+15:01:48.997  Looking for the cable: VID 0x0333 / PID 0x0137
+
+15:01:49.004  USB rescan: 1 device(s)
+15:01:49.007    /dev/bus/usb/001/002  0333:0137
+15:01:51.884  === BRIDGE TEST ===
+15:01:51.886  The vendor's full setup, including the switch to 9600 8E1 after the first 0x83F0,
+15:01:51.888  then a raw DS2 identification request. Testing whether the cable passes through.
+
+15:01:51.895    --- address 0x12 ---
+15:01:52.656      sign-on -> 77 07 77 07 77 07 70
+15:01:53.159      0xB318 -> 77 07 77 07 77 07 70
+15:01:53.663      0x83F0 at 19200 8N1 -> 77 07 77 07 77 07 70
+15:01:53.667      --> line now 9600 8E1
+15:01:54.173      0x83F0 at 9600 8E1 -> C4 A8 62 19 FD 07 9E 5F 18 DF EE
+15:01:54.176      raw DS2 request 12 04 00 16  (unscrambled - pass-through hypothesis)
+15:01:55.082      -> C4 08 D7 C3 FD
+15:01:55.088      no valid frame in it
+
+15:01:55.091    --- address 0x80 ---
+15:01:55.838      sign-on -> 77 07 77 07 77 07 70
+15:01:56.343      0xB318 -> 77 07 77 07 77 07 70
+15:01:56.848      0x83F0 at 19200 8N1 -> 77 07 77 07 77 07 70
+15:01:56.854      --> line now 9600 8E1
+15:01:57.359      0x83F0 at 9600 8E1 -> C4 A8 62 19 F1 E3 7B 78 0A 46 FF
+15:01:57.362      raw DS2 request 80 04 00 84  (unscrambled - pass-through hypothesis)
+15:01:58.264      -> C4 38 DE 9A
+15:01:58.266      no valid frame in it
+
+15:01:58.268    --- address 0xA4 ---
+15:01:59.013      sign-on -> 77 07 77 07 77 07 70
+15:01:59.526      0xB318 -> 77 07 77 07 77 07 70
+15:02:00.030      0x83F0 at 19200 8N1 -> 77 07 77 07 77 07 70
+15:02:00.037      --> line now 9600 8E1
+15:02:00.541      0x83F0 at 9600 8E1 -> C4 C8 62 19 AA F8 1B 7E 0A 46 FF
+15:02:00.543      raw DS2 request A4 04 00 A0  (unscrambled - pass-through hypothesis)
+15:02:01.447      -> C4 B8 DD 63 FF
+15:02:01.452      no valid frame in it
+
+15:02:01.455    --- address 0x44 ---
+15:02:02.202      sign-on -> 77 07 77 07 77 07 70
+15:02:02.706      0xB318 -> 77 07 77 07 77 07 70
+15:02:03.211      0x83F0 at 19200 8N1 -> 77 07 77 07 77 07 70
+15:02:03.217      --> line now 9600 8E1
+15:02:03.720      0x83F0 at 9600 8E1 -> C4 88 62 19 A7 F8 1B 7E 0A 46 FE
+15:02:03.721      raw DS2 request 44 04 00 40  (unscrambled - pass-through hypothesis)
+15:02:04.623      -> C4 B8 D8 63 FF
+15:02:04.628      no valid frame in it
+
+15:02:04.631    --- address 0x32 ---
+15:02:05.375      sign-on -> 77 07 77 07 77 07 70
+15:02:05.882      0xB318 -> 77 07 77 07 77 07 70
+15:02:06.386      0x83F0 at 19200 8N1 -> 77 07 77 07 77 07 70
+15:02:06.391      --> line now 9600 8E1
+15:02:06.901      0x83F0 at 9600 8E1 -> C4 88 62 19 E5 C6 66 78 3F 1C FC
+15:02:06.902      raw DS2 request 32 04 00 36  (unscrambled - pass-through hypothesis)
+15:02:07.805      -> C4 48 DC 53 FF
+15:02:07.810      no valid frame in it
+
+15:02:07.814    --- address 0x56 ---
+15:02:08.557      sign-on -> 77 07 77 07 77 07 70
+15:02:09.062      0xB318 -> 77 07 77 07 77 07 70
+15:02:09.566      0x83F0 at 19200 8N1 -> 77 07 77 07 77 07 70
+15:02:09.570      --> line now 9600 8E1
+15:02:10.075      0x83F0 at 9600 8E1 -> C4 88 62 19 64 1C DE 0D C0 C3
+15:02:10.076      raw DS2 request 56 04 00 52  (unscrambled - pass-through hypothesis)
+15:02:10.980      -> C4 F8 5B 73 FF
+15:02:10.985      no valid frame in it
+
+15:02:10.990  === end bridge test ===

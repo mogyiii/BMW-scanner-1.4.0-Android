@@ -640,6 +640,52 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 41: the bridge test, and where the line change actually belongs
+
+2026-10-29, on the car. The vendor's setup with the line change, then a raw DS2 request.
+(`field-logs/2026-10-29-run41-bridge-test.log`)
+
+Everything at 19200 8N1 is clean — sign-on, `0xB318` and the first `0x83F0` each return
+`77 07 77 07 77 07 70` at all six probed addresses. **After the switch to 9600 8E1, every reply
+begins `0xC4`:**
+
+```
+0x83F0 at 9600 8E1  ->  C4 A8 62 19 FD 07 9E 5F 18 DF EE
+raw DS2 12 04 00 16 ->  C4 08 D7 C3 FD
+```
+
+`0xC4` is the byte the withdrawn fault report built its case on, back when the project sent DS2
+frames at 9600 and got `C4 21`, `C4 08 F8` and the like. The same artefact, unchanged by everything
+learned since. The low nibble of the second byte is `8` in all six, which is the fingerprint of a
+bit stream being sampled out of alignment rather than of data.
+
+So the pass-through hypothesis is **not** supported by this run. It is not refuted either, because
+the run has a defect.
+
+### The defect: the line change is in the wrong place
+
+Re-reading run 40's log closely, the vendor's `FT_SetBaudRate(9600)` sits **between the write of the
+first `0x83F0` and the read of its reply**:
+
+```
+write 0x83F0                     (19200 8N1)
+FT_SetBaudRate(9600) + even
+FT_Read -> 65 3D ...             (the reply, read at 9600 8E1)
+write 0x83F0 again               (9600 8E1)
+```
+
+This run wrote the first `0x83F0`, read its reply at 19200, and only then switched. That ordering
+fits what the command appears to be: `0x83F0` is what moves the cable to the DS2 rate, so its own
+answer already comes back there. Corrected in v0.39.
+
+### An arithmetic slip of mine, corrected
+
+I read the vendor's key going `0x27` at `0xB318` and `0xE9` at the next `0x83F0`, computed the gap
+as ~248 bytes, and wrote that the software must be sending something we are not. It is not:
+`6 × 0x4B = 0x1C2`, low byte `0xC2`, and `0x27 + 0xC2 = 0xE9` exactly. I had used `0x11A`. **Our
+sequence matches the vendor's byte for byte**, and the code was always right — only the prose was
+wrong.
+
 ## Run 40: the line changes to 9600 8E1 after the first `0x83F0`
 
 2026-10-29, in the VM, with the shim serving the clean thirteen-byte `0x83F0` reply.

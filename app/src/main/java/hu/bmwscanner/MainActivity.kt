@@ -2924,16 +2924,25 @@ class MainActivity : AppCompatActivity() {
                 send(VendorProtocol.SIGN_ON_FRAME, "sign-on", 500)
                 send(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
                     byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318", 500)
-                send(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
-                    "0x83F0 at 19200 8N1", 500)
+                // The first 0x83F0 goes out at 19200 and its reply is read at 9600 8E1: the
+                // vendor's FT_SetBaudRate sits between the write and the read, not after both.
+                // That fits what the command is for - it is what moves the cable to the DS2 rate,
+                // so its own answer already comes back there.
+                run {
+                    val f = VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload)
+                    val (w, n) = VendorProtocol.scramble(f, key)
+                    key = n
+                    dev!!.write(w)
+                    log("    0x83F0 written at 19200 8N1, no read")
+                    dev.setBaudRate(9600)
+                    dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
+                    log("    --> line now 9600 8E1, before reading its reply")
+                    val r = dev.readTimed(600).flatMap { it.second.asIterable() }.toByteArray()
+                    log("    reply at 9600 8E1 -> ${if (r.isEmpty()) "nothing" else Ds2.hex(r)}")
+                }
 
-                // The step every earlier run missed.
-                dev.setBaudRate(9600)
-                dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
-                log("    --> line now 9600 8E1")
-
                 send(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
-                    "0x83F0 at 9600 8E1", 500)
+                    "0x83F0 #2 at 9600 8E1", 500)
 
                 // The hypothesis: the cable is now a pass-through and this is an ordinary DS2
                 // request, not a vendor frame.
@@ -3759,5 +3768,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.38-probe"
+    const val NAME = "0.39-probe"
 }
