@@ -1,0 +1,78 @@
+14:39:14.861  BMW DS2 Probe 0.36-probe
+14:39:14.870  Looking for the cable: VID 0x0333 / PID 0x0137
+
+14:39:14.876  USB rescan: 1 device(s)
+14:39:14.877    /dev/bus/usb/001/002  0333:0137
+14:39:18.433  === MODULE SCAN ===
+14:39:18.434  One full connection per address, as the vendor does: DTR pulse, handshake,
+14:39:18.434  sign-on, then 0xB318. Not one sign-on and sixty-three frames - run 37 showed
+14:39:18.434  that degrades after two.
+
+14:39:19.885    0x00  77 07 77 07 77 07 70  nothing to say
+14:39:21.315    0x08  77 07 77 07 77 07 70  nothing to say
+14:39:22.746    0x12  77 07 77 07 77 07 70  nothing to say
+14:39:24.174    0x13  77 07 77 07 77 07 70  nothing to say
+14:39:25.603    0x16  77 07 77 07 77 07 70  nothing to say
+14:39:27.031    0x18  77 07 77 07 77 07 70  nothing to say
+14:39:28.464    0x1B  77 07 77 07 77 07 70  nothing to say
+14:39:29.894    0x1E  77 07 77 07 77 07 70  nothing to say
+14:39:31.325    0x22  77 07 77 07 77 07 70  nothing to say
+14:39:32.756    0x24  77 07 77 07 77 07 70  nothing to say
+14:39:34.186    0x28  77 07 77 07 77 07 70  nothing to say
+14:39:35.622    0x29  77 07 77 07 77 07 70  nothing to say
+14:39:37.054    0x2E  77 07 77 07 77 07 70  nothing to say
+14:39:38.482    0x30  77 07 77 07 77 07 70  nothing to say
+14:39:39.912    0x32  77 07 77 07 77 07 70  nothing to say
+14:39:41.346    0x34  77 07 77 07 77 07 70  nothing to say
+14:39:42.779    0x3B  77 07 77 07 77 07 70  nothing to say
+14:39:44.218    0x40  77 07 77 07 77 07 70  nothing to say
+14:39:45.651    0x44  77 07 77 07 77 07 70  nothing to say
+14:39:47.084    0x47  77 07 77 07 77 07 70  nothing to say
+14:39:48.519    0x48  77 07 77 07 77 07 70  nothing to say
+14:39:49.951    0x4A  77 07 77 07 77 07 70  nothing to say
+14:39:51.385    0x50  77 07 77 07 77 07 70  nothing to say
+14:39:52.818    0x51  77 07 77 07 77 07 70  nothing to say
+14:39:54.249    0x56  77 07 77 07 77 07 70  nothing to say
+14:39:55.678    0x57  77 07 77 07 77 07 70  nothing to say
+14:39:57.110    0x5A  77 07 77 07 77 07 70  nothing to say
+14:39:58.542    0x5B  77 07 77 07 77 07 70  nothing to say
+14:39:59.973    0x60  77 07 77 07 77 07 70  nothing to say
+14:40:01.406    0x65  77 07 77 07 77 07 70  nothing to say
+14:40:02.833    0x66  77 07 77 07 77 07 70  nothing to say
+14:40:04.264    0x68  77 07 77 07 77 07 70  nothing to say
+14:40:05.696    0x6A  77 07 77 07 77 07 70  nothing to say
+14:40:07.137    0x6B  77 07 77 07 77 07 70  nothing to say
+14:40:08.567    0x70  77 07 77 07 77 07 70  nothing to say
+14:40:09.995    0x72  77 07 77 07 77 07 70  nothing to say
+14:40:11.426    0x74  77 07 77 07 77 07 70  nothing to say
+14:40:12.861    0x7F  77 07 77 07 77 07 70  nothing to say
+14:40:14.294    0x80  77 07 77 07 77 07 70  nothing to say
+14:40:15.727    0x81  77 07 77 07 77 07 70  nothing to say
+14:40:17.157    0x86  77 07 77 07 77 07 70  nothing to say
+14:40:18.589    0x98  77 07 77 07 77 07 70  nothing to say
+14:40:20.024    0x9A  77 07 77 07 77 07 70  nothing to say
+14:40:21.455    0x9B  77 07 77 07 77 07 70  nothing to say
+14:40:22.893    0x9C  77 07 77 07 77 07 70  nothing to say
+14:40:24.326    0x9E  77 07 77 07 77 07 70  nothing to say
+14:40:25.754    0xA0  77 07 77 07 77 07 70  nothing to say
+14:40:27.183    0xA4  77 07 77 07 77 07 70  nothing to say
+14:40:28.612    0xA6  77 07 77 07 77 07 70  nothing to say
+14:40:30.042    0xA7  77 07 77 07 77 07 70  nothing to say
+14:40:31.472    0xAC  77 07 77 07 77 07 70  nothing to say
+14:40:32.901    0xB0  77 07 77 07 77 07 70  nothing to say
+14:40:34.331    0xBB  77 07 77 07 77 07 70  nothing to say
+14:40:35.766    0xC0  77 07 77 07 77 07 70  nothing to say
+14:40:37.196    0xC2  77 07 77 07 77 07 70  nothing to say
+14:40:38.629    0xC8  77 07 77 07 77 07 70  nothing to say
+14:40:40.073    0xCE  77 07 77 07 77 07 70  nothing to say
+14:40:41.523    0xD0  77 07 77 07 77 07 70  nothing to say
+14:40:42.951    0xDA  77 07 77 07 77 07 70  nothing to say
+14:40:44.384    0xE8  77 07 77 07 77 07 70  nothing to say
+14:40:45.815    0xED  77 07 77 07 77 07 70  nothing to say
+14:40:47.245    0xF0  77 07 77 07 77 07 70  nothing to say
+14:40:48.675    0xF5  77 07 77 07 77 07 70  nothing to say
+
+14:40:48.678    0 answered with a frame, 0 came back unreadable.
+14:40:48.679    Nothing degraded this time, so rebuilding the connection per address is
+14:40:48.680    what the cable wants - which is exactly what the vendor capture does.
+14:40:48.681  === end module scan ===

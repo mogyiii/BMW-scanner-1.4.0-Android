@@ -640,6 +640,40 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 38: rebuilding the connection per address works — 63 of 63, no decay
+
+2026-10-29, on the car. The scan redone the vendor's way: DTR pulse, handshake, sign-on and one
+query per address. (`field-logs/2026-10-29-run38-scan-per-connection.log`)
+
+**Sixty-three clean `77 07 77 07 77 07 70` replies, no degradation anywhere.** Runs 34 and 37 decayed
+after two or three frames; this one does not decay at all. The decay came from reusing a single
+connection, exactly as the vendor's own pattern implied it would, and the protocol is now reliable
+end to end.
+
+That also clears `0x83F0` of the charge laid against it in run 34. Its decay was blamed on that
+command; run 38 does not send it and still would have decayed had the cause been anything other
+than connection reuse.
+
+### What this run does *not* show
+
+The diagnostic printed "0 answered", which is misleading and the wording was mine. `0xB318` is
+connection setup, not a module query — run 36 established that. A `77 07` from every address is most
+likely the correct answer to it. **This run says nothing about what is on the car's bus**, because
+no command that queries a module has ever been sent. Read as "no modules found" it would be a false
+negative, and the log text has been corrected to say so.
+
+### Why the VM route is still stuck, and what it points at
+
+The shim already answers `0xB318` with `77 07 ...` — the same bytes the cable really sends, by
+coincidence of it being the substitute — and the software still abandons the connection. So the
+failure is after stage one. `FUN_006cd1e4` goes on to `FUN_006ccf80` for a second frame, the shim
+has nothing left to give, and the read starves.
+
+Which means either the real cable sends more than seven bytes to `0xB318` in a working setup, or
+something before it differs. The one difference we know of is that **the vendor sends two `0x83F0`
+frames per address and this project left them out.** Run 34's reason for omitting them has now
+collapsed, so they are back in `MODULE SCAN`.
+
 ## Run 37: the link decays after two frames, and run 34's conclusion was mine to get wrong
 
 2026-10-29, on the car. `0xB318` to all sixty-three addresses down one connection.

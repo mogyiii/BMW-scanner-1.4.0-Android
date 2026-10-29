@@ -2796,11 +2796,35 @@ class MainActivity : AppCompatActivity() {
                 val frame = VendorProtocol.buildFrame(
                     VendorProtocol.Command.MODULE, addr,
                     byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))
-                val (wire, _) = VendorProtocol.scramble(frame, key)
+                val (wire, afterQuery) = VendorProtocol.scramble(frame, key)
+                key = afterQuery
                 dev.write(wire)
 
                 val reply = dev.readTimed(700).flatMap { it.second.asIterable() }.toByteArray()
-                if (reply.isEmpty()) { log("  0x%02X  -".format(addr)); continue }
+
+                // The two timing frames the vendor sends after the query, put back. Run 34 left
+                // them out on the grounds that they broke the replies after them; run 38 showed
+                // that decay came from reusing one connection for every address, not from these,
+                // so the grounds are gone and the capture should be followed.
+                val busFrame = VendorProtocol.buildFrame(
+                    VendorProtocol.Command.BUS, addr,
+                    byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14))
+                var busReply = ByteArray(0)
+                repeat(2) {
+                    val (bw, bn) = VendorProtocol.scramble(busFrame, key)
+                    key = bn
+                    dev.write(bw)
+                    busReply = dev.readTimed(500).flatMap { it.second.asIterable() }.toByteArray()
+                }
+
+                if (reply.isEmpty() && busReply.isEmpty()) {
+                    log("  0x%02X  -".format(addr)); continue
+                }
+                if (busReply.isNotEmpty() &&
+                    VendorTransaction.resyncAnyMode(busReply)?.second?.ack == null) {
+                    log("  0x%02X  after 0x83F0: ${Ds2.hex(busReply)}  <<<<<< look".format(addr))
+                }
+                if (reply.isEmpty()) { log("  0x%02X  query: -".format(addr)); continue }
 
                 val hit = VendorTransaction.resyncAnyMode(reply)
                 val note = when {
@@ -2814,7 +2838,10 @@ class MainActivity : AppCompatActivity() {
             }
 
             log("")
-            log("  ${good.size} answered with a frame, $degraded came back unreadable.")
+            log("  ${good.size} gave a frame that was not a fixed non-event; $degraded unreadable.")
+            log("  NOTE: 0xB318 is connection setup, not a module query. A '77 07' from every")
+            log("  address is most likely the right answer to it and says nothing about what is")
+            log("  on the car's bus. Do not read this as 'no modules found'.")
             if (good.isNotEmpty()) for ((a, b) in good) log("    0x%02X  ${Ds2.hex(b)}".format(a))
             if (degraded == 0) {
                 log("  Nothing degraded this time, so rebuilding the connection per address is")
@@ -3623,5 +3650,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.36-probe"
+    const val NAME = "0.37-probe"
 }
