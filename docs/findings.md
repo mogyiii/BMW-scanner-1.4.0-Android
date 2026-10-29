@@ -640,6 +640,54 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 34: the session stays open, and the reply is repeatable
+
+2026-10-29, on the car. Sign on, then five observed frames in a row.
+(`field-logs/2026-10-29-run34-session-length.log`)
+
+**Five of five answered.** The session does not close after one command, so one DTR pulse can serve
+a whole scan — about 400 ms of handshake saved per request, and a much simpler shape of code than
+pulsing for every module.
+
+### The answer is deterministic
+
+The ident frame was sent three times and returned `B8 12 F1 01 A2 F8` every time, in 37, 39 and
+38 ms. Byte for byte identical across three sends on a fresh key each time. That rules out noise:
+it is a real, repeatable answer, and whatever it encodes does not depend on the scrambling key.
+
+### Run 27's abort was the missing sign-on
+
+`0x83F0` was refused with the `7A 07` abort sentinel at 15 ms on an unauthenticated link. On an
+authenticated one it waits **295 ms** and answers:
+
+```
+7E 98 00 7E 98 00 7E 98 00 00 FE
+```
+
+So the refusal was never about that command. Run 27 drew a reasonable inference — a 15 ms refusal
+is too fast to be a bus timeout, so it must be local — and the inference was right about the timing
+and wrong about the cause.
+
+### And `0x83F0` changes something
+
+After the bus frame, the *same* ident frame no longer returns `B8 12 F1 01 A2 F8`. It returns
+`66 1E 33 78 00 E0 78`, seven bytes in 6 ms.
+
+| reply | length | fits a rule? | XOR |
+|---|---|---|---|
+| `B8 12 F1 01 A2 F8` | 6 | mode 3, exact | `0x00` |
+| `7E 98 00 7E 98 00 7E 98 00 00 FE` | 11 | none | `0x18` |
+| `66 1E 33 78 00 E0 78` | 7 | none | `0xAB` |
+
+Neither of the last two is a valid frame under any of the four rules. The most economical reading
+is that `0x83F0` did what run 29 read out of the code — it set K-line timing — and the line it
+talks on afterwards is not the one we are reading. The vendor sends that frame at **9600 8E1** and
+not at 19200 8N1, which would fit. **This is a reading, not a finding**, and the obvious way to test
+it is to follow the capture's line settings rather than our own.
+
+For now, `0x83F0` should be left out of any sequence that needs the replies after it to be
+readable.
+
 ## Run 33: the sign-on unlocks the link, and the cable sends real data
 
 2026-10-29, on the car. The recorded sign-on frame, then the ident frame as a second frame — the

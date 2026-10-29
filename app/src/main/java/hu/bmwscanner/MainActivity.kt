@@ -159,6 +159,7 @@ class MainActivity : AppCompatActivity() {
                 "keyhunt" -> guarded(what) { vendorKeyHunt(device!!) }
                 "twostage" -> guarded(what) { twoStageRead(device!!) }
                 "signon" -> guarded(what) { vendorSignOn(device!!) }
+                "session" -> guarded(what) { vendorSession(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -420,10 +421,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "SIGN-ON  <-- this one"
+                text = "SESSION LENGTH  <-- this one"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("signon") { d -> vendorSignOn(d) } }
+                setOnClickListener { withCable("session") { d -> vendorSession(d) } }
             },
             wide(),
         )
@@ -2620,6 +2621,97 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Signs on, then sends several observed frames in a row to see how long the session lasts.
+     *
+     * Run 33 got one command to work after the sign-on. Whether a *second* one does decides how the
+     * app has to be built: a session that stays open lets one DTR pulse serve every module, while
+     * one that closes after a single command means a pulse and a handshake per request — roughly
+     * 400 ms of overhead each, and a very different shape of code.
+     *
+     * Only frames this project has observed are sent: the ident frame, and the `0x83F0` timing frame
+     * with both recorded parameters. The point is not what they mean but whether the cable keeps
+     * answering, so repeating the one known-good frame is the measurement and the rest is context.
+     *
+     * `0x83F0` is included because run 27 saw it refused with the abort sentinel on an
+     * unauthenticated link. If it is accepted now, that refusal was the missing sign-on too, which
+     * would be worth knowing before anyone concludes anything about that command.
+     */
+    private fun vendorSession(device: UsbDevice) {
+        log("=== SESSION LENGTH ===")
+        log("Sign on, then several observed frames in a row. How many does the cable answer?")
+        log("")
+
+        val busA = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0xC8.toByte(), 0x14)
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            dev.purge()
+            dev.setModemControl(dtr = true, rts = null)
+            Thread.sleep(100)
+            dev.setModemControl(dtr = false, rts = null)
+
+            val raw = dev.readBytes(VendorHandshake.LENGTH, 1500)
+            val hs = VendorHandshake.decode(raw)
+            if (hs == null) { log("  handshake failed"); return }
+            if (!VendorProtocol.matchesRecordedCable(raw)) {
+                log("  announcement differs from the recorded challenge - not sending a response")
+                log("  computed for a different one. Stopping.")
+                return
+            }
+            log("  handshake ok, key 0x%02X, challenge matches".format(hs.key))
+
+            var key = hs.key
+            val (signOn, afterSignOn) = VendorProtocol.scramble(VendorProtocol.SIGN_ON_FRAME, key)
+            dev.write(signOn)
+            key = afterSignOn
+            reportFrames("sign-on", dev.readTimed(1200))
+
+            val steps = listOf(
+                "ident" to VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12),
+                "ident again" to VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12),
+                "ident a third time" to VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12),
+                "bus 0x12, refused before the sign-on existed" to
+                    VendorProtocol.buildFrame(VendorProtocol.Command.BUS, 0x12, busA),
+                "ident after the bus frame" to
+                    VendorProtocol.buildFrame(VendorProtocol.Command.IDENT, 0x12),
+            )
+
+            var answered = 0
+            for ((n, step) in steps.withIndex()) {
+                if (stopRequested) { log("stopped"); return }
+                val (label, frame) = step
+                val (wire, next) = VendorProtocol.scramble(frame, key)
+                log("")
+                log("  ${n + 1}. $label")
+                log("     ${Ds2.hex(frame)}  ->  ${Ds2.hex(wire)}   key 0x%02X -> 0x%02X"
+                    .format(key, next))
+                dev.write(wire)
+                key = next
+                val batches = dev.readTimed(1500)
+                if (batches.isNotEmpty()) answered++
+                reportFrames("     reply", batches)
+            }
+
+            log("")
+            log("  ${answered} of ${steps.size} frames drew a reply after the sign-on.")
+            if (answered == steps.size) {
+                log("  The session stays open. One DTR pulse can serve a whole scan.")
+            } else if (answered == 0) {
+                log("  None answered, so the sign-on alone is not enough to keep a session.")
+            } else {
+                log("  It closes partway. Where it stops is the thing to read from the list above.")
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end session length ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -3415,5 +3507,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.33-probe"
+    const val NAME = "0.34-probe"
 }

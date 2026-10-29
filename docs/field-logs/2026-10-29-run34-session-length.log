@@ -1,0 +1,66 @@
+12:55:38.926  BMW DS2 Probe 0.34-probe
+12:55:38.936  Looking for the cable: VID 0x0333 / PID 0x0137
+
+12:55:38.941  USB rescan: 1 device(s)
+12:55:38.943    /dev/bus/usb/001/002  0333:0137
+12:55:40.960  === SESSION LENGTH ===
+12:55:40.962  Sign on, then several observed frames in a row. How many does the cable answer?
+
+12:55:41.230    handshake ok, key 0x9B, challenge matches
+12:55:42.437    sign-on: 7 byte(s) over 309 ms
+12:55:42.442          308 ms  77
+12:55:42.445          309 ms  07 77 07 77 07 70
+12:55:42.450        frame 1 [mode 2, DS2]: 77 07 77 07 77 07 70   cable: nothing to say
+
+12:55:42.453    1. ident
+12:55:42.455       03 41 AA 12 00  ->  24 33 17 1A 53   key 0x27 -> 0x9E
+12:55:43.957         reply: 6 byte(s) over 37 ms
+12:55:43.961           32 ms  B8
+12:55:43.963           33 ms  12
+12:55:43.967           36 ms  F1
+12:55:43.969           36 ms  01 A2
+12:55:43.970           37 ms  F8
+12:55:43.972        frame 1 [mode 3]: B8 12 F1 01 A2 F8   REAL REPLY - not a sentinel
+
+12:55:43.974    2. ident again
+12:55:43.976       03 41 AA 12 00  ->  9D A8 9E 6D CA   key 0x9E -> 0x15
+12:55:45.477         reply: 6 byte(s) over 39 ms
+12:55:45.480           35 ms  B8 12 F1
+12:55:45.483           36 ms  01
+12:55:45.484           38 ms  A2
+12:55:45.486           39 ms  F8
+12:55:45.489        frame 1 [mode 3]: B8 12 F1 01 A2 F8   REAL REPLY - not a sentinel
+
+12:55:45.491    3. ident a third time
+12:55:45.492       03 41 AA 12 00  ->  16 21 01 E4 41   key 0x15 -> 0x8C
+12:55:46.994         reply: 6 byte(s) over 38 ms
+12:55:46.999           38 ms  B8 12 F1 01 A2
+12:55:47.001           38 ms  F8
+12:55:47.003        frame 1 [mode 3]: B8 12 F1 01 A2 F8   REAL REPLY - not a sentinel
+
+12:55:47.005    4. bus 0x12, refused before the sign-on existed
+12:55:47.007       09 83 F0 12 E5 50 47 66 C8 14 4C  ->  85 54 D2 7F 5D 53 09 FF 2C 3B 36   key 0x8C -> 0xC5
+12:55:48.510         reply: 11 byte(s) over 303 ms
+12:55:48.512          295 ms  7E
+12:55:48.515          296 ms  98
+12:55:48.517          296 ms  00
+12:55:48.519          297 ms  7E
+12:55:48.521          298 ms  98
+12:55:48.522          299 ms  00
+12:55:48.523          299 ms  7E
+12:55:48.524          301 ms  98 00
+12:55:48.525          302 ms  00
+12:55:48.526          303 ms  FE
+12:55:48.532        trailing: 7E 98 00 7E 98 00 7E 98 00 00 FE
+
+12:55:48.534    5. ident after the bus frame
+12:55:48.535       03 41 AA 12 00  ->  C6 51 F1 B4 F1   key 0xC5 -> 0x3C
+12:55:50.037         reply: 7 byte(s) over 6 ms
+12:55:50.040            5 ms  66
+12:55:50.043            5 ms  1E 33 78 00 E0
+12:55:50.045            6 ms  78
+12:55:50.051        trailing: 66 1E 33 78 00 E0 78
+
+12:55:50.054    5 of 5 frames drew a reply after the sign-on.
+12:55:50.055    The session stays open. One DTR pulse can serve a whole scan.
+12:55:50.057  === end session length ===
