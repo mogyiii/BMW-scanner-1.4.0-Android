@@ -640,6 +640,56 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 42: the corrected bridge test, and where the project actually stands
+
+2026-10-29, on the car. The line change moved to where the vendor puts it — between writing the
+first `0x83F0` and reading its reply. (`field-logs/2026-10-29-run42-bridge-corrected.log`)
+
+```
+sign-on              -> 77 07 77 07 77 07 70      19200 8N1
+0xB318               -> 77 07 77 07 77 07 70      19200 8N1
+0x83F0 written       (no read)                    19200 8N1
+  --> 9600 8E1
+reply                -> 25 09 02
+0x83F0 #2            -> C4 A8 62 19 FD 07 BE ...
+raw DS2 12 04 00 16  -> C4 48 D7 83 FD
+```
+
+The reply read at 9600 is now three bytes rather than nothing, and identical at every address. It is
+not what the same frame returns at 19200 (`77 07 …`) read at half rate — simulating that
+transmission sampled at 9600 8E1 gives `FE FF FE`, not `25 09 02`, so it is not a plain rate
+mismatch. Beyond that, the `0xC4` artefact returns as soon as the line moves to 9600, exactly as it
+has since the project's first week.
+
+### Where this leaves things
+
+Two halves, and they are now cleanly separated.
+
+**The cable is understood and works.** Handshake, challenge and response, framing, scrambling, the
+three commands, the sixty-three addresses, the two read stages, the four protocol modes, the
+per-connection discipline. Sixty-three of sixty-three clean replies at 19200 8N1 in run 38. None of
+the withdrawn fault report's conclusions about the cable survive; it is a working device.
+
+**Nothing has ever come back from the vehicle.** Not once, in any run, under any setting. Every
+attempt at 9600 returns the `0xC4` pattern — the same artefact the fault report measured in detail
+in its first week, with transitions that do not fall on bit-period multiples. Everything learned
+since has changed what we know about the cable and nothing about the car.
+
+### The hypotheses that remain
+
+1. **The cable's K-line is on a pin this car does not use for these modules.** Pin 7 and pin 8 both
+   carry K-lines on BMW sockets, serving different module groups by chassis and year, and bridging
+   them is a widely reported fix for this exact cable. This was flagged in the withdrawn report and
+   **has never been tested**.
+2. Something in the setup is still missing. Against this: our sequence now matches the vendor's byte
+   for byte up to the point where the vendor itself stops, because the shim cannot answer further.
+3. The cable's vehicle-side driver is faulty. Narrower than the fault report made it, since the rest
+   of the cable is provably perfect, but not excluded.
+
+Hypothesis 1 is the one with a cheap decisive test and the one never attempted. What the project
+needs first is simply **which of pins 1–8 the cable actually wires** — visible on the board, no
+instrument required, and the same look that established only pin 16 is wired in the upper row.
+
 ## Run 41: the bridge test, and where the line change actually belongs
 
 2026-10-29, on the car. The vendor's setup with the line change, then a raw DS2 request.
