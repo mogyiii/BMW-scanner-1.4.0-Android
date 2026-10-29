@@ -640,6 +640,62 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 33: the sign-on unlocks the link, and the cable sends real data
+
+2026-10-29, on the car. The recorded sign-on frame, then the ident frame as a second frame — the
+one run 28 could not make work under any of 256 keys.
+(`field-logs/2026-10-28-run33-signon-on-car.log`)
+
+```
+handshake ok: "V144Bn9", key 0x9B
+announcement matches the recorded challenge exactly
+
+sign-on  22 A7 7A 56 31 34 34 42 6E 39 ... 03 DA
+reply    77 07 77 07 77 07 70            at 306 ms
+
+second   03 41 AA 12 00                  key 0x27
+reply    B8 12 F1 01 A2 F8               at 37 ms
+```
+
+**The second frame answered.** Not a sentinel, not a loopback, not the `77 07` non-event — six
+bytes of structured data, and it arrived in 37 ms instead of running into the 285 ms timeout that
+run 31 measured. The hypothesis holds: the lock was the challenge-response, not the key, and run
+28's sweep was searching a space that could not contain the answer.
+
+### The reply is a well-formed mode-3 frame
+
+| mode | rule | would expect |
+|---|---|---|
+| 1 | byte 2 | 241 |
+| 2 | byte 1 | 18 |
+| **3** | **byte 3 plus five** | **6 — exact** |
+| 4 | `byte0 & 0x3F` plus four | 60 |
+
+Six bytes, one rule fits, and the XOR of all six is zero. `0x41AA` is a mode-3 command, which is
+what `vendor-command-set.txt` recorded from the call sites months of work ago and had no way to
+confirm until now.
+
+What the fields mean is not established. `B8 12 F1 01 A2 F8` contains the parameter we sent, `0x12`,
+at index 1, and `0x01` at index 3 is the length field the rule reads — beyond that, nothing here
+should be read as meaning anything yet.
+
+### The three-byte echo is explained, and it was a symptom
+
+Run 30 flagged a discrepancy it could not resolve: every live reply carried three plaintext bytes
+ahead of the frame — `41 AA 12` before `77 07 ...` — yet nothing in the executable consumes a
+prefix, and under its own rules `0xAA` would be read as a length.
+
+**This run has no echo at all.** Neither reply carries one. The echo was the behaviour of an
+*unauthenticated* link, which is why the vendor's code has no place for it: the vendor always signs
+on first and never sees that state. An open question in the protocol turns out to have been a
+symptom of our own missing step.
+
+### What this changes
+
+The link is now authenticated, two-way, and carrying checksum-valid frames. What remains is finding
+the command that asks a module for data — but it is now a search that can be conducted, because the
+cable will answer, and a wrong command can be told from a right one by whether a frame comes back.
+
 ## Run 32: the cable issues a challenge, and the software answers it
 
 2026-10-28, in the VM, with the shim serving **the real cable's 27-byte announcement** for the first

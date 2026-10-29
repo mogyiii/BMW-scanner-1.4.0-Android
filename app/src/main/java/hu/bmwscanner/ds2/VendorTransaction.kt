@@ -167,4 +167,34 @@ object VendorTransaction {
         }
         return null
     }
+
+    /**
+     * Like [resync] but over every mode, returning the one whose rule fits.
+     *
+     * Added after run 33, where the first real reply the cable ever gave was read as "no valid
+     * frame" purely because the reader had been told to assume DS2. `B8 12 F1 01 A2 F8` satisfies
+     * mode 3 — length from byte 3 plus five, giving exactly six — and XORs to zero, and `0x41AA` is
+     * a mode-3 command. A reader that knows which command it sent should use [resync] with that
+     * command's mode; this is for the case where the mode is what is being established.
+     *
+     * Modes are tried in their numeric order and the first fit wins. With a six-byte frame that is
+     * not much of a filter — one rule in four will fit a short reply by chance roughly as often as
+     * not — so a fit found this way is a lead, not a conclusion, and the checksum passing alongside
+     * it is what makes it worth anything.
+     */
+    fun resyncAnyMode(data: ByteArray): Pair<Mode, Frame>? {
+        for (off in data.indices) {
+            for (mode in Mode.entries) {
+                val f = frameAt(mode, data, off)
+                if (f != null && f.checksumOk && f.bytes.size == data.size - off) return mode to f
+            }
+        }
+        for (off in data.indices) {
+            for (mode in Mode.entries) {
+                val f = frameAt(mode, data, off)
+                if (f != null && f.checksumOk) return mode to f
+            }
+        }
+        return null
+    }
 }

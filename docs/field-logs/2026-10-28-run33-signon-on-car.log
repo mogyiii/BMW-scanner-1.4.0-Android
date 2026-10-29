@@ -1,0 +1,33 @@
+12:47:07.393  BMW DS2 Probe 0.32-probe
+12:47:07.403  Looking for the cable: VID 0x0333 / PID 0x0137
+
+12:47:07.412  USB rescan: 1 device(s)
+12:47:07.414    /dev/bus/usb/001/002  0333:0137
+12:47:31.819  === SIGN-ON (replayed) ===
+12:47:31.820  The 36-byte frame the vendor software sends straight after the announcement.
+12:47:31.820  Command 0xA77A, parameter 'V', payload opens "144Bn9" - the cable's own identity.
+
+12:47:32.089    handshake ok: "V144Bn9", key 0x9B
+12:47:32.097    announcement matches the recorded challenge exactly
+
+12:47:32.100    sign-on frame  22 A7 7A 56 31 34 34 42 6E 39 9D 3E AF 2E A9 45 78 80 B7 AA F6 A9 FC 9F EE D2 7C 59 90 79 80 59 84 88 03 DA
+12:47:32.102    on the wire    B9 41 4B 2A F6 26 69 EA 9D 07 14 EA B0 44 1C 45 33 16 56 86 81 6B F1 C7 4D 3C 45 DD 5F 63 E5 E9 7F CE 92 06
+12:47:32.103    key 0x9B -> 0x27
+12:47:35.105    sign-on: 7 byte(s) over 308 ms
+12:47:35.107          306 ms  77 07
+12:47:35.108          307 ms  77 07
+12:47:35.109          308 ms  77 07
+12:47:35.110          308 ms  70
+12:47:35.112        frame 1: 77 07 77 07 77 07 70   cable: nothing to say
+
+12:47:35.114    now the ident frame as a SECOND frame, which run 28 never got to work:
+12:47:35.114      frame  03 41 AA 12 00  on the wire 24 33 17 1A 53  key 0x27
+12:47:38.116    second frame: 6 byte(s) over 37 ms
+12:47:38.117           32 ms  B8
+12:47:38.118           33 ms  12
+12:47:38.119           34 ms  F1
+12:47:38.120           35 ms  01
+12:47:38.121           36 ms  A2
+12:47:38.122           37 ms  F8
+12:47:38.123        trailing: B8 12 F1 01 A2 F8
+12:47:38.125  === end sign-on ===

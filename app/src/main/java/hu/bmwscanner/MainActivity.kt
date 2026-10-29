@@ -2599,17 +2599,19 @@ class MainActivity : AppCompatActivity() {
         var at = 0
         var n = 0
         while (at < raw.size) {
-            val f = VendorTransaction.resync(
-                VendorTransaction.Mode.DS2, raw.copyOfRange(at, raw.size)) ?: break
+            val hit = VendorTransaction.resyncAnyMode(raw.copyOfRange(at, raw.size)) ?: break
+            val (mode, f) = hit
             n++
             if (f.offset > 0) {
                 log("      ${f.offset} byte(s) before frame $n: " +
                     Ds2.hex(raw.copyOfRange(at, at + f.offset)))
             }
-            log("      frame $n: ${Ds2.hex(f.bytes)}" + when (f.ack) {
+            log("      frame $n [mode ${mode.code}${if (mode == VendorTransaction.Mode.DS2)
+                ", DS2" else if (mode == VendorTransaction.Mode.KWP) ", KWP" else ""}]: " +
+                Ds2.hex(f.bytes) + when (f.ack) {
                 VendorTransaction.Ack.NOTHING_TO_SAY -> "   cable: nothing to say"
                 VendorTransaction.Ack.ABORT -> "   cable: ABORT"
-                null -> "   NOT a sentinel - address 0x%02X  <<<<<< NEW".format(f.bytes[0])
+                null -> "   REAL REPLY - not a sentinel"
             })
             at += f.offset + f.bytes.size
         }
@@ -3413,5 +3415,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.32-probe"
+    const val NAME = "0.33-probe"
 }

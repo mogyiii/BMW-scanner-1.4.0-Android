@@ -99,6 +99,34 @@ class VendorTransactionTest {
         assertNull(VendorTransaction.frameAt(VendorTransaction.Mode.DS2, byteArrayOf(0x12, 0x20)))
     }
 
+    /**
+     * The first structured reply the cable ever gave, recorded on the car on 2026-10-29 after the
+     * replayed sign-on frame unlocked the link. Six bytes, no sentinel, arriving in 37 ms rather
+     * than running into the 285 ms timeout seen before.
+     */
+    private val firstRealReply = byteArrayOf(
+        0xB8.toByte(), 0x12, 0xF1.toByte(), 0x01, 0xA2.toByte(), 0xF8.toByte(),
+    )
+
+    @Test
+    fun `the first real reply fits mode three and no other`() {
+        val fits = VendorTransaction.Mode.entries.filter { m ->
+            val f = VendorTransaction.frameAt(m, firstRealReply)
+            f != null && f.checksumOk && f.bytes.size == firstRealReply.size
+        }
+        assertEquals("only mode 3's rule gives six", listOf(VendorTransaction.Mode.THREE), fits)
+    }
+
+    @Test
+    fun `the first real reply checksums and is not a sentinel`() {
+        val (mode, f) = VendorTransaction.resyncAnyMode(firstRealReply)!!
+        assertEquals(VendorTransaction.Mode.THREE, mode)
+        assertEquals(0, f.offset)
+        assertEquals(6, f.bytes.size)
+        assertTrue(f.checksumOk)
+        assertNull("this is data, not one of the two fixed non-events", f.ack)
+    }
+
     @Test
     fun `mode codes match the values the executable stores`() {
         assertEquals(VendorTransaction.Mode.DS2, VendorTransaction.Mode.of(2))
