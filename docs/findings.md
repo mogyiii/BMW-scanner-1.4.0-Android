@@ -1,5 +1,36 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ⚠ Every conclusion about the vehicle side is provisional
+>
+> **Added 2026-10-29, after the car would not start.** It cranked with a clicking relay and a
+> flashing instrument cluster — a flat battery — and the owner's Bluetooth reader, plugged into the
+> same socket, lit up but could no longer connect either. A second, independent device failing at
+> the same moment is the clearest sign that what was being measured had changed.
+>
+> The battery is five years old and had been sitting on ignition-on for hours a day across several
+> days of testing, with little driving in between. That is a cumulative discharge: **every session
+> started from a lower board voltage than the one before**, and the most recent ones were the
+> lowest. Many of those sessions were at my request, and I did not think about what they cost.
+>
+> Two separate things follow, and the second is the owner's observation rather than mine:
+>
+> 1. **Control modules are voltage-sensitive.** Below their operating range they stop answering on
+>    the K-line. Silence from the bus is exactly what a browning-out car produces.
+> 2. **The cable's vehicle side runs on the car's battery, not on USB.** Only the FT232R and the
+>    microcontroller are USB-powered — which is why the cable handshakes perfectly on a desk with no
+>    car attached. The K-line transceiver draws from OBD pin 16, and the bus idle level comes from
+>    the vehicle too. At 11 V or less **our own transmission was weaker, not just their replies**.
+>
+> So anything in this document concluding that the car did not answer — and that is most of what is
+> interesting here — **is now confounded and must be re-measured with the engine running**, where
+> the alternator holds the supply at its proper level. That measurement has never been made: every
+> run in this document was taken with the engine off.
+>
+> What is **not** affected: everything about the cable itself. The handshake, the challenge and
+> response, the framing, the scrambling, the three commands, the address list, the two read stages,
+> the four protocol modes, and 63 of 63 clean replies at 19200. None of that depends on the
+> vehicle's supply, and much of it was reproduced on a desk.
+
 Investigation date: 2026-10-18. Everything below is either an observation with the evidence noted,
 or an inference explicitly labelled as such.
 
@@ -642,6 +673,12 @@ anything. Recorded as attempted and inconclusive.
 
 ## Run 45: thirteen of sixty-one, with no late bytes — and why one attempt is not enough
 
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
+
 2026-10-29, on the car, 19200 throughout, five-second window.
 (`field-logs/2026-10-29-run45-long-read-19200.log`)
 
@@ -672,6 +709,12 @@ even once, would change the finding from "consistently silent" to "intermittent"
 different device and a different problem.
 
 ## Run 44: no late bytes at 9600 — and the run measured the wrong thing
+
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
 
 2026-10-29, on the car. Five-second window after the second `0x83F0`.
 (`field-logs/2026-10-29-run44-long-read.log`)
@@ -704,6 +747,12 @@ follow. Either something earlier in its sequence makes the cable switch and that
 missing here, or the switch concerns the vehicle side and not the host link. Not settled.
 
 ## Run 43: the reply is sixty-one bytes and we have always read thirteen
+
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
 
 2026-10-29, from the vendor's own behaviour in the VM rather than from ours.
 
@@ -742,6 +791,12 @@ than a continuation, nor why `25 09 02` is a bit-subset of `65 3D 02`. Those sta
 established is narrow and checkable: **the cable says sixty-one and we have been reading thirteen.**
 
 ## Run 42: the corrected bridge test, and where the project actually stands
+
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
 
 2026-10-29, on the car. The line change moved to where the vendor puts it — between writing the
 first `0x83F0` and reading its reply. (`field-logs/2026-10-29-run42-bridge-corrected.log`)
@@ -792,6 +847,12 @@ needs first is simply **which of pins 1–8 the cable actually wires** — visib
 instrument required, and the same look that established only pin 16 is wired in the upper row.
 
 ## Run 41: the bridge test, and where the line change actually belongs
+
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
 
 2026-10-29, on the car. The vendor's setup with the line change, then a raw DS2 request.
 (`field-logs/2026-10-29-run41-bridge-test.log`)
@@ -877,6 +938,12 @@ is a hypothesis and the output labels it as one.
 
 ## Run 39: the `0x83F0` reply is structured, and replies carry our parameter back scrambled
 
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
+
 2026-10-29, on the car. The scan again, this time with the two `0x83F0` frames the vendor sends per
 address put back. (`field-logs/2026-10-29-run39-scan-with-83f0.log`)
 
@@ -922,6 +989,12 @@ recorded for an address it logs that the reply is incomplete rather than inventi
 
 ## Run 38: rebuilding the connection per address works — 63 of 63, no decay
 
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
+
 2026-10-29, on the car. The scan redone the vendor's way: DTR pulse, handshake, sign-on and one
 query per address. (`field-logs/2026-10-29-run38-scan-per-connection.log`)
 
@@ -955,6 +1028,12 @@ frames per address and this project left them out.** Run 34's reason for omittin
 collapsed, so they are back in `MODULE SCAN`.
 
 ## Run 37: the link decays after two frames, and run 34's conclusion was mine to get wrong
+
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
 
 2026-10-29, on the car. `0xB318` to all sixty-three addresses down one connection.
 (`field-logs/2026-10-29-run37-module-scan.log`)
@@ -1120,6 +1199,12 @@ recorded as one; if the scan finds nothing, it is the first thing to put back.
 
 ## Run 34: the session stays open, and the reply is repeatable
 
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
+
 2026-10-29, on the car. Sign on, then five observed frames in a row.
 (`field-logs/2026-10-29-run34-session-length.log`)
 
@@ -1272,6 +1357,12 @@ raw bytes were logged correctly throughout, so the frame above was recovered fro
 rather than lost, but the shim should accumulate.
 
 ## Run 31: the cable waits 285 ms, then says it has nothing
+
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
 
 2026-10-28, on the car. The ident frame, then a four-second window, to answer one question: after
 the `77 07` block, does a second frame arrive?
@@ -1500,6 +1591,12 @@ vendor content in the whole folder is display text in the INF — `"BMW Scanner"
 knowledge lives in its microcontroller and in `BMWScan140.exe`, nowhere else in the package.
 
 ## Run 27: the bus command is understood, and refused
+
+> **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery
+> that was progressively discharging across days of testing. Anything here about the car
+> not answering is confounded — see the warning at the top. The cable-side observations
+> stand.
+
 
 2026-10-28, on the car. The recorded `0x83F0` frame, four ways, each from a fresh handshake, at
 19200 8N1 rather than the captured 9600 8E1.

@@ -1,5 +1,22 @@
 # Handover — where this project stands
 
+> ## Read this before trusting any result about the car
+>
+> **2026-10-29.** The car would not start after a day's testing: clicking relay, flashing cluster,
+> flat battery. The owner's Bluetooth reader, in the same socket, also lit up but stopped
+> connecting. Five-year-old battery, hours of ignition-on across several days, little driving.
+>
+> Every run in this project was taken **with the engine off**, each from a lower board voltage than
+> the last. Control modules stop answering on the K-line when the supply sags — and the cable's own
+> vehicle-side driver runs on OBD pin 16, not on USB, so at 11 V our transmission was weakened too.
+> Only the FT232R and the microcontroller are USB-powered, which is why the cable handshakes
+> perfectly on a desk.
+>
+> **So every "the car did not answer" result here is provisional and needs re-measuring with the
+> engine running.** That has never been done. Everything about the cable itself — handshake,
+> challenge and response, framing, scrambling, commands, addresses, read stages, modes — is
+> unaffected and reproducible without a car.
+
 Written 2026-10-19, updated 2026-10-20 after runs 8 and 9. Read this first; it is meant to be
 enough on its own.
 
