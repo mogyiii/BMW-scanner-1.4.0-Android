@@ -1,0 +1,26 @@
+15:16:11.088  BMW DS2 Probe 0.40-probe
+15:16:11.103  Looking for the cable: VID 0x0333 / PID 0x0137
+
+15:16:11.110  USB rescan: 1 device(s)
+15:16:11.111    /dev/bus/usb/001/002  0333:0137
+15:16:13.349  === LONG READ AFTER 0x83F0 ===
+15:16:13.350  The reply's byte 1 is 0x3D = 61, and we have only ever read 13 bytes of it.
+15:16:13.350  Five-second window with arrival times, to see whether the rest is late.
+
+15:16:13.353    --- address 0x12 ---
+15:16:14.799      second 0x83F0 sent, waiting five seconds
+15:16:19.802           61 ms  25
+15:16:19.804           64 ms  09
+15:16:19.805           64 ms  02
+15:16:19.807      total 3 byte(s) over 64 ms
+15:16:19.808      byte 1 says 9; we have 3  still short by 6
+
+15:16:19.809    --- address 0x80 ---
+15:16:21.268      second 0x83F0 sent, waiting five seconds
+15:16:26.271           60 ms  25
+15:16:26.272           62 ms  09
+15:16:26.273           63 ms  02
+15:16:26.274      total 3 byte(s) over 63 ms
+15:16:26.275      byte 1 says 9; we have 3  still short by 6
+
+15:16:26.277  === end long read ===

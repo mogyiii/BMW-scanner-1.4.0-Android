@@ -640,6 +640,38 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 44: no late bytes at 9600 — and the run measured the wrong thing
+
+2026-10-29, on the car. Five-second window after the second `0x83F0`.
+(`field-logs/2026-10-29-run44-long-read.log`)
+
+```
+address 0x12    61 ms  25    64 ms  09    64 ms  02      then nothing for five seconds
+address 0x80    60 ms  25    62 ms  09    63 ms  02      then nothing for five seconds
+```
+
+### The run was mine to get wrong
+
+It changed two things at once. The question was whether the missing forty-eight bytes arrive late,
+and the answer needs the line left where the data is readable — but this run also switched to
+9600 8E1, following the vendor's order. At 9600 the bytes that do arrive are corrupted, so it could
+not have answered the question it was built to ask. v0.41 stays at 19200 throughout.
+
+### What it did establish
+
+`25 09 02` again, at both addresses, and again a **bit-subset** of the known-good `65 3D 02` — every
+one-bit in it is a one-bit there, with no bit going the other way. Two independent samples in run 42
+and two more here, across two addresses and two runs.
+
+Ones falling to zeros and never the reverse is what a receiver does when it samples a faster signal
+too slowly. So **the cable does not leave 19200** — when we move to 9600 we corrupt our own reading
+of it, and the `0xC4` replies that have haunted this project since its first week are most likely
+the same thing seen at 9600 8N1.
+
+That leaves the vendor's own `FT_SetBaudRate(9600)` unexplained. It does it; our cable does not
+follow. Either something earlier in its sequence makes the cable switch and that step is still
+missing here, or the switch concerns the vehicle side and not the host link. Not settled.
+
 ## Run 43: the reply is sixty-one bytes and we have always read thirteen
 
 2026-10-29, from the vendor's own behaviour in the VM rather than from ours.

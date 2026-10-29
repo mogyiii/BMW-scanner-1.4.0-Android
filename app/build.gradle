@@ -14,8 +14,8 @@ android {
         // blocks - an APK whose targetSdk is well below the running platform, with the
         // "built for an older version of Android" dialog.
         targetSdk 36
-        versionCode 40
-        versionName "0.40-probe"
+        versionCode 41
+        versionName "0.41-probe"
     }
 
     buildTypes {

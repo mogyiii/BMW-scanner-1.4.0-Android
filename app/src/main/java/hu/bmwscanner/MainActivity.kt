@@ -2991,9 +2991,10 @@ class MainActivity : AppCompatActivity() {
      * So this changes one thing only: it waits five seconds, and reports when each byte arrived.
      */
     private fun longRead(device: UsbDevice) {
-        log("=== LONG READ AFTER 0x83F0 ===")
-        log("The reply's byte 1 is 0x3D = 61, and we have only ever read 13 bytes of it.")
-        log("Five-second window with arrival times, to see whether the rest is late.")
+        log("=== LONG READ AFTER 0x83F0 (19200 throughout) ===")
+        log("The reply's byte 1 is 0x3D = 61 and we have only ever read 13 bytes of it.")
+        log("Five-second window with arrival times. No line change - the earlier version")
+        log("switched to 9600 as well and so measured two things at once.")
         log("")
 
         val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
@@ -3023,13 +3024,16 @@ class MainActivity : AppCompatActivity() {
                 put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
                     byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))); dev.readTimed(400)
 
+                // Stay at 19200 throughout. The previous version of this changed the line to
+                // 9600 as well, which meant it measured two things at once and answered neither:
+                // the question is whether bytes arrive late, and at 9600 the bytes that do arrive
+                // are corrupted, so it could never have answered it.
                 put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
-                dev.setBaudRate(9600)
-                dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
-                dev.readTimed(400)
+                val first = dev.readTimed(600).flatMap { it.second.asIterable() }.toByteArray()
+                log("    first 0x83F0 -> ${if (first.isEmpty()) "nothing" else Ds2.hex(first)}")
 
                 put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
-                log("    second 0x83F0 sent, waiting five seconds")
+                log("    second 0x83F0 sent at 19200 8N1, waiting five seconds")
 
                 val batches = dev.readTimed(5000)
                 if (batches.isEmpty()) { log("    nothing"); log(""); continue }
@@ -3851,5 +3855,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.40-probe"
+    const val NAME = "0.41-probe"
 }
