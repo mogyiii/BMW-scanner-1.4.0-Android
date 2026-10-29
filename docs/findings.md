@@ -640,6 +640,44 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 40: the line changes to 9600 8E1 after the first `0x83F0`
+
+2026-10-29, in the VM, with the shim serving the clean thirteen-byte `0x83F0` reply.
+(`field-logs/2026-10-29-run40-vm-line-change.log`)
+
+The software's commands did not change — the same `0xA77A`, `0xB318`, `0x83F0` and the same counts.
+What the log shows is the step **every run of this project has missed**, sitting between them:
+
+```
+19200 8N1   purge
+            04 B3 18 80 01 50                     0xB318, address 0x80
+            09 83 F0 80 E5 50 47 66 28 14 1A      0x83F0, first
+            FT_SetBaudRate(9600)
+            FT_SetDataCharacteristics(8, 1 stop, parity 2)     <- 9600 8E1
+            09 83 F0 80 E5 50 47 66 28 14 1A      0x83F0, second, at 9600 8E1
+```
+
+**After the first `0x83F0` the line moves to 9600 8E1 and the second goes out there.** Every
+diagnostic this project has written sent both at 19200 8N1.
+
+That resolves run 34 completely. Its replies stopped being readable frames after a `0x83F0`, and I
+read that as the command having changed something about the cable's timing. It had: the cable had
+moved to 9600 8E1 and we were still reading at 19200. Run 26's finding that 9600 8E1 "breaks the
+link" was the same mistake seen from the other side — it breaks it *before* the setup that
+legitimises it.
+
+### What it suggests about the missing command
+
+9600 8E1 is DS2's own line setting. If the cable becomes a pass-through at that point, then there is
+no module-query command to find, because the request is an ordinary DS2 frame — which would explain
+why the only commands ever observed leaving the vendor software are connection setup, and why
+`0xB318` and `0x83F0` are all there is.
+
+`BRIDGE TEST` tests exactly that: the full setup with the line change, then
+`[address][length][0x00][XOR]` unscrambled. The request is not a guess — DS2 service `0x00` is a
+read and this project sent it to all 256 addresses in its earliest runs — but the pass-through idea
+is a hypothesis and the output labels it as one.
+
 ## Run 39: the `0x83F0` reply is structured, and replies carry our parameter back scrambled
 
 2026-10-29, on the car. The scan again, this time with the two `0x83F0` frames the vendor sends per

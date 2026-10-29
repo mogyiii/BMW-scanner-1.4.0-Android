@@ -161,6 +161,7 @@ class MainActivity : AppCompatActivity() {
                 "signon" -> guarded(what) { vendorSignOn(device!!) }
                 "session" -> guarded(what) { vendorSession(device!!) }
                 "scan" -> guarded(what) { moduleScan(device!!) }
+                "bridge" -> guarded(what) { vendorBridge(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -422,10 +423,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "MODULE SCAN  (about 45 s)"
+                text = "BRIDGE TEST  (about 25 s)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("scan") { d -> moduleScan(d) } }
+                setOnClickListener { withCable("bridge") { d -> vendorBridge(d) } }
             },
             wide(),
         )
@@ -2855,6 +2856,114 @@ class MainActivity : AppCompatActivity() {
         log("=== end module scan ===")
     }
 
+    /**
+     * Runs the vendor's full setup **including the line change**, then tries a raw DS2 request.
+     *
+     * Run 40's shim log shows the step every run of this project has missed. After the first
+     * `0x83F0` the software calls `FT_SetBaudRate(9600)` and `FT_SetDataCharacteristics` with even
+     * parity, and only then sends the second `0x83F0`:
+     *
+     * ```
+     * 19200 8N1   0xB318  parameter = address, payload 01
+     *             0x83F0  parameter = address, payload E5 50 47 66 28 14
+     *   -> 9600 8E1
+     *             0x83F0  again, now at 9600 8E1
+     * ```
+     *
+     * That also explains run 34, where replies stopped being readable after a `0x83F0`: the cable
+     * had moved to 9600 8E1 and we were still reading at 19200.
+     *
+     * 9600 8E1 is DS2's own line setting, which raises the possibility that after this setup the
+     * cable simply **passes bytes through** — in which case there is no "module query command" to
+     * find, because the request is an ordinary DS2 frame. That would explain why the only commands
+     * ever seen leaving the vendor software are setup. So the last step here sends
+     * `[address][length][0x00][XOR]`, the standard DS2 identification request, unscrambled.
+     *
+     * It is a hypothesis and it is flagged as one in the output. The request itself is not a guess:
+     * DS2 service `0x00` is a read, and this project sent it to all 256 addresses in its earliest
+     * runs, long before any of the vendor protocol was known.
+     */
+    private fun vendorBridge(device: UsbDevice) {
+        log("=== BRIDGE TEST ===")
+        log("The vendor's full setup, including the switch to 9600 8E1 after the first 0x83F0,")
+        log("then a raw DS2 identification request. Testing whether the cable passes through.")
+        log("")
+
+        val probes = intArrayOf(0x12, 0x80, 0xA4, 0x44, 0x32, 0x56)
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            for (addr in probes) {
+                if (stopRequested) { log("stopped"); break }
+                log("  --- address 0x%02X ---".format(addr))
+
+                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(80)
+                dev.setModemControl(dtr = false, rts = null)
+
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
+                if (VendorHandshake.decode(raw) == null) { log("    handshake failed"); continue }
+                if (!VendorProtocol.matchesRecordedCable(raw)) {
+                    log("    announcement changed - stopping"); break
+                }
+
+                var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                fun send(frame: ByteArray, label: String, windowMs: Int): ByteArray {
+                    val (w, n) = VendorProtocol.scramble(frame, key)
+                    key = n
+                    dev!!.write(w)
+                    val r = dev.readTimed(windowMs).flatMap { it.second.asIterable() }.toByteArray()
+                    log("    $label -> ${if (r.isEmpty()) "nothing" else Ds2.hex(r)}")
+                    return r
+                }
+
+                send(VendorProtocol.SIGN_ON_FRAME, "sign-on", 500)
+                send(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318", 500)
+                send(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
+                    "0x83F0 at 19200 8N1", 500)
+
+                // The step every earlier run missed.
+                dev.setBaudRate(9600)
+                dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
+                log("    --> line now 9600 8E1")
+
+                send(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
+                    "0x83F0 at 9600 8E1", 500)
+
+                // The hypothesis: the cable is now a pass-through and this is an ordinary DS2
+                // request, not a vendor frame.
+                val ds2 = Ds2.frame(addr, byteArrayOf(Ds2.Command.IDENTIFY.toByte()))
+                log("    raw DS2 request ${Ds2.hex(ds2)}  (unscrambled - pass-through hypothesis)")
+                dev.write(ds2)
+                val reply = dev.readTimed(900).flatMap { it.second.asIterable() }.toByteArray()
+                if (reply.isEmpty()) { log("    -> nothing"); log(""); continue }
+                log("    -> ${Ds2.hex(reply)}")
+
+                val f = Ds2.findFrame(reply, 0, addr)
+                if (f != null) {
+                    log("    VALID DS2 FRAME at offset ${f.offset}: ${Ds2.hex(f.frame)}")
+                    log("    address 0x%02X  <<<<<< A MODULE ANSWERED".format(f.frame[0]))
+                } else {
+                    val any = VendorTransaction.resyncAnyMode(reply)
+                    log(if (any != null)
+                        "    not DS2, but fits mode ${any.first.code}: ${Ds2.hex(any.second.bytes)}"
+                        else "    no valid frame in it")
+                }
+                log("")
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end bridge test ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -3650,5 +3759,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.37-probe"
+    const val NAME = "0.38-probe"
 }
