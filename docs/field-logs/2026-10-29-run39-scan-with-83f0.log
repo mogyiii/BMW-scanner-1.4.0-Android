@@ -1,0 +1,144 @@
+14:44:14.859  BMW DS2 Probe 0.37-probe
+14:44:14.868  Looking for the cable: VID 0x0333 / PID 0x0137
+
+14:44:14.874  USB rescan: 1 device(s)
+14:44:14.875    /dev/bus/usb/001/002  0333:0137
+14:44:22.777  === MODULE SCAN ===
+14:44:22.777  One full connection per address, as the vendor does: DTR pulse, handshake,
+14:44:22.778  sign-on, then 0xB318. Not one sign-on and sixty-three frames - run 37 showed
+14:44:22.778  that degrades after two.
+
+14:44:25.236    0x00  after 0x83F0: 65 3D 02 DA 37 C9 BE A9 08 BF 13 5D 5D  <<<<<< look
+14:44:25.238    0x00  77 07 77 07 77 07 70  nothing to say
+14:44:27.670    0x08  after 0x83F0: 65 3D 02 DA 37 C1 BE A9 08 BF 13 5D 65  <<<<<< look
+14:44:27.671    0x08  77 07 77 07 77 07 70  nothing to say
+14:44:30.102    0x12  after 0x83F0: 65 3D 02 DA 37 DB BE A9 08 BF 13 5D 6B  <<<<<< look
+14:44:30.103    0x12  77 07 77 07 77 07 70  nothing to say
+14:44:32.539    0x13  after 0x83F0: 65 3D 02 DA 37 DA BE A9 08 BF 13 5D 6A  <<<<<< look
+14:44:32.541    0x13  77 07 77 07 77 07 70  nothing to say
+14:44:34.975    0x16  after 0x83F0: 65 3D 02 DA 37 DF BE A9 08 BF 13 5D 77  <<<<<< look
+14:44:34.976    0x16  77 07 77 07 77 07 70  nothing to say
+14:44:37.407    0x18  after 0x83F0: 65 3D 02 DA 37 D1 BE A9 08 BF 13 5D 75  <<<<<< look
+14:44:37.408    0x18  77 07 77 07 77 07 70  nothing to say
+14:44:39.840    0x1B  after 0x83F0: 65 3D 02 DA 37 D2 BE A9 08 BF 13 5D 72  <<<<<< look
+14:44:39.842    0x1B  77 07 77 07 77 07 70  nothing to say
+14:44:42.275    0x1E  after 0x83F0: 65 3D 02 DA 37 D7 BE A9 08 BF 13 5D 7F  <<<<<< look
+14:44:42.276    0x1E  77 07 77 07 77 07 70  nothing to say
+14:44:44.710    0x22  after 0x83F0: 65 3D 02 DA 37 EB BE A9 08 BF 13 5D 7B  <<<<<< look
+14:44:44.711    0x22  77 07 77 07 77 07 70  nothing to say
+14:44:47.143    0x24  after 0x83F0: 65 3D 02 DA 37 ED BE A9 08 BF 13 5D 79  <<<<<< look
+14:44:47.145    0x24  77 07 77 07 77 07 70  nothing to say
+14:44:49.579    0x28  after 0x83F0: 65 3D 02 DA 37 E1 BE A9 08 BF 13 5D 05  <<<<<< look
+14:44:49.580    0x28  77 07 77 07 77 07 70  nothing to say
+14:44:52.013    0x29  after 0x83F0: 65 3D 02 DA 37 E0 BE A9 08 BF 13 5D 04  <<<<<< look
+14:44:52.015    0x29  77 07 77 07 77 07 70  nothing to say
+14:44:54.447    0x2E  after 0x83F0: 65 3D 02 DA 37 E7 BE A9 08 BF 13 5D 0F  <<<<<< look
+14:44:54.449    0x2E  77 07 77 07 77 07 70  nothing to say
+14:44:56.877    0x30  after 0x83F0: 65 3D 02 DA 37 F9 BE A9 08 BF 13 5D 0D  <<<<<< look
+14:44:56.877    0x30  77 07 77 07 77 07 70  nothing to say
+14:44:59.308    0x32  after 0x83F0: 65 3D 02 DA 37 FB BE A9 08 BF 13 5D 0B  <<<<<< look
+14:44:59.310    0x32  77 07 77 07 77 07 70  nothing to say
+14:45:01.742    0x34  after 0x83F0: 65 3D 02 DA 37 FD BE A9 08 BF 13 5D 09  <<<<<< look
+14:45:01.743    0x34  77 07 77 07 77 07 70  nothing to say
+14:45:04.179    0x3B  after 0x83F0: 65 3D 02 DA 37 F2 BE A9 08 BF 13 5D 12  <<<<<< look
+14:45:04.181    0x3B  77 07 77 07 77 07 70  nothing to say
+14:45:06.616    0x40  after 0x83F0: 65 3D 02 DA 37 89 BE A9 08 BF 13 5D 1D  <<<<<< look
+14:45:06.617    0x40  77 07 77 07 77 07 70  nothing to say
+14:45:09.052    0x44  after 0x83F0: 65 3D 02 DA 37 8D BE A9 08 BF 13 5D 19  <<<<<< look
+14:45:09.054    0x44  77 07 77 07 77 07 70  nothing to say
+14:45:11.488    0x47  after 0x83F0: 65 3D 02 DA 37 8E BE A9 08 BF 13 5D 26  <<<<<< look
+14:45:11.490    0x47  77 07 77 07 77 07 70  nothing to say
+14:45:13.922    0x48  after 0x83F0: 65 3D 02 DA 37 81 BE A9 08 BF 13 5D 25  <<<<<< look
+14:45:13.923    0x48  77 07 77 07 77 07 70  nothing to say
+14:45:16.356    0x4A  after 0x83F0: 65 3D 02 DA 37 83 BE A9 08 BF 13 5D 23  <<<<<< look
+14:45:16.358    0x4A  77 07 77 07 77 07 70  nothing to say
+14:45:18.790    0x50  after 0x83F0: 65 3D 02 DA 37 99 BE A9 08 BF 13 5D 2D  <<<<<< look
+14:45:18.791    0x50  77 07 77 07 77 07 70  nothing to say
+14:45:21.224    0x51  after 0x83F0: 65 3D 02 DA 37 98 BE A9 08 BF 13 5D 2C  <<<<<< look
+14:45:21.226    0x51  77 07 77 07 77 07 70  nothing to say
+14:45:23.661    0x56  after 0x83F0: 65 3D 02 DA 37 9F BE A9 08 BF 13 5D 37  <<<<<< look
+14:45:23.663    0x56  77 07 77 07 77 07 70  nothing to say
+14:45:26.095    0x57  after 0x83F0: 65 3D 02 DA 37 9E BE A9 08 BF 13 5D 36  <<<<<< look
+14:45:26.097    0x57  77 07 77 07 77 07 70  nothing to say
+14:45:28.532    0x5A  after 0x83F0: 65 3D 02 DA 37 93 BE A9 08 BF 13 5D 33  <<<<<< look
+14:45:28.534    0x5A  77 07 77 07 77 07 70  nothing to say
+14:45:30.967    0x5B  after 0x83F0: 65 3D 02 DA 37 92 BE A9 08 BF 13 5D 32  <<<<<< look
+14:45:30.968    0x5B  77 07 77 07 77 07 70  nothing to say
+14:45:33.403    0x60  after 0x83F0: 65 3D 02 DA 37 A9 BE A9 08 BF 13 5D 3D  <<<<<< look
+14:45:33.404    0x60  77 07 77 07 77 07 70  nothing to say
+14:45:35.837    0x65  after 0x83F0: 65 3D 02 DA 37 AC BE A9 08 BF 13 5D 38  <<<<<< look
+14:45:35.839    0x65  77 07 77 07 77 07 70  nothing to say
+14:45:38.271    0x66  after 0x83F0: 65 3D 02 DA 37 AF BE A9 08 BF 13 5D C7  <<<<<< look
+14:45:38.273    0x66  77 07 77 07 77 07 70  nothing to say
+14:45:40.704    0x68  after 0x83F0: 65 3D 02 DA 37 A1 BE A9 08 BF 13 5D C5  <<<<<< look
+14:45:40.705    0x68  77 07 77 07 77 07 70  nothing to say
+14:45:43.139    0x6A  after 0x83F0: 65 3D 02 DA 37 A3 BE A9 08 BF 13 5D C3  <<<<<< look
+14:45:43.140    0x6A  77 07 77 07 77 07 70  nothing to say
+14:45:45.575    0x6B  after 0x83F0: 65 3D 02 DA 37 A2 BE A9 08 BF 13 5D C2  <<<<<< look
+14:45:45.577    0x6B  77 07 77 07 77 07 70  nothing to say
+14:45:48.011    0x70  after 0x83F0: 65 3D 02 DA 37 B9 BE A9 08 BF 13 5D CD  <<<<<< look
+14:45:48.013    0x70  77 07 77 07 77 07 70  nothing to say
+14:45:50.447    0x72  after 0x83F0: 65 3D 02 DA 37 BB BE A9 08 BF 13 5D CB  <<<<<< look
+14:45:50.449    0x72  77 07 77 07 77 07 70  nothing to say
+14:45:52.890    0x74  after 0x83F0: 65 3D 02 DA 37 BD BE A9 08 BF 13 5D C9  <<<<<< look
+14:45:52.906    0x74  77 07 77 07 77 07 70  nothing to say
+14:45:55.342    0x7F  after 0x83F0: 65 3D 02 DA 37 B6 BE A9 08 BF 13 5D DE  <<<<<< look
+14:45:55.361    0x7F  77 07 77 07 77 07 70  nothing to say
+14:45:57.808    0x80  after 0x83F0: 65 3D 02 DA 37 49 BE A9 08 BF 13 5D DD  <<<<<< look
+14:45:57.810    0x80  77 07 77 07 77 07 70  nothing to say
+14:46:00.244    0x81  after 0x83F0: 65 3D 02 DA 37 48 BE A9 08 BF 13 5D DC  <<<<<< look
+14:46:00.245    0x81  77 07 77 07 77 07 70  nothing to say
+14:46:02.678    0x86  after 0x83F0: 65 3D 02 DA 37 4F BE A9 08 BF 13 5D E7  <<<<<< look
+14:46:02.680    0x86  77 07 77 07 77 07 70  nothing to say
+14:46:05.110    0x98  after 0x83F0: 65 3D 02 DA 37 51 BE A9 08 BF 13 5D F5  <<<<<< look
+14:46:05.112    0x98  77 07 77 07 77 07 70  nothing to say
+14:46:07.544    0x9A  after 0x83F0: 65 3D 02 DA 37 53 BE A9 08 BF 13 5D F3  <<<<<< look
+14:46:07.546    0x9A  77 07 77 07 77 07 70  nothing to say
+14:46:09.979    0x9B  after 0x83F0: 65 3D 02 DA 37 52 BE A9 08 BF 13 5D F2  <<<<<< look
+14:46:09.980    0x9B  77 07 77 07 77 07 70  nothing to say
+14:46:12.413    0x9C  after 0x83F0: 65 3D 02 DA 37 55 BE A9 08 BF 13 5D F1  <<<<<< look
+14:46:12.415    0x9C  77 07 77 07 77 07 70  nothing to say
+14:46:14.846    0x9E  after 0x83F0: 65 3D 02 DA 37 57 BE A9 08 BF 13 5D FF  <<<<<< look
+14:46:14.848    0x9E  77 07 77 07 77 07 70  nothing to say
+14:46:17.278    0xA0  after 0x83F0: 65 3D 02 DA 37 69 BE A9 08 BF 13 5D FD  <<<<<< look
+14:46:17.279    0xA0  77 07 77 07 77 07 70  nothing to say
+14:46:19.708    0xA4  after 0x83F0: 65 3D 02 DA 37 6D BE A9 08 BF 13 5D F9  <<<<<< look
+14:46:19.709    0xA4  77 07 77 07 77 07 70  nothing to say
+14:46:22.149    0xA6  after 0x83F0: 65 3D 02 DA 37 6F BE A9 08 BF 13 5D 87  <<<<<< look
+14:46:22.150    0xA6  77 07 77 07 77 07 70  nothing to say
+14:46:24.583    0xA7  after 0x83F0: 65 3D 02 DA 37 6E BE A9 08 BF 13 5D 86  <<<<<< look
+14:46:24.584    0xA7  77 07 77 07 77 07 70  nothing to say
+14:46:27.019    0xAC  after 0x83F0: 65 3D 02 DA 37 65 BE A9 08 BF 13 5D 81  <<<<<< look
+14:46:27.021    0xAC  77 07 77 07 77 07 70  nothing to say
+14:46:29.450    0xB0  after 0x83F0: 65 3D 02 DA 37 79 BE A9 08 BF 13 5D 8D  <<<<<< look
+14:46:29.452    0xB0  77 07 77 07 77 07 70  nothing to say
+14:46:31.882    0xBB  after 0x83F0: 65 3D 02 DA 37 72 BE A9 08 BF 13 5D 92  <<<<<< look
+14:46:31.884    0xBB  77 07 77 07 77 07 70  nothing to say
+14:46:34.316    0xC0  after 0x83F0: 65 3D 02 DA 37 09 BE A9 08 BF 13 5D 9D  <<<<<< look
+14:46:34.318    0xC0  77 07 77 07 77 07 70  nothing to say
+14:46:36.750    0xC2  after 0x83F0: 65 3D 02 DA 37 0B BE A9 08 BF 13 5D 9B  <<<<<< look
+14:46:36.751    0xC2  77 07 77 07 77 07 70  nothing to say
+14:46:39.184    0xC8  after 0x83F0: 65 3D 02 DA 37 01 BE A9 08 BF 13 5D A5  <<<<<< look
+14:46:39.186    0xC8  77 07 77 07 77 07 70  nothing to say
+14:46:41.617    0xCE  after 0x83F0: 65 3D 02 DA 37 07 BE A9 08 BF 13 5D AF  <<<<<< look
+14:46:41.618    0xCE  77 07 77 07 77 07 70  nothing to say
+14:46:44.050    0xD0  after 0x83F0: 65 3D 02 DA 37 19 BE A9 08 BF 13 5D AD  <<<<<< look
+14:46:44.052    0xD0  77 07 77 07 77 07 70  nothing to say
+14:46:46.486    0xDA  after 0x83F0: 65 3D 02 DA 37 13 BE A9 08 BF 13 5D B3  <<<<<< look
+14:46:46.488    0xDA  77 07 77 07 77 07 70  nothing to say
+14:46:48.919    0xE8  after 0x83F0: 65 3D 02 DA 37 21 BE A9 08 BF 13 5D 45  <<<<<< look
+14:46:48.921    0xE8  77 07 77 07 77 07 70  nothing to say
+14:46:51.354    0xED  after 0x83F0: 65 3D 02 DA 37 24 BE A9 08 BF 13 5D 40  <<<<<< look
+14:46:51.355    0xED  77 07 77 07 77 07 70  nothing to say
+14:46:53.787    0xF0  after 0x83F0: 65 3D 02 DA 37 39 BE A9 08 BF 13 5D 4D  <<<<<< look
+14:46:53.788    0xF0  77 07 77 07 77 07 70  nothing to say
+14:46:56.222    0xF5  after 0x83F0: 65 3D 02 DA 37 3C BE A9 08 BF 13 5D 48  <<<<<< look
+14:46:56.223    0xF5  77 07 77 07 77 07 70  nothing to say
+
+14:46:56.224    0 gave a frame that was not a fixed non-event; 0 unreadable.
+14:46:56.225    NOTE: 0xB318 is connection setup, not a module query. A '77 07' from every
+14:46:56.225    address is most likely the right answer to it and says nothing about what is
+14:46:56.226    on the car's bus. Do not read this as 'no modules found'.
+14:46:56.226    Nothing degraded this time, so rebuilding the connection per address is
+14:46:56.227    what the cable wants - which is exactly what the vendor capture does.
+14:46:56.228  === end module scan ===

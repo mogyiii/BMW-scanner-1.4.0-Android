@@ -640,6 +640,51 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 39: the `0x83F0` reply is structured, and replies carry our parameter back scrambled
+
+2026-10-29, on the car. The scan again, this time with the two `0x83F0` frames the vendor sends per
+address put back. (`field-logs/2026-10-29-run39-scan-with-83f0.log`)
+
+All sixty-three addresses answered the `0x83F0` frames with thirteen bytes in which **only two bytes
+move**:
+
+```
+65 3D 02 DA 37 <X> BE A9 08 BF 13 5D <Y>
+```
+
+`X` is our own parameter XORed with `0xC9` — `0x00 → 0xC9`, `0x12 → 0xDB`, `0x16 → 0xDF` — and the
+rule holds on **all sixty-three**, with the eleven invariant bytes identical in every one. `Y`
+varies with the address by a rule that has not been worked out.
+
+### This corrects run 25
+
+Run 25 concluded "replies are not scrambled… only the host to cable direction is obfuscated", from
+the single observation that `41 AA 12` came back in plain. **That does not hold here**: the cable's
+own parameter echo is XORed. Whether `0xC9` is a rolling key continuing the host's stream or a fixed
+constant cannot be settled from one varying byte — the key the host stream would stand at after the
+sign-on and three frames is `0xB3`, not `0xC9`, so if it is rolling it is not simply ours continued.
+Both readings are left open.
+
+### No frame inside it
+
+Brute-forcing the thirteen bytes, and every suffix of them, against all 256 starting keys and all
+four length rules found nothing at two of three addresses and two chance hits at the third. Recorded
+as a negative result: this reply is not a DS2 or KWP frame in disguise.
+
+### `65 3D 02` is a reply header, not an error
+
+It has turned up whenever something seemed wrong since run 26, and was guessed at as a failure
+token. Here it prefixes a perfectly orderly reply from all sixty-three addresses on a link that is
+behaving. It is a header.
+
+### The shim gets the clean fixture
+
+It had been serving the eleven-byte `0x83F0` reply recorded in run 34 — taken on a link that had
+already decayed after three frames, so a recording of the cable misbehaving. It now builds the
+thirteen-byte reply per address: the invariant template, byte 5 computed as `parameter XOR 0xC9`,
+and byte 12 from a sixty-three entry table straight out of this log. Where no trailing byte was
+recorded for an address it logs that the reply is incomplete rather than inventing one.
+
 ## Run 38: rebuilding the connection per address works — 63 of 63, no decay
 
 2026-10-29, on the car. The scan redone the vendor's way: DTR pulse, handshake, sign-on and one
