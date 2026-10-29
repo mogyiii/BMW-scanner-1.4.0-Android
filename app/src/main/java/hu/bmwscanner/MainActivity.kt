@@ -163,6 +163,7 @@ class MainActivity : AppCompatActivity() {
                 "scan" -> guarded(what) { moduleScan(device!!) }
                 "bridge" -> guarded(what) { vendorBridge(device!!) }
                 "longread" -> guarded(what) { longRead(device!!) }
+                "retry" -> guarded(what) { retryTest(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -424,10 +425,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "LONG READ  (about 15 s)"
+                text = "RETRY TEST  (about 25 s)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("longread") { d -> longRead(d) } }
+                setOnClickListener { withCable("retry") { d -> retryTest(d) } }
             },
             wide(),
         )
@@ -3060,6 +3061,93 @@ class MainActivity : AppCompatActivity() {
         log("=== end long read ===")
     }
 
+    /**
+     * Repeats the full vendor sequence several times per address and counts what comes back.
+     *
+     * The owner reports that others find this cable works only sometimes with the manufacturer's
+     * own software. That is worth taking seriously: an intermittent device is not the same as a
+     * dead one, and every measurement this project has made so far was a single attempt. A single
+     * attempt cannot tell a consistent failure from a nine-in-ten failure, and those call for
+     * completely different conclusions.
+     *
+     * So this does the same thing [longRead] does — full connection, sign-on, `0xB318`, both
+     * `0x83F0` frames, all at 19200 — but five times per address, and reports the length of every
+     * reply. The cable has answered the second `0x83F0` with exactly thirteen bytes in every run to
+     * date while announcing sixty-one. **Anything longer than thirteen, even once, changes the
+     * conclusion** and is flagged.
+     *
+     * Run it with the ignition on, then again with the engine running. The states are the owner's
+     * to vary between presses; what this provides is enough repetitions for the answer to mean
+     * something either way.
+     */
+    private fun retryTest(device: UsbDevice) {
+        log("=== RETRY TEST ===")
+        log("Five full attempts per address at 19200. The cable has always answered the second")
+        log("0x83F0 with 13 bytes while announcing 61 - anything longer, even once, matters.")
+        log("")
+
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+        var best = 0
+        var bestBytes = ByteArray(0)
+        var attempts = 0
+        var handshakeFails = 0
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            for (addr in intArrayOf(0x12, 0x80)) {
+                log("  --- address 0x%02X ---".format(addr))
+                repeat(5) { n ->
+                    if (stopRequested) return@repeat
+                    attempts++
+                    dev!!.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                    dev.purge()
+                    dev.setModemControl(dtr = true, rts = null)
+                    Thread.sleep(80)
+                    dev.setModemControl(dtr = false, rts = null)
+                    val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
+                    if (VendorHandshake.decode(raw) == null) {
+                        handshakeFails++; log("    %d. handshake failed".format(n + 1)); return@repeat
+                    }
+                    var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                    fun put(f: ByteArray) {
+                        val (w, nk) = VendorProtocol.scramble(f, key); key = nk; dev!!.write(w)
+                    }
+                    put(VendorProtocol.SIGN_ON_FRAME); dev.readTimed(350)
+                    put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                        byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))); dev.readTimed(350)
+                    put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
+                    dev.readTimed(350)
+                    put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
+                    val r = dev.readTimed(1500).flatMap { it.second.asIterable() }.toByteArray()
+
+                    val want = if (r.size >= 2) r[1].toInt() and 0xFF else -1
+                    val flag = if (r.size > 13) "   <<<<<< LONGER THAN 13 - look here" else ""
+                    log("    %d. %d byte(s)%s%s".format(
+                        n + 1, r.size,
+                        if (want > 0) ", announced $want" else "",
+                        flag))
+                    if (r.size > best) { best = r.size; bestBytes = r }
+                    if (r.size > 13) log("       ${Ds2.hex(r)}")
+                }
+                log("")
+            }
+            log("  $attempts attempt(s), $handshakeFails handshake failure(s)")
+            log("  longest reply seen: $best byte(s)")
+            if (best > 13) {
+                log("  ${Ds2.hex(bestBytes)}")
+                log("  MORE THAN THIRTEEN - the cable is intermittent, not consistently silent.")
+            } else {
+                log("  Thirteen every time. Consistent, not intermittent - at least in this state.")
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end retry test ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -3855,5 +3943,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.41-probe"
+    const val NAME = "0.42-probe"
 }

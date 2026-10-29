@@ -640,6 +640,37 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 45: thirteen of sixty-one, with no late bytes — and why one attempt is not enough
+
+2026-10-29, on the car, 19200 throughout, five-second window.
+(`field-logs/2026-10-29-run45-long-read-19200.log`)
+
+```
+first 0x83F0   -> 77 07 77 07 77 07 70
+second 0x83F0  -> 65 3D 02 DA 37 DB BE A9 08 BF 13 5D 6B
+                  all thirteen between 94 and 100 ms, then nothing for five seconds
+                  byte 1 announces 61; short by 48
+```
+
+The late-arrival hypothesis from run 43 is **refuted**. The cable announces a sixty-one byte frame,
+delivers thirteen containing our own parameter, and stops. That is what a cable does when it reaches
+the bus and nothing answers — and it is also exactly the point at which `BMWScan140`, handed these
+same thirteen bytes, abandons the connection and starts over.
+
+The ignition was on for every run; the owner confirmed it, and it was never otherwise.
+
+### Why the conclusion is not yet "the cable is dead"
+
+The owner points out that others report this cable working only *sometimes* with the manufacturer's
+own software. That matters, and it is not something this project has been in a position to detect:
+**every measurement so far has been a single attempt**, and a single attempt cannot distinguish a
+consistent failure from a nine-in-ten one. The two call for completely different conclusions, and
+only one of them is "faulty".
+
+`RETRY TEST` repeats the full sequence five times per address. Anything longer than thirteen bytes,
+even once, would change the finding from "consistently silent" to "intermittent" — which is a
+different device and a different problem.
+
 ## Run 44: no late bytes at 9600 — and the run measured the wrong thing
 
 2026-10-29, on the car. Five-second window after the second `0x83F0`.
