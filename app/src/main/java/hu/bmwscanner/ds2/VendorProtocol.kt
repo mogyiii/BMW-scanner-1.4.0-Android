@@ -64,27 +64,35 @@ object VendorProtocol {
         const val SIGN_ON = 0xA77A
 
         /**
-         * Asks one control module to identify itself. **This is the command the project spent
-         * weeks without.**
+         * Part of **opening the connection**, sent once per connection with a payload of `0x01`.
          *
-         * Recovered on 2026-10-29 by running `BMWScan140.exe` against a shim that answered the
-         * cable's challenge correctly for the first time. Its *Scan!* function sent exactly this,
-         * eighty-four times: parameter set to a module address, payload one byte, `0x01`.
+         * An earlier version of this comment called it "the command that asks a module to identify
+         * itself" and "the command the project spent weeks without". **Both were wrong**, and the
+         * mistake is worth recording because the evidence looked conclusive: run 35 saw it
+         * eighty-four times, once per module address, which reads exactly like a per-module query.
          *
-         * The parameter is the address and the payload is what the cable is to ask for, so varying
-         * the payload is how other requests are made. Which byte means what is **not** established,
-         * and sweeping payload values at a car's bus is not the way to find out — some of them will
-         * be writes. `0x01` is the one that has been observed, and it is an identification query:
-         * it is what the vendor sends to all sixty-three addresses in a scan.
+         * It is not. The binary has a single call site, inside `FUN_006ceba8`, which is reached
+         * only from `FUN_006c9dc4` — the function that establishes the link, guarded by
+         * `DAT_00a4cf18` so it runs once while disconnected. It appeared once per module in the
+         * capture because every attempt failed against the shim's substituted reply, so the
+         * software tore the link down and rebuilt it from nothing for the next address.
+         *
+         * Which means **everything run 35 captured is connection setup**, and the command that
+         * actually asks a module for data was never sent. It is still missing.
+         *
+         * Sending this is still worth doing: a real reply to it is what the shim needs before the
+         * software will believe a connection succeeded and go on to the queries that matter.
          */
         const val MODULE = 0xB318
     }
 
     /**
-     * The sixty-three module addresses the vendor software scans, in the order it scans them.
+     * The sixty-three module addresses the vendor software works through, in order.
      *
      * Taken from the parameter bytes of the [Command.MODULE] frames in that same run, so this is
-     * the program's own list rather than a published table. Several entries line up with the
+     * the program's own list rather than a published table. Note what that means given what
+     * [Command.MODULE] turned out to be: these are the addresses the software *set up a connection
+     * for*, one failed attempt each, not addresses it successfully queried. Several entries line up with the
      * familiar DS2 addresses — `0x12` the engine controller, `0x80` the instrument cluster, `0x44`
      * the immobiliser, `0xA4` the airbag controller — but that correspondence is recognition, not
      * something this capture proves.
@@ -98,7 +106,7 @@ object VendorProtocol {
         0xED, 0xF0, 0xF5,
     )
 
-    /** The one [Command.MODULE] payload ever observed: an identification query. */
+    /** The one [Command.MODULE] payload ever observed; the single call site hard-codes it. */
     const val QUERY_IDENTIFY = 0x01
 
     /**

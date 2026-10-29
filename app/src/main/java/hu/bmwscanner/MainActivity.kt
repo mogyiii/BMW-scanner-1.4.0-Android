@@ -2714,12 +2714,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Asks every module address to identify itself, exactly as the vendor's *Scan!* does.
+     * Sends the connection-setup frame once per module address, and records what comes back.
      *
-     * The command this performs, `0xB318`, is the one the project went weeks without. Run 35
-     * recovered it by letting `BMWScan140.exe` run against a shim that answered the cable's
-     * challenge properly for the first time: its scan sent `0xB318` eighty-four times, parameter
-     * set to a module address and payload a single `0x01`.
+     * `0xB318` is **not** a per-module query, although run 35 made it look like one by showing it
+     * eighty-four times, once per address. Its single call site sits in the link-establishment path
+     * and runs once per connection; it repeated because each attempt failed and the software
+     * rebuilt the link from nothing for the next address.
+     *
+     * What this is for, then, is narrower than it first appeared and still worth doing: **a real
+     * reply to `0xB318`**. The shim has none, which is why the software never believes a connection
+     * succeeded and never gets as far as asking a module for anything. One genuine reply unblocks
+     * that, and the command and its payload are the vendor's own.
      *
      * The pattern repeated per address is reproduced here because the vendor repeats it, not
      * because its necessity is understood:
@@ -2741,8 +2746,8 @@ class MainActivity : AppCompatActivity() {
      */
     private fun moduleScan(device: UsbDevice) {
         log("=== MODULE SCAN ===")
-        log("0xB318 with payload 01 to each of the ${VendorProtocol.MODULE_ADDRESSES.size} addresses")
-        log("the vendor software scans. This is its identification query.")
+        log("0xB318 with payload 01, once per address. This is the vendor's connection-setup")
+        log("frame, not a per-module query - what we want from it is one genuine reply.")
         log("")
 
         var dev: FtdiDevice? = null
@@ -2806,6 +2811,8 @@ class MainActivity : AppCompatActivity() {
                 log("  No address returned a frame that was not one of the two fixed non-events.")
                 log("  The command and payload are the vendor's own, so what is missing is")
                 log("  elsewhere - the omitted 0x83F0 step is the first thing to suspect.")
+                log("  Note this frame is connection setup, so a reply may not depend on the")
+                log("  address at all; one answer from any of them is what is wanted.")
             } else {
                 log("  ${found.size} module(s) answered:")
                 for ((a, b) in found) log("    0x%02X  ${Ds2.hex(b)}".format(a))

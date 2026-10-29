@@ -640,6 +640,58 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 36: correcting run 35 — `0xB318` is connection setup, not a module query
+
+2026-10-29, static. Run 35 was written an hour earlier and its central claim is wrong. The
+correction is recorded here rather than by editing it, because the way the evidence misled is worth
+keeping.
+
+Run 35 said `0xB318` "asks one control module to identify itself" and called it the command the
+project spent weeks without. The evidence looked conclusive: eighty-four frames, one per module
+address, parameter varying across the vendor's whole address list, payload a constant `0x01`. That
+is exactly what a per-module query looks like.
+
+It is not one. Searching the image for the immediate gives **a single call site**, inside
+`FUN_006ceba8`, and that function is reached from exactly one place: `FUN_006c9dc4`, which
+establishes the link and is guarded by `DAT_00a4cf18` so that it runs **once, while disconnected**.
+
+```
+FUN_006c9dc4                      open the connection
+  FUN_006c9970                      port and handshake
+  FUN_006c98d0 (device name)
+  DAT_00a4cf18 = 1                  now connected
+  FUN_006ceba8  ->  0xB318 payload 01
+```
+
+It repeated once per address because **every attempt failed**. The shim answered `0xB318` with the
+`77 07` substitute, the software treated the connection as unusable, tore it down, and rebuilt it
+from nothing for the next address. The `A77A / B318 / 83F0 / 83F0` group that looked like a scan
+pattern is a connection being opened and abandoned, sixty-three times.
+
+**So everything run 35 captured is connection setup, and the command that asks a module for data was
+never sent.** It is still missing. Run 35's command table and address list stand as records of what
+went over the wire; its interpretation of `0xB318` does not.
+
+### What this changes about the next step
+
+The shim cannot get the software past connection setup without a genuine reply to `0xB318`, and the
+project does not have one — the measured replies in hand are for `0x41AA`, which this flow never
+sends. So the order is:
+
+1. Send `0xB318` on the car and record what the cable really answers.
+2. Teach the shim that reply.
+3. The software then believes it is connected and goes on to the queries that matter.
+
+The `MODULE SCAN` diagnostic does step one. Its description has been corrected: it is not asking
+sixty-three modules to identify themselves, it is sending the connection-setup frame with each
+address as the parameter, and one genuine reply from any of them is the point.
+
+### A small confirmation in passing
+
+`FUN_006c9dc4` passes a constant that Ghidra renders as
+`s_ABGMYWU_TSacearntnyeuri_BV81746x`. Every second character spells `BMW_Scanner_V14x` — the same
+decoy-interleaving obfuscation found in run 21, still in use.
+
 ## Run 35: the whole command set, and the module address list
 
 2026-10-29, in the VM, with the corrected shim — frames accumulated across the software's one-byte
@@ -656,8 +708,13 @@ value of the run is the questions, not the answers.**
 | command | parameter | payload | what it is |
 |---|---|---|---|
 | `0xA77A` | `0x56` = `'V'` | 31 bytes | the response to the cable's challenge |
-| **`0xB318`** | **module address** | **`01`** | **ask that module to identify itself** |
+| **`0xB318`** | **module address** | **`01`** | ~~ask that module to identify itself~~ **see run 36 — this is connection setup** |
 | `0x83F0` | module address | `E5 50 47 66 28 14` | set K-line timing for that module |
+
+> **Correction, run 36:** the reading of `0xB318` below is wrong. It has one call site, in the
+> link-establishment path, and runs once per connection. It appeared once per address because each
+> attempt failed and the link was rebuilt. The command that asks a module for data was never sent
+> and is still missing. The tables remain accurate as records of the traffic.
 
 Eighty-four scans, and the pattern per address never varies:
 
