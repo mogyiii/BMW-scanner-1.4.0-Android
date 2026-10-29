@@ -162,6 +162,7 @@ class MainActivity : AppCompatActivity() {
                 "session" -> guarded(what) { vendorSession(device!!) }
                 "scan" -> guarded(what) { moduleScan(device!!) }
                 "bridge" -> guarded(what) { vendorBridge(device!!) }
+                "longread" -> guarded(what) { longRead(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -423,10 +424,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "BRIDGE TEST  (about 25 s)"
+                text = "LONG READ  (about 15 s)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("bridge") { d -> vendorBridge(d) } }
+                setOnClickListener { withCable("longread") { d -> longRead(d) } }
             },
             wide(),
         )
@@ -2973,6 +2974,88 @@ class MainActivity : AppCompatActivity() {
         log("=== end bridge test ===")
     }
 
+    /**
+     * Waits a long time after the second `0x83F0` to see whether the reply is longer than 13 bytes.
+     *
+     * Run 43 found this in the vendor's own behaviour rather than in ours. Fed the thirteen bytes
+     * we measured on the car, `BMWScan140` reads all thirteen, gets one empty read, and gives up —
+     * because under its mode-2 rule the length is byte 1, and byte 1 of that reply is `0x3D`, **61**.
+     * It wanted sixty-one bytes. Byte 1 is `0x3D` in all sixty-three addresses we recorded, so the
+     * cable consistently announces a sixty-one byte frame and we have consistently read thirteen.
+     *
+     * Every read window this project has used after that frame was 500 to 700 ms. If the remaining
+     * forty-eight bytes arrive later — which is what a cable waiting on a control module would do,
+     * and we have measured it waiting 285 ms before — they were cut off every time, and whatever
+     * arrived afterwards landed in the next read and looked like noise.
+     *
+     * So this changes one thing only: it waits five seconds, and reports when each byte arrived.
+     */
+    private fun longRead(device: UsbDevice) {
+        log("=== LONG READ AFTER 0x83F0 ===")
+        log("The reply's byte 1 is 0x3D = 61, and we have only ever read 13 bytes of it.")
+        log("Five-second window with arrival times, to see whether the rest is late.")
+        log("")
+
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            for (addr in intArrayOf(0x12, 0x80)) {
+                if (stopRequested) { log("stopped"); break }
+                log("  --- address 0x%02X ---".format(addr))
+
+                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(80)
+                dev.setModemControl(dtr = false, rts = null)
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
+                if (VendorHandshake.decode(raw) == null) { log("    handshake failed"); continue }
+                if (!VendorProtocol.matchesRecordedCable(raw)) { log("    announcement changed"); break }
+
+                var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                fun put(f: ByteArray) {
+                    val (w, n) = VendorProtocol.scramble(f, key); key = n; dev!!.write(w)
+                }
+
+                put(VendorProtocol.SIGN_ON_FRAME); dev.readTimed(400)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))); dev.readTimed(400)
+
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
+                dev.setBaudRate(9600)
+                dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
+                dev.readTimed(400)
+
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
+                log("    second 0x83F0 sent, waiting five seconds")
+
+                val batches = dev.readTimed(5000)
+                if (batches.isEmpty()) { log("    nothing"); log(""); continue }
+                for ((ms, bytes) in batches) log("      %5d ms  ${Ds2.hex(bytes)}".format(ms))
+                val all = batches.flatMap { it.second.asIterable() }.toByteArray()
+                log("    total ${all.size} byte(s) over ${batches.last().first} ms")
+                if (all.size >= 2) {
+                    val want = all[1].toInt() and 0xFF
+                    log("    byte 1 says $want; we have ${all.size}" +
+                        if (all.size >= want) "  <<<<<< COMPLETE" else "  still short by ${want - all.size}")
+                    if (all.size >= want) {
+                        var x = 0
+                        for (i in 0 until want) x = x xor (all[i].toInt() and 0xFF)
+                        log("    XOR over $want bytes = 0x%02X %s".format(x, if (x == 0) "- valid DS2 frame" else ""))
+                    }
+                }
+                log("")
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end long read ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -3768,5 +3851,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.39-probe"
+    const val NAME = "0.40-probe"
 }

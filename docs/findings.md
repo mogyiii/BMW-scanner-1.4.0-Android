@@ -640,6 +640,44 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 43: the reply is sixty-one bytes and we have always read thirteen
+
+2026-10-29, from the vendor's own behaviour in the VM rather than from ours.
+
+Fed the thirteen-byte `0x83F0` reply measured on the car, `BMWScan140` reads all thirteen, takes one
+empty read, and immediately pulses DTR to start over:
+
+```
+RX  65 3D 02 DA 37 49 BE A9 08 BF 13 5D DD      thirteen bytes
+FT_Read(asked 1) -> 0
+FT_SetDtr / FT_ClrDtr                            gives up
+```
+
+Under its mode-2 rule the length is **byte 1**, and byte 1 here is `0x3D` — **sixty-one**. It wanted
+sixty-one bytes, got thirteen, and aborted on the shortfall.
+
+`0x3D` sits at byte 1 in **every one of the sixty-three replies recorded in run 39**. The cable
+announces a sixty-one byte frame, consistently, and this project has read thirteen bytes of it,
+consistently, in every run.
+
+### Why that was invisible until now
+
+Every read window used after that frame has been 500–700 ms, and thirteen bytes always arrived
+inside it, so the read looked complete. It never was. If the remaining forty-eight bytes arrive
+later — which is what a cable waiting on a control module would do, and run 31 measured it waiting
+285 ms before answering — then they were cut off every time, and whatever arrived afterwards fell
+into the *next* read, where it would look exactly like the unexplained noise we have been
+cataloguing.
+
+That is a candidate explanation for the `0xC4` replies and the `65 3D 02` fragments both, and it
+costs one measurement to test: wait five seconds and timestamp the arrivals.
+
+### What this does not yet justify
+
+It does not explain why the second `0x83F0` at 9600 returned eleven bytes starting `0xC4` rather
+than a continuation, nor why `25 09 02` is a bit-subset of `65 3D 02`. Those stay open. What is
+established is narrow and checkable: **the cable says sixty-one and we have been reading thirteen.**
+
 ## Run 42: the corrected bridge test, and where the project actually stands
 
 2026-10-29, on the car. The line change moved to where the vendor puts it — between writing the
