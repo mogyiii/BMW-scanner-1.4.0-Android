@@ -300,6 +300,10 @@ static const BYTE g_announce[27] = {
  * plaintext commands instead of hex that has to be brute-forced afterwards. */
 static BYTE g_key = 0x9B;
 
+/* Declared here because rearmCandidate() below clears a half-built frame, and the frame machinery
+ * is defined further down next to the code that uses it. */
+static void resetFrame(void);
+
 /*
  * Replies the real cable was observed giving, and one substitute.
  *
@@ -314,7 +318,20 @@ static BYTE g_key = 0x9B;
  * being collected here.** Its replies are a fixture; nothing downstream of them may be treated as
  * the cable's behaviour. Anything logged as SUBSTITUTED is a request to go and ask the real cable.
  */
-static const BYTE reply_ident[] = { 0x41, 0xAA, 0x12, 0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70 };
+/*
+ * Recorded on the car on 2026-10-29 (run 33 and run 34), on an **authenticated** link - that is,
+ * after the sign-on frame below had been sent. That qualification matters: the same ident frame on
+ * an unauthenticated link returns `41 AA 12 77 07 ...` instead, with a three-byte plaintext echo in
+ * front, so these are the cable's answers in the state the vendor software is always in and never
+ * the ones an idle cable gives.
+ *
+ * The ident reply was sent three times in one session and came back byte for byte identical each
+ * time, so it is stable rather than a snapshot of something changing.
+ */
+static const BYTE reply_signon[]  = { 0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70 };
+static const BYTE reply_ident[]   = { 0xB8, 0x12, 0xF1, 0x01, 0xA2, 0xF8 };
+static const BYTE reply_bus[]     = { 0x7E, 0x98, 0x00, 0x7E, 0x98, 0x00,
+                                      0x7E, 0x98, 0x00, 0x00, 0xFE };
 static const BYTE reply_nothing[] = { 0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70 };
 
 static void queueReply(const BYTE *data, DWORD len, const char *what)
@@ -357,52 +374,97 @@ static void rearmCandidate(void)
     g_rxLen = sizeof(g_announce);
     g_rxPos = 0;
     g_key = g_announce[0];
+    resetFrame();
     shimLog("   re-armed the announcement, key back to 0x%02X", g_key);
 }
 
 /*
- * Descrambles one outgoing frame, logs it in plaintext, and queues whatever the cable would answer.
+ * Accumulates outgoing bytes into frames, logs each in plaintext, and queues the cable's answer.
  *
- * This is the whole point of the rewrite. Previously a write appeared in the log as raw scrambled
- * hex and had to be brute-forced afterwards one frame at a time; with the key tracked, the command,
- * parameter and payload are readable as they happen, and a frame whose length byte and checksum
- * both come out right is proof the key is still in step.
+ * **The software writes one byte per `FT_Write` call.** `FUN_006ccdd4` hands bytes to
+ * `FUN_006ca098` singly, so a call is not a frame. The first version of this treated each call as
+ * one and reported "the key has slipped" seventy-two times in a row while a perfectly good
+ * thirty-six byte frame went past unrecognised. Bytes are therefore descrambled as they arrive -
+ * the key advances per byte either way - and held until the frame's own length byte says it is
+ * complete.
+ *
+ * A frame is `[length][command hi][command lo][parameter][payload...][additive checksum]`, with the
+ * length byte counting everything except itself and the checksum, so the total is `plain[0] + 2`.
  */
-static void handleFrame(const BYTE *wire, DWORD count)
+static BYTE g_frame[256];
+static DWORD g_frameLen = 0;
+static DWORD g_frameWant = 0;
+static BYTE g_frameKey = 0;
+
+static void resetFrame(void)
 {
-    BYTE plain[256];
+    g_frameLen = 0;
+    g_frameWant = 0;
+}
+
+static void dispatchFrame(void)
+{
     DWORD i, sum = 0;
-    BYTE k = g_key;
-    int okLen, okSum;
     unsigned cmd;
 
-    if (count == 0 || count > sizeof(plain)) return;
-    for (i = 0; i < count; i++) { plain[i] = (BYTE)(wire[i] ^ k); k = (BYTE)(k + 0x4B); }
-    g_key = k;
+    for (i = 0; i + 1 < g_frameLen; i++) sum = (sum + g_frame[i]) & 0xFF;
 
-    for (i = 0; i + 1 < count; i++) sum = (sum + plain[i]) & 0xFF;
-    okLen = (plain[0] == (BYTE)(count - 2));
-    okSum = (count >= 2 && sum == plain[count - 1]);
-
-    logBytes("   plaintext", plain, count);
-    if (!okLen || !okSum) {
-        shimLog("   NOT A FRAME at key 0x%02X (len %s, checksum %s) - the key has slipped",
-                (BYTE)(g_key - (BYTE)(0x4B * count)),
-                okLen ? "ok" : "wrong", okSum ? "ok" : "wrong");
+    logBytes("   FRAME", g_frame, g_frameLen);
+    if (sum != g_frame[g_frameLen - 1]) {
+        shimLog("   checksum wrong (got %02X, frame says %02X) at key %02X - the key has slipped",
+                sum, g_frame[g_frameLen - 1], g_frameKey);
         return;
     }
 
-    cmd = ((unsigned)plain[1] << 8) | plain[2];
-    shimLog("   COMMAND 0x%04X  parameter 0x%02X  payload %u byte(s)",
-            cmd, plain[3], count - 5);
+    cmd = ((unsigned)g_frame[1] << 8) | g_frame[2];
+    shimLog("   COMMAND 0x%04X  parameter 0x%02X  payload %u byte(s)  [key %02X]",
+            cmd, g_frame[3], g_frameLen - 5, g_frameKey);
+    if (g_frameLen > 5) logBytes("   payload", g_frame + 4, g_frameLen - 5);
 
-    if (cmd == 0x41AA && plain[3] == 0x12) {
-        queueReply(reply_ident, sizeof(reply_ident), "the cable's recorded ident reply [MEASURED]");
+    if (cmd == 0xA77A) {
+        shimLog("   this is the SIGN-ON response to the cable's challenge");
+        queueReply(reply_signon, sizeof(reply_signon), "the cable's recorded answer [MEASURED]");
+    } else if (cmd == 0x41AA) {
+        queueReply(reply_ident, sizeof(reply_ident), "the cable's recorded answer [MEASURED]");
+    } else if (cmd == 0x83F0) {
+        queueReply(reply_bus, sizeof(reply_bus), "the cable's recorded answer [MEASURED]");
     } else {
-        shimLog("   SUBSTITUTED reply - nobody has asked the real cable this. Try it on the car:");
-        shimLog("   >>> command 0x%04X parameter 0x%02X", cmd, plain[3]);
-        if (count > 5) logBytes("   >>> payload", plain + 4, count - 5);
+        shimLog("   >>> UNKNOWN COMMAND 0x%04X parameter 0x%02X - nobody has asked the real",
+                cmd, g_frame[3]);
+        shimLog("   >>> cable this. Try it on the car; until then the answer below is made up.");
         queueReply(reply_nothing, sizeof(reply_nothing), "the 77 07 non-event [SUBSTITUTED]");
+    }
+}
+
+static void handleFrame(const BYTE *wire, DWORD count)
+{
+    DWORD i;
+
+    for (i = 0; i < count; i++) {
+        BYTE p = (BYTE)(wire[i] ^ g_key);
+        if (g_frameLen == 0) g_frameKey = g_key;
+        g_key = (BYTE)(g_key + 0x4B);
+
+        if (g_frameLen >= sizeof(g_frame)) {
+            shimLog("   frame buffer full without a complete frame - resetting");
+            resetFrame();
+            continue;
+        }
+        g_frame[g_frameLen++] = p;
+
+        if (g_frameLen == 1) {
+            g_frameWant = (DWORD)p + 2;
+            if (g_frameWant < 5 || g_frameWant > sizeof(g_frame)) {
+                shimLog("   first byte %02X gives an impossible length %u - key out of step",
+                        p, g_frameWant);
+                resetFrame();
+            }
+            continue;
+        }
+        if (g_frameLen == g_frameWant) {
+            dispatchFrame();
+            resetFrame();
+        }
     }
 }
 
