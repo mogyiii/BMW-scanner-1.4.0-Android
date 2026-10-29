@@ -62,7 +62,44 @@ object VendorProtocol {
          * further twenty-five bytes is a challenge and a response.
          */
         const val SIGN_ON = 0xA77A
+
+        /**
+         * Asks one control module to identify itself. **This is the command the project spent
+         * weeks without.**
+         *
+         * Recovered on 2026-10-29 by running `BMWScan140.exe` against a shim that answered the
+         * cable's challenge correctly for the first time. Its *Scan!* function sent exactly this,
+         * eighty-four times: parameter set to a module address, payload one byte, `0x01`.
+         *
+         * The parameter is the address and the payload is what the cable is to ask for, so varying
+         * the payload is how other requests are made. Which byte means what is **not** established,
+         * and sweeping payload values at a car's bus is not the way to find out — some of them will
+         * be writes. `0x01` is the one that has been observed, and it is an identification query:
+         * it is what the vendor sends to all sixty-three addresses in a scan.
+         */
+        const val MODULE = 0xB318
     }
+
+    /**
+     * The sixty-three module addresses the vendor software scans, in the order it scans them.
+     *
+     * Taken from the parameter bytes of the [Command.MODULE] frames in that same run, so this is
+     * the program's own list rather than a published table. Several entries line up with the
+     * familiar DS2 addresses — `0x12` the engine controller, `0x80` the instrument cluster, `0x44`
+     * the immobiliser, `0xA4` the airbag controller — but that correspondence is recognition, not
+     * something this capture proves.
+     */
+    val MODULE_ADDRESSES: IntArray = intArrayOf(
+        0x00, 0x08, 0x12, 0x13, 0x16, 0x18, 0x1B, 0x1E, 0x22, 0x24, 0x28, 0x29,
+        0x2E, 0x30, 0x32, 0x34, 0x3B, 0x40, 0x44, 0x47, 0x48, 0x4A, 0x50, 0x51,
+        0x56, 0x57, 0x5A, 0x5B, 0x60, 0x65, 0x66, 0x68, 0x6A, 0x6B, 0x70, 0x72,
+        0x74, 0x7F, 0x80, 0x81, 0x86, 0x98, 0x9A, 0x9B, 0x9C, 0x9E, 0xA0, 0xA4,
+        0xA6, 0xA7, 0xAC, 0xB0, 0xBB, 0xC0, 0xC2, 0xC8, 0xCE, 0xD0, 0xDA, 0xE8,
+        0xED, 0xF0, 0xF5,
+    )
+
+    /** The one [Command.MODULE] payload ever observed: an identification query. */
+    const val QUERY_IDENTIFY = 0x01
 
     /**
      * The exact sign-on frame the vendor software produced for **this** cable.

@@ -160,6 +160,7 @@ class MainActivity : AppCompatActivity() {
                 "twostage" -> guarded(what) { twoStageRead(device!!) }
                 "signon" -> guarded(what) { vendorSignOn(device!!) }
                 "session" -> guarded(what) { vendorSession(device!!) }
+                "scan" -> guarded(what) { moduleScan(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -421,10 +422,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "SESSION LENGTH  <-- this one"
+                text = "MODULE SCAN  (about 45 s)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("session") { d -> vendorSession(d) } }
+                setOnClickListener { withCable("scan") { d -> moduleScan(d) } }
             },
             wide(),
         )
@@ -2712,6 +2713,111 @@ class MainActivity : AppCompatActivity() {
         log("=== end session length ===")
     }
 
+    /**
+     * Asks every module address to identify itself, exactly as the vendor's *Scan!* does.
+     *
+     * The command this performs, `0xB318`, is the one the project went weeks without. Run 35
+     * recovered it by letting `BMWScan140.exe` run against a shim that answered the cable's
+     * challenge properly for the first time: its scan sent `0xB318` eighty-four times, parameter
+     * set to a module address and payload a single `0x01`.
+     *
+     * The pattern repeated per address is reproduced here because the vendor repeats it, not
+     * because its necessity is understood:
+     *
+     * ```
+     * A77A   sign on again
+     * B318   parameter = address, payload 01
+     * 83F0   parameter = address, payload E5 50 47 66 28 14      (twice)
+     * ```
+     *
+     * The `0x83F0` frames are left out. Run 34 measured that after one of them the next reply stops
+     * being a readable frame — most likely because it sets line timing and the cable then speaks on
+     * terms we are not reading. Including them would make the scan's output unreadable for a step
+     * nothing here depends on, and leaving them out is a deviation from the capture that is worth
+     * stating rather than hiding.
+     *
+     * Nothing swept, nothing invented: one observed command, its one observed payload, and the
+     * vendor's own address list.
+     */
+    private fun moduleScan(device: UsbDevice) {
+        log("=== MODULE SCAN ===")
+        log("0xB318 with payload 01 to each of the ${VendorProtocol.MODULE_ADDRESSES.size} addresses")
+        log("the vendor software scans. This is its identification query.")
+        log("")
+
+        var dev: FtdiDevice? = null
+        val found = mutableListOf<Pair<Int, ByteArray>>()
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            dev.purge()
+            dev.setModemControl(dtr = true, rts = null)
+            Thread.sleep(100)
+            dev.setModemControl(dtr = false, rts = null)
+
+            val raw = dev.readBytes(VendorHandshake.LENGTH, 1500)
+            val hs = VendorHandshake.decode(raw)
+            if (hs == null) { log("  handshake failed"); return }
+            if (!VendorProtocol.matchesRecordedCable(raw)) {
+                log("  announcement differs from the recorded challenge - stopping rather than")
+                log("  sending a response computed for a different one.")
+                return
+            }
+            log("  handshake ok, challenge matches, key 0x%02X".format(hs.key))
+
+            var key = hs.key
+            val (signOn, afterSignOn) = VendorProtocol.scramble(VendorProtocol.SIGN_ON_FRAME, key)
+            dev.write(signOn)
+            key = afterSignOn
+            val sr = dev.readTimed(900).flatMap { it.second.asIterable() }.toByteArray()
+            log("  sign-on reply: ${if (sr.isEmpty()) "none" else Ds2.hex(sr)}")
+            log("")
+
+            for (addr in VendorProtocol.MODULE_ADDRESSES) {
+                if (stopRequested) { log("stopped"); break }
+                val frame = VendorProtocol.buildFrame(
+                    VendorProtocol.Command.MODULE, addr,
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))
+                val (wire, next) = VendorProtocol.scramble(frame, key)
+                dev.write(wire)
+                key = next
+
+                val batches = dev.readTimed(700)
+                val reply = batches.flatMap { it.second.asIterable() }.toByteArray()
+                if (reply.isEmpty()) {
+                    log("  0x%02X  -".format(addr))
+                    continue
+                }
+                val hit = VendorTransaction.resyncAnyMode(reply)
+                val note = when {
+                    hit == null -> "  no rule fits"
+                    hit.second.ack == VendorTransaction.Ack.NOTHING_TO_SAY -> "  nothing to say"
+                    hit.second.ack == VendorTransaction.Ack.ABORT -> "  abort"
+                    else -> {
+                        found += addr to hit.second.bytes
+                        "  <<<<<< MODULE ANSWERED (mode ${hit.first.code})"
+                    }
+                }
+                log("  0x%02X  ${Ds2.hex(reply)}$note".format(addr))
+            }
+
+            log("")
+            if (found.isEmpty()) {
+                log("  No address returned a frame that was not one of the two fixed non-events.")
+                log("  The command and payload are the vendor's own, so what is missing is")
+                log("  elsewhere - the omitted 0x83F0 step is the first thing to suspect.")
+            } else {
+                log("  ${found.size} module(s) answered:")
+                for ((a, b) in found) log("    0x%02X  ${Ds2.hex(b)}".format(a))
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end module scan ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -3507,5 +3613,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.34-probe"
+    const val NAME = "0.35-probe"
 }

@@ -640,6 +640,67 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 35: the whole command set, and the module address list
+
+2026-10-29, in the VM, with the corrected shim — frames accumulated across the software's one-byte
+writes, and the cable's **measured** replies served instead of a substitute.
+(`field-logs/2026-10-29-run35-vm-full-command-set.log`)
+
+The software believed it. *Car ident* reported "Connection error with IKE" and "…with EWS" — it was
+addressing real modules by name — and *Scan!* walked its entire list. Every module came back "not
+found", which is correct: the shim answers with a substitute, so there is nothing to find. **The
+value of the run is the questions, not the answers.**
+
+### Three commands. That is the entire vocabulary.
+
+| command | parameter | payload | what it is |
+|---|---|---|---|
+| `0xA77A` | `0x56` = `'V'` | 31 bytes | the response to the cable's challenge |
+| **`0xB318`** | **module address** | **`01`** | **ask that module to identify itself** |
+| `0x83F0` | module address | `E5 50 47 66 28 14` | set K-line timing for that module |
+
+Eighty-four scans, and the pattern per address never varies:
+
+```
+A77A   sign on again
+B318   parameter = address, payload 01
+83F0   parameter = address, payload E5 50 47 66 28 14
+83F0   parameter = address, payload E5 50 47 66 28 14
+```
+
+`0xB318` is the command this project spent weeks without. The parameter carries the address and the
+payload carries what to ask, so other requests — fault memory, live values, service reset — are
+other payload bytes. **Which byte means what is not established, and finding out by sweeping
+payloads at a car's bus is not acceptable: some of them will be writes.** `0x01` is the one that
+has been observed, and it only identifies.
+
+### The address list is the program's own
+
+Sixty-three addresses, taken from the parameter bytes rather than from a published table:
+
+```
+00 08 12 13 16 18 1B 1E 22 24 28 29 2E 30 32 34 3B 40 44 47 48 4A
+50 51 56 57 5A 5B 60 65 66 68 6A 6B 70 72 74 7F 80 81 86 98 9A 9B
+9C 9E A0 A4 A6 A7 AC B0 BB C0 C2 C8 CE D0 DA E8 ED F0 F5
+```
+
+Several are recognisable — `0x12` engine, `0x80` cluster, `0x44` immobiliser, `0xA4` airbag — and
+the two the software named in its errors, IKE and EWS, are `0x80` and `0x44`. That is recognition
+lining up with the capture, not proof from it.
+
+### Also: `0x83F0`'s payload here is `E5 50 47 66 28 14`
+
+The `C8` variant appears ten times and the `28` variant a hundred and fifty-eight, matching run 29's
+reading exactly: `0xC8` is the literal 200 one branch uses, `0x28` is `Delay2 = 40` from the ini.
+
+### What the scan diagnostic leaves out, deliberately
+
+`VendorProtocol` and the `MODULE SCAN` button reproduce the sign-on and the `0xB318` query but
+**not** the two `0x83F0` frames. Run 34 measured that after one of those the next reply stops being
+a readable frame, most likely because it changes line timing. Including them would make the scan's
+output unreadable for a step nothing in it depends on. It is a deviation from the capture and is
+recorded as one; if the scan finds nothing, it is the first thing to put back.
+
 ## Run 34: the session stays open, and the reply is repeatable
 
 2026-10-29, on the car. Sign on, then five observed frames in a row.
