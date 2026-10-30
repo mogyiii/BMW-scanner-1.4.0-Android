@@ -164,6 +164,7 @@ class MainActivity : AppCompatActivity() {
                 "bridge" -> guarded(what) { vendorBridge(device!!) }
                 "longread" -> guarded(what) { longRead(device!!) }
                 "retry" -> guarded(what) { retryTest(device!!) }
+                "realscan" -> guarded(what) { realScan(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -425,10 +426,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "RETRY TEST  (about 25 s)"
+                text = "MODULE QUERY SCAN  (about 2 min)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("retry") { d -> retryTest(d) } }
+                setOnClickListener { withCable("realscan") { d -> realScan(d) } }
             },
             wide(),
         )
@@ -3153,6 +3154,87 @@ class MainActivity : AppCompatActivity() {
         log("=== end retry test ===")
     }
 
+    /**
+     * Sends the real module query to every address the vendor sends it to.
+     *
+     * `0x46F1` - address in the parameter, no payload - is what `BMWScan140` sends once it is past
+     * connection setup, 124 times across 57 addresses. Seven further addresses get `0x06F3`
+     * instead, and those are sent too, as the vendor sends them.
+     *
+     * The setup in front of each is the vendor's, and the connection is rebuilt per address because
+     * run 38 established that is what the cable wants. Nothing here is invented: every command,
+     * every parameter and every payload came off the wire.
+     */
+    private fun realScan(device: UsbDevice) {
+        log("=== MODULE QUERY SCAN ===")
+        log("0x46F1 to ${VendorProtocol.QUERY_ADDRESSES.size} addresses and 0x06F3 to " +
+            "${VendorProtocol.QUERY_ALT_ADDRESSES.size}, as the vendor does.")
+        log("Engine should be running - run 47 showed replies are only clean when it is.")
+        log("")
+
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+        val work = VendorProtocol.QUERY_ADDRESSES.map { it to VendorProtocol.Command.QUERY } +
+                   VendorProtocol.QUERY_ALT_ADDRESSES.map { it to VendorProtocol.Command.QUERY_ALT }
+        val answered = mutableListOf<Triple<Int, Int, ByteArray>>()
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            for ((addr, cmd) in work) {
+                if (stopRequested) { log("stopped"); break }
+
+                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(80)
+                dev.setModemControl(dtr = false, rts = null)
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
+                if (VendorHandshake.decode(raw) == null) {
+                    log("  0x%02X  handshake failed".format(addr)); continue
+                }
+                if (!VendorProtocol.matchesRecordedCable(raw)) { log("  announcement changed"); break }
+
+                var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                fun put(f: ByteArray) {
+                    val (w, n) = VendorProtocol.scramble(f, key); key = n; dev!!.write(w)
+                }
+                put(VendorProtocol.SIGN_ON_FRAME); dev.readTimed(300)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))); dev.readTimed(300)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
+                dev.readTimed(300)
+
+                put(VendorProtocol.buildFrame(cmd, addr))
+                val r = dev.readTimed(900).flatMap { it.second.asIterable() }.toByteArray()
+
+                if (r.isEmpty()) { log("  0x%02X  [%04X]  -".format(addr, cmd)); continue }
+                val hit = VendorTransaction.resyncAnyMode(r)
+                val note = when {
+                    hit == null -> "  no rule fits"
+                    hit.second.ack == VendorTransaction.Ack.NOTHING_TO_SAY -> "  nothing to say"
+                    hit.second.ack == VendorTransaction.Ack.ABORT -> "  abort"
+                    else -> { answered += Triple(addr, cmd, hit.second.bytes)
+                              "  <<<<<< MODULE ANSWERED (mode ${hit.first.code})" }
+                }
+                log("  0x%02X  [%04X]  ${Ds2.hex(r)}$note".format(addr, cmd))
+            }
+
+            log("")
+            if (answered.isEmpty()) {
+                log("  No module answered. The command is the vendor's own, so this is now a")
+                log("  statement about the car or the cable's vehicle side, not about the protocol.")
+            } else {
+                log("  ${answered.size} module(s) answered:")
+                for ((a, c, b) in answered) log("    0x%02X [%04X]  ${Ds2.hex(b)}".format(a, c))
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end module query scan ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -3948,5 +4030,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.43-probe"
+    const val NAME = "0.44-probe"
 }

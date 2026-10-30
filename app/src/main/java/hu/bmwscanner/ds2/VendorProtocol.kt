@@ -84,7 +84,46 @@ object VendorProtocol {
          * software will believe a connection succeeded and go on to the queries that matter.
          */
         const val MODULE = 0xB318
+
+        /**
+         * **Asks a control module to identify itself.** The command this project spent six weeks
+         * without, and the reason it was missed is worth recording.
+         *
+         * It surfaced on 2026-10-30, the first time `BMWScan140` got past connection setup in the
+         * VM. It had not got past before because the shim was feeding it a `0x83F0` reply recorded
+         * on a dying battery - thirteen bytes announcing sixty-one - and the software tore the
+         * connection down on the shortfall every time. With the properly-powered reply in place it
+         * went straight on and sent this, **124 times**, parameter set to a module address, no
+         * payload, twice per address.
+         *
+         * A scan of the executable had already found `0x46F1` at 108 of the 718 call sites into the
+         * DS2 sender, and I set it aside for being *too* common to be specific. That was exactly
+         * backwards: it is common because it is the general per-module query.
+         */
+        const val QUERY = 0x46F1
+
+        /**
+         * A second query, sent to seven addresses only: `18 1B 1E 29 32 34 A4`.
+         *
+         * Same shape as [QUERY] - address in the parameter, no payload - but reserved for those
+         * seven. What distinguishes them is not established; `0xA4` is the airbag controller and
+         * `0x32` the gearbox, so a guess would be modules on a different protocol variant, and a
+         * guess is all it would be.
+         */
+        const val QUERY_ALT = 0x06F3
     }
+
+    /** The 57 addresses the vendor sends [Command.QUERY] to, in order. */
+    val QUERY_ADDRESSES: IntArray = intArrayOf(
+        0x00, 0x08, 0x12, 0x13, 0x16, 0x22, 0x24, 0x28, 0x30, 0x32, 0x3B, 0x40,
+        0x44, 0x47, 0x48, 0x4A, 0x50, 0x51, 0x56, 0x57, 0x5A, 0x5B, 0x60, 0x65,
+        0x66, 0x68, 0x6A, 0x6B, 0x70, 0x72, 0x74, 0x7F, 0x80, 0x81, 0x86, 0x98,
+        0x9A, 0x9B, 0x9C, 0x9E, 0xA0, 0xA4, 0xA6, 0xA7, 0xAC, 0xB0, 0xBB, 0xC0,
+        0xC2, 0xC8, 0xCE, 0xD0, 0xDA, 0xE8, 0xED, 0xF0, 0xF5,
+    )
+
+    /** The 7 addresses that get [Command.QUERY_ALT] instead. */
+    val QUERY_ALT_ADDRESSES: IntArray = intArrayOf(0x18, 0x1B, 0x1E, 0x29, 0x32, 0x34, 0xA4)
 
     /**
      * The sixty-three module addresses the vendor software works through, in order.

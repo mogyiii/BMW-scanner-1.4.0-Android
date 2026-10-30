@@ -671,6 +671,50 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 48: the module query, found at last — `0x46F1`
+
+2026-10-30, in the VM, with the shim serving the properly-powered `0x83F0` reply.
+(`field-logs/2026-10-30-run48-vm-module-query.log`)
+
+`BMWScan140` got past connection setup for the first time, and the vocabulary opened up:
+
+| command | count | parameter | payload | |
+|---|---|---|---|---|
+| `0xA77A` | 1 | `'V'` | 31 bytes | sign-on |
+| `0xB318` | 1 | address | `01` | connection setup |
+| `0x83F0` | 11 | address | `E5 50 47 66 ..` | timing |
+| **`0x46F1`** | **124** | **module address** | **none** | **the module query** |
+| `0x06F3` | 14 | address | none | a second query, seven addresses only |
+| `0x41AA` | 2 | `0x12` | none | |
+| `0x4ED1` | 2 | `0xD0` | none | |
+| `0xCDE2` | 2 | `0x2E` | `00 05 00 2B` | |
+
+`0x46F1` goes to **57 addresses**, twice each. `0x06F3` goes to seven: `18 1B 1E 29 32 34 A4`.
+
+### Why it took six weeks
+
+Two separate mistakes, both mine, compounding.
+
+**The scan of the executable had already found it.** `0x46F1` sits at 108 of the 718 call sites into
+the DS2 sender — far and away the most common — and I set it aside in run 36 for being *too* common
+to be a specific command. Exactly backwards: it is common because it is the general per-module
+query, used by every feature in the program.
+
+**And the shim had been feeding the software a bad frame since run 39.** The `0x83F0` reply it
+served was recorded on a battery that would not start the car an hour later, and it announced
+sixty-one bytes while delivering thirteen. The software read it, found itself forty-eight short, and
+tore the connection down — every time, for days. The dead end was not a missing step in the
+protocol. It was a fixture recorded under conditions nobody had thought to check.
+
+### Status
+
+The protocol is complete: handshake, challenge and response, connection setup, per-module timing,
+and now the query itself, with the address lists for both variants. `MODULE QUERY SCAN` sends them
+on the car exactly as the vendor does.
+
+Whether a module answers is now a question about the car and the cable's vehicle side alone. Every
+command in the sequence came off the wire; none of it is invented.
+
 ## Run 47: with the engine running the reply is clean, and the shim had been fed a bad one
 
 2026-10-30, on the car, engine running, ten attempts across two addresses.
