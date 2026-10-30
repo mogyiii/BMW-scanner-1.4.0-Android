@@ -671,6 +671,45 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 47: with the engine running the reply is clean, and the shim had been fed a bad one
+
+2026-10-30, on the car, engine running, ten attempts across two addresses.
+(`field-logs/2026-10-30-run47-retry-engine-bytes.log`)
+
+```
+0x12   1..5   7 byte(s)  complete  77 07 77 07 77 07 70
+0x80   1..5   7 byte(s)  complete  77 07 77 07 77 07 70
+       10 attempts, 0 handshake failures
+```
+
+Ten of ten identical, and **self-consistent**: byte 1 says seven and seven bytes arrive. Compare
+2026-10-29, on a battery that would not start the car an hour later: thirteen bytes announcing
+**sixty-one**.
+
+The two are not one frame corrupted into the other. `0x3D` carries bits `0x07` does not, and a
+receiver sampling badly drops ones rather than creating them — the test that identified `25 09 02`
+as a corrupted `65 3D 02`. These are two different behaviours, and the clean one appears when the
+supply is held up by the alternator.
+
+### What it cost us
+
+**The shim was serving the bad frame.** Since run 39 it answered `0x83F0` with the thirteen-byte
+reply, and `BMWScan140` read it, found itself forty-eight bytes short of the sixty-one it had been
+promised, and tore the connection down. That is very likely why the software never got past
+connection setup in the VM — not because a step was missing, but because we were feeding it a frame
+the cable does not produce when properly powered.
+
+The shim now answers `0x83F0` with the measured seven bytes. `0xB318` too: it had been falling
+through to the substitute branch, which queued the same bytes by coincidence but logged them as
+invented, so the log said SUBSTITUTED about something run 38 had measured at all sixty-three
+addresses.
+
+### What is still true
+
+The cable answers `77 07` — "nothing to say". No control module has answered yet. But the cable is
+now demonstrably behaving correctly rather than returning truncated frames, which is the state the
+vendor software needs before it will go any further.
+
 ## Run 45: thirteen of sixty-one, with no late bytes — and why one attempt is not enough
 
 > **Voltage caveat (2026-10-29):** this run was taken with the engine off, on a battery

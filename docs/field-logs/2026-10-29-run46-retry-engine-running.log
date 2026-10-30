@@ -1,0 +1,27 @@
+20:00:42.406  BMW DS2 Probe 0.42-probe
+20:00:42.411  Looking for the cable: VID 0x0333 / PID 0x0137
+
+20:00:42.415  USB rescan: 1 device(s)
+20:00:42.416    /dev/bus/usb/001/002  0333:0137
+20:00:49.406  === RETRY TEST ===
+20:00:49.406  Five full attempts per address at 19200. The cable has always answered the second
+20:00:49.407  0x83F0 with 13 bytes while announcing 61 - anything longer, even once, matters.
+
+20:00:49.410    --- address 0x12 ---
+20:00:52.252      1. 7 byte(s), announced 7
+20:00:55.050      2. 7 byte(s), announced 7
+20:00:57.843      3. 7 byte(s), announced 7
+20:01:00.636      4. 7 byte(s), announced 7
+20:01:03.430      5. 7 byte(s), announced 7
+
+20:01:03.432    --- address 0x80 ---
+20:01:06.226      1. 7 byte(s), announced 7
+20:01:09.019      2. 7 byte(s), announced 7
+20:01:11.812      3. 7 byte(s), announced 7
+20:01:14.605      4. 7 byte(s), announced 7
+20:01:17.400      5. 7 byte(s), announced 7
+
+20:01:17.400    10 attempt(s), 0 handshake failure(s)
+20:01:17.401    longest reply seen: 7 byte(s)
+20:01:17.401    Thirteen every time. Consistent, not intermittent - at least in this state.
+20:01:17.402  === end retry test ===

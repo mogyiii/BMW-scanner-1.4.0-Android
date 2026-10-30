@@ -3082,8 +3082,8 @@ class MainActivity : AppCompatActivity() {
      */
     private fun retryTest(device: UsbDevice) {
         log("=== RETRY TEST ===")
-        log("Five full attempts per address at 19200. The cable has always answered the second")
-        log("0x83F0 with 13 bytes while announcing 61 - anything longer, even once, matters.")
+        log("Five full attempts per address at 19200. Any reply whose length byte disagrees")
+        log("with what arrived is a truncated one and is called out as such.")
         log("")
 
         val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
@@ -3122,23 +3122,28 @@ class MainActivity : AppCompatActivity() {
                     val r = dev.readTimed(1500).flatMap { it.second.asIterable() }.toByteArray()
 
                     val want = if (r.size >= 2) r[1].toInt() and 0xFF else -1
-                    val flag = if (r.size > 13) "   <<<<<< LONGER THAN 13 - look here" else ""
-                    log("    %d. %d byte(s)%s%s".format(
-                        n + 1, r.size,
-                        if (want > 0) ", announced $want" else "",
-                        flag))
+                    // Always print the bytes. The previous version printed only the length unless
+                    // it exceeded thirteen, which is exactly how a run that changed behaviour -
+                    // seven bytes announcing seven instead of thirteen announcing sixty-one -
+                    // came back unreadable.
+                    val fit = when {
+                        want < 0 -> ""
+                        r.size == want -> "  complete"
+                        else -> "  announced $want, short by ${want - r.size}"
+                    }
+                    log("    %d. %d byte(s)%s  ${Ds2.hex(r)}".format(n + 1, r.size, fit))
                     if (r.size > best) { best = r.size; bestBytes = r }
-                    if (r.size > 13) log("       ${Ds2.hex(r)}")
                 }
                 log("")
             }
             log("  $attempts attempt(s), $handshakeFails handshake failure(s)")
             log("  longest reply seen: $best byte(s)")
-            if (best > 13) {
-                log("  ${Ds2.hex(bestBytes)}")
-                log("  MORE THAN THIRTEEN - the cable is intermittent, not consistently silent.")
+            log("  longest: ${Ds2.hex(bestBytes)}")
+            if (best >= 2 && best == (bestBytes[1].toInt() and 0xFF)) {
+                log("  Self-consistent: the length byte matches what arrived. The cable is")
+                log("  answering properly, whatever the answer means.")
             } else {
-                log("  Thirteen every time. Consistent, not intermittent - at least in this state.")
+                log("  The length byte does not match what arrived - a truncated or corrupted reply.")
             }
         } catch (e: Throwable) {
             log("  failed: ${e.javaClass.simpleName}: ${e.message}")
@@ -3943,5 +3948,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.42-probe"
+    const val NAME = "0.43-probe"
 }

@@ -331,49 +331,25 @@ static void resetFrame(void);
 static const BYTE reply_signon[]  = { 0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70 };
 static const BYTE reply_ident[]   = { 0xB8, 0x12, 0xF1, 0x01, 0xA2, 0xF8 };
 /*
- * The 0x83F0 reply, recorded on the car on 2026-10-29 at all sixty-three addresses with the
- * connection rebuilt for each - run 39.
+ * The 0x83F0 reply, recorded on the car on 2026-10-30 with the engine running - ten attempts
+ * across two addresses, every one identical.
  *
- * The earlier eleven-byte fixture served here came from run 34, on a link that had already decayed
- * after three frames, so it was a recording of the cable misbehaving. This is the clean one.
+ * It is the same seven-byte block the cable answers almost everything with, and it is
+ * self-consistent: byte 1 says seven and seven bytes arrive.
  *
- * Two bytes vary with the address and the rest never do. Byte 5 is the parameter we sent XORed with
- * 0xC9 - verified on all sixty-three - and byte 12 is some check over the result, which is filled
- * in here from a table because the rule producing it is not known. The template holds the invariant
- * bytes; `busReplyFor` patches in the two that move.
+ * **What this replaces, and why it matters.** The previous fixture was a thirteen-byte reply
+ * recorded on 2026-10-29 which announced *sixty-one* bytes in its length field and delivered
+ * thirteen. That measurement was taken on a battery that had been drained across several days of
+ * ignition-on testing, and the car would not start shortly afterwards. Fed that self-contradictory
+ * frame, `BMWScan140` read the thirteen bytes, found itself forty-eight short, and tore the
+ * connection down - which is very likely why the software never got past setup in the VM. We were
+ * feeding it a frame the cable does not produce when it is properly powered.
+ *
+ * The two are not the same frame corrupted: `0x3D` contains bits `0x07` does not, and sampling
+ * errors drop ones rather than create them. They are different behaviours, and the clean one is
+ * this.
  */
-static const BYTE reply_bus_template[13] = {
-    0x65, 0x3D, 0x02, 0xDA, 0x37, 0x00, 0xBE, 0xA9, 0x08, 0xBF, 0x13, 0x5D, 0x00
-};
-
-/* Address, then the trailing byte observed for it. Straight from the run-39 log. */
-static const BYTE g_busTail[][2] = {
-    {0x00,0x5D},{0x08,0x65},{0x12,0x6B},{0x13,0x6A},{0x16,0x77},{0x18,0x75},
-    {0x1B,0x72},{0x1E,0x7F},{0x22,0x7B},{0x24,0x79},{0x28,0x05},{0x29,0x04},
-    {0x2E,0x0F},{0x30,0x0D},{0x32,0x0B},{0x34,0x09},{0x3B,0x12},{0x40,0x1D},
-    {0x44,0x19},{0x47,0x26},{0x48,0x25},{0x4A,0x23},{0x50,0x2D},{0x51,0x2C},
-    {0x56,0x37},{0x57,0x36},{0x5A,0x33},{0x5B,0x32},{0x60,0x3D},{0x65,0x38},
-    {0x66,0xC7},{0x68,0xC5},{0x6A,0xC3},{0x6B,0xC2},{0x70,0xCD},{0x72,0xCB},
-    {0x74,0xC9},{0x7F,0xDE},{0x80,0xDD},{0x81,0xDC},{0x86,0xE7},{0x98,0xF5},
-    {0x9A,0xF3},{0x9B,0xF2},{0x9C,0xF1},{0x9E,0xFF},{0xA0,0xFD},{0xA4,0xF9},
-    {0xA6,0x87},{0xA7,0x86},{0xAC,0x81},{0xB0,0x8D},{0xBB,0x92},{0xC0,0x9D},
-    {0xC2,0x9B},{0xC8,0xA5},{0xCE,0xAF},{0xD0,0xAD},{0xDA,0xB3},{0xE8,0x45},
-    {0xED,0x40},{0xF0,0x4D},{0xF5,0x48}
-};
-
-static DWORD busReplyFor(BYTE param, BYTE *out)
-{
-    DWORD i;
-    for (i = 0; i < sizeof(reply_bus_template); i++) out[i] = reply_bus_template[i];
-    out[5] = (BYTE)(param ^ 0xC9);
-    for (i = 0; i < sizeof(g_busTail) / 2; i++) {
-        if (g_busTail[i][0] == param) { out[12] = g_busTail[i][1]; return 13; }
-    }
-    /* No recorded trailing byte for this address. Say so rather than invent one. */
-    shimLog("   no recorded trailing byte for parameter 0x%02X - reply is incomplete", param);
-    out[12] = 0;
-    return 13;
-}
+static const BYTE reply_bus[] = { 0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70 };
 static const BYTE reply_nothing[] = { 0x77, 0x07, 0x77, 0x07, 0x77, 0x07, 0x70 };
 
 static void queueReply(const BYTE *data, DWORD len, const char *what)
@@ -468,10 +444,14 @@ static void dispatchFrame(void)
         queueReply(reply_signon, sizeof(reply_signon), "the cable's recorded answer [MEASURED]");
     } else if (cmd == 0x41AA) {
         queueReply(reply_ident, sizeof(reply_ident), "the cable's recorded answer [MEASURED]");
+    } else if (cmd == 0xB318) {
+        /* Measured on the car at all sixty-three addresses in run 38: the same seven-byte block.
+         * It was reaching the substitute branch before, which happened to queue the same bytes but
+         * logged them as made up - so the log said SUBSTITUTED about something we had measured. */
+        queueReply(reply_bus, sizeof(reply_bus), "the cable's recorded answer [MEASURED]");
     } else if (cmd == 0x83F0) {
-        BYTE r[13];
-        DWORD n = busReplyFor(g_frame[3], r);
-        queueReply(r, n, "the cable's recorded answer for this address [MEASURED]");
+        queueReply(reply_bus, sizeof(reply_bus),
+                   "the cable's answer with the engine running [MEASURED]");
     } else {
         shimLog("   >>> UNKNOWN COMMAND 0x%04X parameter 0x%02X - nobody has asked the real",
                 cmd, g_frame[3]);
