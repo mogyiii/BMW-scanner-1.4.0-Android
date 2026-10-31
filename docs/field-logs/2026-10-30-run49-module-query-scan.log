@@ -1,0 +1,77 @@
+19:47:02.015  BMW DS2 Probe 0.44-probe
+19:47:02.025  Looking for the cable: VID 0x0333 / PID 0x0137
+
+19:47:02.032  USB rescan: 1 device(s)
+19:47:02.033    /dev/bus/usb/001/002  0333:0137
+19:47:21.736  === MODULE QUERY SCAN ===
+19:47:21.737  0x46F1 to 57 addresses and 0x06F3 to 7, as the vendor does.
+19:47:21.737  Engine should be running - run 47 showed replies are only clean when it is.
+
+19:47:23.811    0x00  [46F1]  65 3D 02 15 54 83 16 14  no rule fits
+19:47:25.856    0x08  [46F1]  65 3D 02 15 54 83 1E 6C  no rule fits
+19:47:27.902    0x12  [46F1]  65 3D 02 15 54 83 04 62  no rule fits
+19:47:29.948    0x13  [46F1]  65 3D 02 15 54 83 05 63  no rule fits
+19:47:31.993    0x16  [46F1]  65 3D 02 15 54 83 00 7E  no rule fits
+19:47:34.041    0x22  [46F1]  65 3D 02 15 54 83 34 72  no rule fits
+19:47:36.084    0x24  [46F1]  65 3D 02 15 54 83 32 70  no rule fits
+19:47:38.133    0x28  [46F1]  65 3D 02 15 54 83 3E 4C  no rule fits
+19:47:40.177    0x30  [46F1]  65 3D 02 15 54 83 26 44  no rule fits
+19:47:42.224    0x32  [46F1]  65 3D 02 15 54 83 24 42  no rule fits
+19:47:44.269    0x3B  [46F1]  65 3D 02 15 54 83 2D 5B  no rule fits
+19:47:46.314    0x40  [46F1]  65 3D 02 15 54 83 56 54  no rule fits
+19:47:48.361    0x44  [46F1]  65 3D 02 15 54 83 52 50  no rule fits
+19:47:50.406    0x47  [46F1]  65 3D 02 15 54 83 51 AF  no rule fits
+19:47:52.451    0x48  [46F1]  65 3D 02 15 54 83 5E AC  no rule fits
+19:47:54.496    0x4A  [46F1]  65 3D 02 15 54 83 5C AA  no rule fits
+19:47:56.546    0x50  [46F1]  65 3D 02 15 54 83 46 A4  no rule fits
+19:47:58.593    0x51  [46F1]  65 3D 02 15 54 83 47 A5  no rule fits
+19:48:00.638    0x56  [46F1]  65 3D 02 15 54 83 40 BE  no rule fits
+19:48:02.691    0x57  [46F1]  65 3D 02 15 54 83 41 BF  no rule fits
+19:48:04.736    0x5A  [46F1]  65 3D 02 15 54 83 4C BA  no rule fits
+19:48:06.784    0x5B  [46F1]  65 3D 02 15 54 83 4D BB  no rule fits
+19:48:08.829    0x60  [46F1]  65 3D 02 15 54 83 76 B4  no rule fits
+19:48:10.873    0x65  [46F1]  65 3D 02 15 54 83 73 B1  no rule fits
+19:48:12.919    0x66  [46F1]  65 3D 02 15 54 83 70 8E  no rule fits
+19:48:14.964    0x68  [46F1]  65 3D 02 15 54 83 7E 8C  no rule fits
+19:48:17.008    0x6A  [46F1]  65 3D 02 15 54 83 7C 8A  no rule fits
+19:48:19.053    0x6B  [46F1]  65 3D 02 15 54 83 7D 8B  no rule fits
+19:48:21.100    0x70  [46F1]  65 3D 02 15 54 83 66 84  no rule fits
+19:48:23.146    0x72  [46F1]  65 3D 02 15 54 83 64 82  no rule fits
+19:48:25.194    0x74  [46F1]  65 3D 02 15 54 83 62 80  no rule fits
+19:48:27.238    0x7F  [46F1]  65 3D 02 15 54 83 69 97  no rule fits
+19:48:29.281    0x80  [46F1]  65 3D 02 15 54 83 96 94  no rule fits
+19:48:31.324    0x81  [46F1]  65 3D 02 15 54 83 97 95  no rule fits
+19:48:33.372    0x86  [46F1]  65 3D 02 15 54 83 90 EE  no rule fits
+19:48:35.417    0x98  [46F1]  65 3D 02 15 54 83 8E FC  no rule fits
+19:48:37.463    0x9A  [46F1]  65 3D 02 15 54 83 8C FA  no rule fits
+19:48:39.510    0x9B  [46F1]  65 3D 02 15 54 83 8D FB  no rule fits
+19:48:41.558    0x9C  [46F1]  65 3D 02 15 54 83 8A F8  no rule fits
+19:48:43.607    0x9E  [46F1]  65 3D 02 15 54 83 88 F6  no rule fits
+19:48:45.655    0xA0  [46F1]  65 3D 02 15 54 83 B6 F4  no rule fits
+19:48:47.700    0xA4  [46F1]  65 3D 02 15 54 83 B2 F0  no rule fits
+19:48:49.750    0xA6  [46F1]  65 3D 02 15 54 83 B0 CE  no rule fits
+19:48:51.794    0xA7  [46F1]  65 3D 02 15 54 83 B1 CF  no rule fits
+19:48:53.840    0xAC  [46F1]  65 3D 02 15 54 83 BA C8  no rule fits
+19:48:55.911    0xB0  [46F1]  65 3D 02 15 54 83 A6 C4  no rule fits
+19:48:57.954    0xBB  [46F1]  65 3D 02 15 54 83 AD DB  no rule fits
+19:48:59.999    0xC0  [46F1]  65 3D 02 15 54 83 D6 D4  no rule fits
+19:49:02.047    0xC2  [46F1]  65 3D 02 15 54 83 D4 D2  no rule fits
+19:49:04.091    0xC8  [46F1]  65 3D 02 15 54 83 DE 2C  no rule fits
+19:49:06.136    0xCE  [46F1]  65 3D 02 15 54 83 D8 26  no rule fits
+19:49:08.183    0xD0  [46F1]  65 3D 02 15 54 83 C6 24  no rule fits
+19:49:10.228    0xDA  [46F1]  65 3D 02 15 54 83 CC 3A  no rule fits
+19:49:12.273    0xE8  [46F1]  65 3D 02 15 54 83 FE 0C  no rule fits
+19:49:14.332    0xED  [46F1]  65 3D 02 15 54 83 FB 09  no rule fits
+19:49:16.382    0xF0  [46F1]  65 3D 02 15 54 83 E6 04  no rule fits
+19:49:18.427    0xF5  [46F1]  65 3D 02 15 54 83 E3 01  no rule fits
+19:49:20.469    0x18  [06F3]  65 3D 02 15 14 81 0E 3A  no rule fits
+19:49:22.515    0x1B  [06F3]  65 3D 02 15 14 81 0D 39  no rule fits
+19:49:24.572    0x1E  [06F3]  77 07 77 07 77 07 70  nothing to say
+19:49:26.620    0x29  [06F3]  65 3D 02 15 14 81 3F 0B  no rule fits
+19:49:28.667    0x32  [06F3]  65 3D 02 15 14 81 24 00  no rule fits
+19:49:30.712    0x34  [06F3]  65 3D 02 15 14 81 22 1E  no rule fits
+19:49:32.759    0xA4  [06F3]  65 3D 02 15 14 81 B2 8E  no rule fits
+
+19:49:32.761    No module answered. The command is the vendor's own, so this is now a
+19:49:32.762    statement about the car or the cable's vehicle side, not about the protocol.
+19:49:32.764  === end module query scan ===

@@ -671,6 +671,49 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 49: the complete query scan — the cable is perfect, the bus is silent
+
+2026-10-31, on the car, engine running. All 64 addresses, the vendor's own commands.
+(`field-logs/2026-10-30-run49-module-query-scan.log`)
+
+Sixty-four replies, and they follow one rule without exception:
+
+```
+0x46F1  ->  65 3D 02 15 54 83 <address XOR 0x16> <check>     57 addresses
+0x06F3  ->  65 3D 02 15 14 81 <address XOR 0x16> <check>      6 addresses
+0x1E                                     77 07 77 07 77 07 70  one address
+```
+
+**Sixty-three of sixty-three carry our own address back, XORed with `0x16`.** Six bytes of header
+are byte-for-byte identical within each command. The cable parses the request, identifies the
+module we asked for, and answers — deterministically, every time.
+
+**No control module answered. Not one, at any address, with either command.**
+
+### This closes the protocol question
+
+Everything in that sequence came off the wire: the sign-on recovered from the vendor software
+answering our cable's own challenge, the connection setup, the timing frames, the query commands and
+their address lists. Nothing in it is guessed, and the cable demonstrably understands all of it.
+
+So the silence is no longer a statement about our understanding of the protocol. **It is a statement
+about the car, or about the cable's vehicle-side path, and nothing else is left in between.**
+
+### What is established, end to end
+
+| | |
+|---|---|
+| USB and FTDI layer | works |
+| Microcontroller link, 19200 8N1 | works, 63/63 clean |
+| Announcement and challenge-response | works, reproducible |
+| Framing, scrambling, key handling | works, verified against the vendor's own traffic |
+| Connection setup and per-module timing | works |
+| Module query, both variants, 64 addresses | **cable answers; no module does** |
+
+The withdrawn fault report had the right destination and almost all the wrong reasons. The cable is
+not broken in the way it claimed; it is a working, fully understood device whose vehicle side reaches
+nothing on this car.
+
 ## Run 48: the module query, found at last — `0x46F1`
 
 2026-10-30, in the VM, with the shim serving the properly-powered `0x83F0` reply.
