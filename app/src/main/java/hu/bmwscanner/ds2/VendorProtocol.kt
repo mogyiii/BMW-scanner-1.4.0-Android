@@ -133,7 +133,15 @@ object VendorProtocol {
     }
 
     /**
-     * Commands observed in the capture that are **writes**, and must never be sent exploratively.
+     * Commands observed in the capture that are **writes**. Do not send these.
+     *
+     * The project's scope, settled with the owner on 2026-11-03: **reading is the point, clearing
+     * fault codes is wanted, and writing is not.** Module coding - comfort closing and the like -
+     * was discussed and deliberately left out. It is a nice-to-have the owner does not need, and
+     * the risk is not symmetric with reading: a read that goes wrong returns nothing, while a
+     * coding block written wrong can take a module's function with it, and the recovery path is a
+     * backup this app does not implement. The vendor software has `ButtonLBackup`/`ButtonSBackup`
+     * for exactly that reason; anyone wanting to code this car should use that, on the laptop.
      *
      * `0xC751` carried DS2 service `0x95` with a four-byte argument. What it writes is not
      * established and this project has no reason to find out: the owner's requirements never

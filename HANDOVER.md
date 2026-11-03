@@ -28,6 +28,23 @@
 > challenge and response, framing, scrambling, commands, addresses, read stages, modes — is
 > unaffected and reproducible without a car.
 
+## Scope — settled 2026-11-03
+
+**In:** reading fault codes (including the airbag controller), clearing them, live values, service
+reset, module identification. The owner's original ask, unchanged.
+
+**Out:** writing anything. Module coding — comfort closing, retrofit options — was raised, looked
+at, and deliberately dropped: the owner does not need it, and the risk is not symmetric with
+reading. A read that goes wrong returns nothing; a coding block written wrong can cost a module its
+function, and the recovery is a backup this app does not implement. The vendor software has
+`ButtonLBackup` / `ButtonSBackup` for that, and anyone wanting to code this car should use it on the
+laptop instead.
+
+Odometer writing was ruled out at the very start and stays ruled out.
+
+`VendorProtocol.KNOWN_WRITES` lists the write commands found so far so that nobody sweeping the
+command set stumbles into one.
+
 Written 2026-10-19, updated 2026-10-20 after runs 8 and 9. Read this first; it is meant to be
 enough on its own.
 
