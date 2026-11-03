@@ -1,5 +1,25 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ✅ The cable works. The fault is ours.
+>
+> **2026-11-03.** With a borrowed laptop, the genuine vendor software and the genuine FTDI driver,
+> the cable **read the car's fault codes**, cleared several, and left standing the ones that are
+> still live. The owner photographed them; those remaining codes are the control set the Android app
+> must eventually reproduce.
+>
+> **This refutes run 49's conclusion and every conclusion built on it.** I wrote that the silence was
+> "a statement about the car, or about the cable's vehicle-side path, and nothing else is left in
+> between". That was wrong. Something *was* left in between: our own implementation. The cable
+> reaches the bus perfectly when the vendor software drives it.
+>
+> What survives: everything about the protocol itself — the handshake, the challenge and response,
+> the framing, the scrambling, the commands, the address lists. The cable understood all of it, and
+> the vendor software's own traffic was the source for all of it.
+>
+> What does not: every inference of the form "no module answered, therefore the vehicle side is at
+> fault". The modules answer. We are asking wrongly, and the next step is to record the vendor doing
+> it correctly — `tools/ftd2xx-proxy` — and compare.
+
 > # ⚠ Every conclusion about the vehicle side is provisional
 >
 > **Added 2026-10-29, after the car would not start.** It cranked with a clicking relay and a

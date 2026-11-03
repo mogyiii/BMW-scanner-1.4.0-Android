@@ -1,5 +1,16 @@
 # Handover — where this project stands
 
+> ## The cable works — 2026-11-03
+>
+> The genuine vendor software on a laptop, with the genuine driver, **read and cleared this car's
+> fault codes**. So the cable is good, the car is good, and the OBD socket is good.
+>
+> Everything in this project that concluded "no module answered, therefore the hardware" is
+> **wrong**. The modules answer. Our Android implementation asks wrongly, somewhere, and the job now
+> is to record the vendor doing it right (`tools/ftd2xx-proxy`) and diff that against what we send.
+>
+> The protocol work stands: it all came from the vendor's own traffic, and the cable understood it.
+
 > ## Read this before trusting any result about the car
 >
 > **2026-10-29.** The car would not start after a day's testing: clicking relay, flashing cluster,
