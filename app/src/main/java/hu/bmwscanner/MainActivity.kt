@@ -166,6 +166,7 @@ class MainActivity : AppCompatActivity() {
                 "retry" -> guarded(what) { retryTest(device!!) }
                 "realscan" -> guarded(what) { realScan(device!!) }
                 "faults" -> guarded(what) { readFaults(device!!) }
+                "laststand" -> guarded(what) { lastStand(device!!) }
                 "timing" -> guarded(what) { timingSweep(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
@@ -428,10 +429,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "READ FAULTS  (about 2 min)"
+                text = "HOW THE BYTES LEAVE  (1 min)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("faults") { d -> readFaults(d) } }
+                setOnClickListener { withCable("laststand") { d -> lastStand(d) } }
             },
             wide(),
         )
@@ -3515,6 +3516,162 @@ class MainActivity : AppCompatActivity() {
         log("=== end ===")
     }
 
+    /**
+     * Four ways of sending the same sequence to one module, in about a minute.
+     *
+     * Everything up to `0x83F0` already matches the vendor byte for byte - run 58 has all three
+     * setup commands returning `77 07 77 07 77 07 70`, which is what its log shows. Only the query
+     * fails, and the failure looks like the cable still talking 19200 after we have moved to 9600:
+     * it did not switch, and for the vendor it does.
+     *
+     * What has never been tried is **how the bytes leave**. The vendor calls `FT_Write` once per
+     * byte - its eleven-byte `0x83F0` is eleven calls spread over about 30 ms in the proxy log -
+     * while we hand the whole frame to one bulk transfer and the bytes go out back to back at the
+     * line rate. Two things make that worth testing before anything else: `bmwscan.ini` carries
+     * `Delay=20` and `Delay2=40` under `[Communication]`, and **`0x83F0`'s payload is those two
+     * numbers**. A device that takes its inter-byte timing as a command parameter is a device that
+     * cares about inter-byte timing.
+     *
+     * Variant four sidesteps every reconstruction this project has made by replaying the exact
+     * bytes the proxy recorded, in order, with the same line changes - our scrambling, framing, key
+     * handling and address choice all removed from the question at once.
+     *
+     * One address, four variants, short windows. The battery has paid enough for this project.
+     */
+    private sealed class Step {
+        class Tx(val bytes: ByteArray) : Step()
+        class Baud(val rate: Int) : Step()
+        class Line(val bits: Int, val stop: Int, val parity: Int) : Step()
+        object Purge : Step()
+    }
+
+    /** The vendor's recorded stream for address 0x80, from `2026-11-03-run50-proxy-working-scan`. */
+    private fun vendorSteps(): List<Step> = listOf(
+        Step.Purge,
+        Step.Tx(byteArrayOf(0xB9.toByte(), 0x41, 0x4B, 0x2A, 0xF6.toByte(), 0x26, 0x69,
+            0xEA.toByte(), 0x9D.toByte(), 0x07, 0x14, 0xEA.toByte(), 0xB0.toByte(), 0x44, 0x1C,
+            0x45, 0x33, 0x16, 0x56, 0x86.toByte(), 0x81.toByte(), 0x6B, 0xF1.toByte(),
+            0xC7.toByte(), 0x4D, 0x3C, 0x45, 0xDD.toByte(), 0x5F, 0x63, 0xE5.toByte(),
+            0xE9.toByte(), 0x7F, 0xCE.toByte(), 0x92.toByte(), 0x06)),
+        Step.Purge,
+        Step.Tx(byteArrayOf(0x23, 0xC1.toByte(), 0xA5.toByte(), 0x88.toByte(), 0x52, 0xCE.toByte())),
+        Step.Purge,
+        Step.Tx(byteArrayOf(0xE0.toByte(), 0xB7.toByte(), 0x8F.toByte(), 0x4A, 0xF0.toByte(), 0x30,
+            0xEC.toByte(), 0x90.toByte(), 0x69, 0x98.toByte(), 0xCD.toByte())),
+        Step.Baud(9600),
+        Step.Line(8, 0, 2),
+        Step.Purge,
+        Step.Tx(byteArrayOf(0x21, 0x2B, 0x49, 0x83.toByte(), 0xF4.toByte())),
+    )
+
+    private fun lastStand(device: UsbDevice) {
+        log("=== HOW THE BYTES LEAVE ===")
+        log("One address (0x80), four variants, about a minute. Ignition in position 2 or the")
+        log("engine running - the modules are asleep otherwise and nothing can answer.")
+        log("")
+        log("Setup already matches the vendor byte for byte. The untested difference is that it")
+        log("writes one byte at a time with gaps, and we write whole frames at once.")
+        log("")
+
+        val addr = 0x80
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            fun handshake(): Boolean {
+                dev!!.setBaudRate(19200)
+                dev.setLineProperties(8, FtdiDevice.Parity.NONE, FtdiDevice.StopBits.ONE)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(150)
+                dev.setModemControl(dtr = false, rts = null)
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
+                return VendorHandshake.decode(raw) != null
+            }
+
+            /** Writes byte by byte with [gapMs] between, the way the vendor's driver calls look. */
+            fun writeSpaced(bytes: ByteArray, gapMs: Long) {
+                if (gapMs <= 0) { dev!!.write(bytes); return }
+                for (b in bytes) {
+                    dev!!.write(byteArrayOf(b))
+                    Thread.sleep(gapMs)
+                }
+            }
+
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            for (variant in 1..4) {
+                if (stopRequested) { log("stopped"); break }
+                val gap = when (variant) { 2 -> 3L; 3 -> 15L; else -> 0L }
+                log("  --- variant $variant: " + when (variant) {
+                    1 -> "whole frames at once (what we do now)"
+                    2 -> "byte at a time, 3 ms apart"
+                    3 -> "byte at a time, 15 ms apart - the vendor's observed spacing"
+                    else -> "verbatim replay of the vendor's recorded bytes"
+                })
+
+                if (!handshake()) { log("      handshake failed"); continue }
+
+                var reply = ByteArray(0)
+                if (variant < 4) {
+                    var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                    fun put(f: ByteArray, label: String, window: Int): ByteArray {
+                        dev!!.purge()
+                        val (w, n) = VendorProtocol.scramble(f, key)
+                        key = n
+                        writeSpaced(w, gap)
+                        val got = dev.readTimed(window).flatMap { it.second.asIterable() }
+                            .toByteArray()
+                        log("      %-7s -> %s".format(label,
+                            if (got.isEmpty()) "nothing" else Ds2.hex(got)))
+                        return got
+                    }
+                    put(VendorProtocol.SIGN_ON_FRAME, "0xA77A", 1000)
+                    put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                        byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318", 600)
+                    put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
+                        "0x83F0", 700)
+                    dev.setBaudRate(9600)
+                    dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
+                    reply = put(VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr),
+                                "0x46F1", 900)
+                } else {
+                    for (st in vendorSteps()) {
+                        when (st) {
+                            is Step.Purge -> dev.purge()
+                            is Step.Baud -> dev.setBaudRate(st.rate)
+                            is Step.Line -> dev.setLineProperties(st.bits,
+                                FtdiDevice.Parity.entries.first { it.code == st.parity },
+                                FtdiDevice.StopBits.entries.first { it.code == st.stop })
+                            is Step.Tx -> {
+                                writeSpaced(st.bytes, 15L)
+                                val got = dev.readTimed(700).flatMap { it.second.asIterable() }
+                                    .toByteArray()
+                                log("      %2d bytes -> %s".format(st.bytes.size,
+                                    if (got.isEmpty()) "nothing" else Ds2.hex(got)))
+                                reply = got
+                            }
+                        }
+                    }
+                }
+
+                val split = splitDs2(reply)
+                if (split?.answer != null && ds2Ok(split.answer)) {
+                    log("      <<<<<< MODULE ANSWERED  ${Ds2.hex(split.answer)}")
+                    log("      THIS IS THE ONE. Stop here and tell me.")
+                }
+                log("")
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -4310,5 +4467,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.52-faults"
+    const val NAME = "0.53-bytes"
 }
