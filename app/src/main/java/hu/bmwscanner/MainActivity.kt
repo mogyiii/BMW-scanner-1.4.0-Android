@@ -3538,6 +3538,38 @@ class MainActivity : AppCompatActivity() {
      *
      * One address, four variants, short windows. The battery has paid enough for this project.
      */
+    /**
+     * Samples the receive line while nothing is being sent, and reports how steady it is.
+     *
+     * The idea is the owner's: a run should say at once when the ignition is off, instead of
+     * producing a quiet failure that looks exactly like a protocol fault. There is a physical
+     * difference to lean on. The cable is powered from OBD pin 16 and works regardless, but the
+     * K-line is pulled up by the control modules, and those are on the ignition-switched supply.
+     * With the ignition off the line should float; with it on it should sit steadily high.
+     *
+     * **This reports; it does not judge.** No run has ever produced a module reply, so we have no
+     * measured baseline for either state and no threshold worth asserting. One run with the
+     * ignition on and one with it off would give us both, and then this becomes a real check. Until
+     * then it prints the number and says what it would mean, which is the honest version.
+     */
+    private fun lineIdleLevel(dev: FtdiDevice): String {
+        var high = 0
+        var total = 0
+        repeat(200) {
+            val pins = dev.readPins() ?: return "could not read the pins"
+            if ((pins and 0x02) != 0) high++      // bit 1 is RXD on an FT232R
+            total++
+        }
+        if (total == 0) return "no samples"
+        val pct = high * 100 / total
+        return "receive line high in $pct% of $total samples" + when {
+            pct >= 98 -> "  (steady high - what a powered K-line should look like)"
+            pct <= 2 -> "  (steady low - not a K-line at idle)"
+            else -> "  (UNSTABLE - this is what an unpowered, floating line looks like." +
+                    " Check the ignition is in position 2.)"
+        }
+    }
+
     private sealed class Step {
         class Tx(val bytes: ByteArray) : Step()
         class Baud(val rate: Int) : Step()
@@ -3579,6 +3611,9 @@ class MainActivity : AppCompatActivity() {
         var dev: FtdiDevice? = null
         try {
             dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            log("  idle check: ${lineIdleLevel(dev)}")
+            log("")
 
             fun handshake(): Boolean {
                 dev!!.setBaudRate(19200)
@@ -4467,5 +4502,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.53-bytes"
+    const val NAME = "0.54-bytes"
 }
