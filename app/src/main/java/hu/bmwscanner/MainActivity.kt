@@ -165,6 +165,7 @@ class MainActivity : AppCompatActivity() {
                 "longread" -> guarded(what) { longRead(device!!) }
                 "retry" -> guarded(what) { retryTest(device!!) }
                 "realscan" -> guarded(what) { realScan(device!!) }
+                "faults" -> guarded(what) { readFaults(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -426,10 +427,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "MODULE QUERY SCAN  (about 2 min)"
+                text = "READ FAULTS  (about 2 min)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("realscan") { d -> realScan(d) } }
+                setOnClickListener { withCable("faults") { d -> readFaults(d) } }
             },
             wide(),
         )
@@ -3235,6 +3236,140 @@ class MainActivity : AppCompatActivity() {
         log("=== end module query scan ===")
     }
 
+    /**
+     * Splits a reply into the DS2 request the cable echoed and the module's answer.
+     *
+     * Every reply in the vendor's own traffic has this shape. The cable builds a DS2 frame from the
+     * command and puts it on the K-line; the line echoes it straight back, because K-line is a
+     * single wire and a transmitter hears itself; then the module replies. So the bytes are two
+     * frames end to end, and the first of them is ours coming home.
+     *
+     * Run 26 saw that echo and called it a loopback defect. It is simply how the bus works.
+     */
+    private data class Ds2Reply(val echo: ByteArray, val answer: ByteArray?)
+
+    private fun splitDs2(raw: ByteArray): Ds2Reply? {
+        if (raw.size < 4) return null
+        val echoLen = raw[1].toInt() and 0xFF
+        if (echoLen < 3 || echoLen > raw.size) return null
+        val echo = raw.copyOfRange(0, echoLen)
+        if (echoLen == raw.size) return Ds2Reply(echo, null)
+        val rest = raw.copyOfRange(echoLen, raw.size)
+        if (rest.size < 3) return Ds2Reply(echo, null)
+        val n = rest[1].toInt() and 0xFF
+        if (n < 3 || n > rest.size) return Ds2Reply(echo, null)
+        return Ds2Reply(echo, rest.copyOfRange(0, n))
+    }
+
+    /** True when a module frame carries DS2's positive acknowledgement at index 2. */
+    private fun ds2Ok(frame: ByteArray) = frame.size > 2 && (frame[2].toInt() and 0xFF) == 0xA0
+
+    /**
+     * Identifies the modules on the bus and reads their fault memories.
+     *
+     * This is the sequence the vendor software uses, recovered on 2026-11-03 by recording it
+     * through `tools/ftd2xx-proxy` while it did a complete, successful scan of this car:
+     *
+     * ```
+     * 19200 8N1   announcement -> sign-on -> 0xB318 -> 0x83F0
+     *             switch to 9600 8E1          <-- and stay there
+     * 9600 8E1    0x46F1  identify
+     *             0xC731 page 0   fault count
+     *             0xC731 page 1.. the entries
+     * ```
+     *
+     * **The line change is the thing every earlier attempt got wrong.** We switched to 9600 and
+     * then sent the query at 19200, or never switched at all. The vendor switches once, after the
+     * first `0x83F0`, and everything afterwards - every module, every query - goes at 9600 8E1.
+     * That single mistake is why no module ever answered us, through forty-nine runs in which I
+     * concluded, repeatedly and wrongly, that the hardware was at fault.
+     */
+    private fun readFaults(device: UsbDevice) {
+        log("=== IDENTIFY AND READ FAULTS ===")
+        log("The vendor's sequence, with the line change where it belongs: 19200 for setup,")
+        log("then 9600 8E1 for every query. Engine running is best.")
+        log("")
+
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+        val found = mutableListOf<Pair<Int, ByteArray>>()
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+
+            for (addr in VendorProtocol.QUERY_ADDRESSES) {
+                if (stopRequested) { log("stopped"); break }
+
+                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(80)
+                dev.setModemControl(dtr = false, rts = null)
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
+                if (VendorHandshake.decode(raw) == null) continue
+                if (!VendorProtocol.matchesRecordedCable(raw)) { log("  announcement changed"); break }
+
+                var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                fun put(f: ByteArray) {
+                    val (w, n) = VendorProtocol.scramble(f, key); key = n; dev!!.write(w)
+                }
+
+                put(VendorProtocol.SIGN_ON_FRAME); dev.readTimed(250)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))); dev.readTimed(250)
+
+                // One 0x83F0, then the line moves and stays moved.
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
+                dev.setBaudRate(9600)
+                dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
+                dev.readTimed(250)
+
+                dev.purge()
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr))
+                val r = dev.readTimed(700).flatMap { it.second.asIterable() }.toByteArray()
+                val split = splitDs2(r)
+                val answer = split?.answer
+                if (answer == null || !ds2Ok(answer)) continue
+
+                found += addr to answer
+                log("  0x%02X  present   ${Ds2.hex(answer)}".format(addr))
+
+                // Fault memory. Page 0 is the count, pages 1.. the entries.
+                for (page in 0..8) {
+                    if (stopRequested) break
+                    dev.purge()
+                    put(VendorProtocol.buildFrame(
+                        VendorProtocol.Command.FAULTS, addr, byteArrayOf(page.toByte())))
+                    val fr = dev.readTimed(700).flatMap { it.second.asIterable() }.toByteArray()
+                    val fa = splitDs2(fr)?.answer ?: break
+                    if (!ds2Ok(fa)) break
+                    if (page == 0) {
+                        val count = if (fa.size > 3) fa[3].toInt() and 0xFF else 0
+                        log("        faults: $count")
+                        if (count == 0) break
+                    } else {
+                        log("        page $page  ${Ds2.hex(fa)}")
+                        if (fa.size <= 4) break
+                    }
+                }
+            }
+
+            log("")
+            if (found.isEmpty()) {
+                log("  No module answered. The line change is in place now, so if this still")
+                log("  happens the difference from the vendor is somewhere else in the sequence.")
+            } else {
+                log("  ${found.size} module(s) present: " +
+                    found.joinToString(" ") { "0x%02X".format(it.first) })
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -4030,5 +4165,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.44-probe"
+    const val NAME = "0.45-faults"
 }

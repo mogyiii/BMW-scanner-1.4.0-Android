@@ -111,7 +111,37 @@ object VendorProtocol {
          * guess is all it would be.
          */
         const val QUERY_ALT = 0x06F3
+
+        /**
+         * **Reads one page of a module's fault memory.** Payload is the page index, starting at 0.
+         *
+         * Confirmed against the vendor's own decoded output on 2026-11-03. The cable turns this into
+         * DS2 service `04 <index>`, which is the published "read fault memory" service, and the
+         * steering angle sensor at `0x57` answered page 1 with
+         * `57 14 A0 03 0B 00 AF 09 00 97 04 00 17 ...` - a count of three, then three-byte entries
+         * `0B/AF`, `09/97`, `04/17`. The vendor software printed exactly those three for that module.
+         *
+         * Page 0 returns the count alone; page 1 onwards carries the entries.
+         */
+        const val FAULTS = 0xC731
+
+        /** DS2 `02 01`: the odometer. Answered `80 08 A0 01 32 17 40 4C` - 321740 km. */
+        const val ODOMETER = 0x8DE3
+
+        /** DS2 `02 02`: the VIN. Answered `80 0A A0 02 4B 50 04 22 00 15` - "KP0422...". */
+        const val VIN = 0xC6E1
     }
+
+    /**
+     * Commands observed in the capture that are **writes**, and must never be sent exploratively.
+     *
+     * `0xC751` carried DS2 service `0x95` with a four-byte argument. What it writes is not
+     * established and this project has no reason to find out: the owner's requirements never
+     * included writing anything, and odometer modification was ruled out at the start.
+     *
+     * Listed so that a future reader sweeping the command set has this one already marked.
+     */
+    val KNOWN_WRITES: IntArray = intArrayOf(0xC751)
 
     /** The 57 addresses the vendor sends [Command.QUERY] to, in order. */
     val QUERY_ADDRESSES: IntArray = intArrayOf(

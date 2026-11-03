@@ -691,6 +691,72 @@ attempt was destroyed by the concurrency defect above.
 A measurement whose read-out is "is this faint noise slightly different now" does not settle
 anything. Recorded as attempted and inconclusive.
 
+## Run 50: the working sequence, recorded — and the one line that was wrong
+
+2026-11-03, on the car, through `tools/ftd2xx-proxy` while the genuine software did a complete scan.
+(`field-logs/2026-11-03-run50-proxy-working-scan.log`, decoded by `tools/decode_proxy.py`)
+
+```
+19200 8N1   announcement
+            0xA77A  sign-on
+            0xB318  par=addr  [01]
+            0x83F0  par=addr  [E5 50 47 66 28 14]        <- ONE of these, not two
+  --> FT_SetBaudRate(9600) + even parity
+9600 8E1    0x46F1  par=addr                             <- and everything after, here
+            0xC731  par=addr  [page]
+            ...
+```
+
+**The line changes once and never changes back.** Every query goes at 9600 8E1. This project sent
+the queries at 19200 in every run it ever made — that is the whole of it. Forty-nine runs, and the
+difference was one `FT_SetBaudRate` on the wrong side of a write.
+
+### What a reply actually looks like
+
+```
+-> 0x46F1 par 0x80
+<- 80 04 00 84   80 12 A0 F6 91 12 86 12 06 53 12 14 02 26 23 06 87 06
+   ^^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   our request    the module's answer: address, length, 0xA0, data
+   echoed by the K-line
+```
+
+Two DS2 frames end to end. The first is our own request coming home, because K-line is a single
+wire and a transmitter hears itself. **Run 26 found that echo and recorded it as a loopback
+defect.** It is simply how the bus works.
+
+### The command table, read off the echoes
+
+The echo is the DS2 frame the cable built, so the log states the mapping outright:
+
+| command | payload | DS2 service | |
+|---|---|---|---|
+| `0x46F1` | — | `00` | identify |
+| `0xC731` | page | `04 <page>` | **read fault memory** |
+| `0x8DE3` | — | `02 01` | odometer |
+| `0xC6E1` | — | `02 02` | VIN |
+| `0x4769` | `00 hh 20` | `06 08 00 00 hh 20` | coding memory |
+| `0x79DE` | n | `15 n` | |
+| `0x9E56` | n | `14 n` | |
+| `0xC751` | 4 bytes | `95 ...` | **a write — left alone** |
+
+### Verified against the vendor's own output
+
+Steering angle sensor, `0x57`, page 1:
+
+```
+57 14 A0 03   0B 00 AF   09 00 97   04 00 17 ...
+         ^^   count of three, then three-byte entries
+```
+
+The vendor software printed, for that module: `0B/AF - Wrong LWS-ID`, `09/97 - No CAN message
+(ASC)`, `04/17 - 90 degrees difference of wiper too large`. Byte for byte.
+
+The same session's log is kept as `field-logs/2026-11-03-vendor-session-full-scan.log`: ten modules,
+VIN, 321,741 km, and every fault in plain text, including the airbag controller's
+`06/20 - Side airbag, front right door, resistance too low`. **That is the control set.** When the
+Android app reads those same codes, it works.
+
 ## Run 49: the complete query scan — the cable is perfect, the bus is silent
 
 2026-10-31, on the car, engine running. All 64 addresses, the vendor's own commands.
