@@ -66,9 +66,17 @@ it does.**
 
 ### Ruled out by measurement
 
+Two of the day's runs were taken without the ignition definitely on — the fifteen-second
+switch-placement test and the twenty-second rate matrix. The owner confirmed the rest had the
+ignition in position 2 or the engine running. What that costs each conclusion is noted below.
+
 - **Timing of the switch.** Run 55 swept 0 to 150 ms between the write and the switch; all nine gave
-  byte-identical results.
-- **Which side of the reply the switch goes on.** Run 56 tested all three arrangements.
+  byte-identical results. Ignition was on; this stands.
+- **Which side of the reply the switch goes on.** Run 56 tested all three arrangements and its
+  ignition state is uncertain — but run 58, which was taken with the engine running, used the
+  arrangement it chose and got the vendor's exact `77 07 77 07 77 07 70`. Confirmed independently.
+- **"The cable listens at 19200, not 9600".** Run 57, the rate matrix, is one of the two uncertain
+  runs. **Not established** — it may have been measuring sleeping modules. Treat as open.
 - **The frame bytes and the key.** Our `0x83F0` is `09 83 F0 80 E5 50 47 66 28 14 1A` at key `0xE9`,
   byte-for-byte the vendor's, at the same key.
 - **Baud and parity encoding.** 9600 → `0x4138`, 19200 → `0x809C`, both the standard FTDI values;
@@ -128,5 +136,7 @@ variable.
 - Diagnostics were repeatedly written to print only the expected outcome, so failures carried no
   evidence.
 
-The ignition state was also uncontrolled across several runs, and the modules are asleep without it —
-which looks exactly like a protocol fault and is not one.
+The ignition state was uncontrolled in two of the day's runs, and the modules are asleep without it
+— which looks exactly like a protocol fault and is not one. I first wrote that this invalidated most
+of an hour's work; the owner corrected me, and it was two short runs. Overstating the damage is its
+own kind of imprecision.
