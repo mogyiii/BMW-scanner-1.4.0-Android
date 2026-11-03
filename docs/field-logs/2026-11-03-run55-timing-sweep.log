@@ -1,0 +1,19 @@
+18:19:53.687  BMW DS2 Probe 0.49-timing
+18:19:53.700  Looking for the cable: VID 0x0333 / PID 0x0137
+
+18:19:53.706  USB rescan: 1 device(s)
+18:19:53.707    /dev/bus/usb/001/002  0333:0137
+18:19:55.794  === 0x83F0 SWITCH TIMING ===
+18:19:55.795  Same sequence each time, only the gap between the write and the line change varies.
+18:19:55.795  Looking for 77 07 77 07 77 07 70 - what the vendor gets.
+
+18:19:58.535      0 ms  25 09 02
+18:20:01.255      5 ms  25 09 02
+18:20:03.981     10 ms  25 09 02
+18:20:06.715     15 ms  25 09 02
+18:20:09.455     20 ms  25 09 02
+18:20:12.200     30 ms  25 09 02
+18:20:14.966     50 ms  25 09 02
+18:20:17.762     80 ms  25 09 02
+18:20:20.628    150 ms  25 09 02
+18:20:20.630  === end timing sweep ===

@@ -1,0 +1,29 @@
+18:22:45.286  BMW DS2 Probe 0.50-timing
+18:22:45.295  Looking for the cable: VID 0x0333 / PID 0x0137
+
+18:22:45.300  USB rescan: 1 device(s)
+18:22:45.302    /dev/bus/usb/001/002  0333:0137
+18:22:49.049  === WHERE DOES THE LINE CHANGE BELONG? ===
+18:22:49.052  The delay does not matter - 0 to 150 ms all gave the same thing. So the question
+18:22:49.052  is not when we switch but whether the cable's reply to 0x83F0 comes before or
+18:22:49.052  after its own switch. Three arrangements, same bytes in all of them.
+
+18:22:49.071    --- variant 1: switch, then read the 0x83F0 reply at 9600 (what we do now)
+18:22:50.380        0xA77A  -> 77 07 77 07 77 07 70
+18:22:50.986        0xB318  -> 77 07 77 07 77 07 70
+18:22:51.718        0x83F0  -> 25 09 02
+18:22:52.625        0x46F1  -> C4 F0 C4 B8 FF
+
+18:22:52.627    --- variant 2: read the 0x83F0 reply at 19200, then switch, then query at 9600
+18:22:53.934        0xA77A  -> 77 07 77 07 77 07 70
+18:22:54.539        0xB318  -> 77 07 77 07 77 07 70
+18:22:55.244        0x83F0  -> 77 07 77 07 77 07 70
+18:22:56.156        0x46F1  -> C4 F0 C4 B8 FF
+
+18:22:56.157    --- variant 3: never switch; everything at 19200
+18:22:57.463        0xA77A  -> 77 07 77 07 77 07 70
+18:22:58.069        0xB318  -> 77 07 77 07 77 07 70
+18:22:58.773        0x83F0  -> 77 07 77 07 77 07 70
+18:22:59.677        0x46F1  -> 65 3D 01 C8
+
+18:22:59.680  === end ===

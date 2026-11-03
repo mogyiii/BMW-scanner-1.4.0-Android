@@ -1,0 +1,32 @@
+18:28:50.138  BMW DS2 Probe 0.52-faults
+18:28:50.151  Looking for the cable: VID 0x0333 / PID 0x0137
+
+18:28:50.157  USB rescan: 1 device(s)
+18:28:50.158    /dev/bus/usb/001/002  0333:0137
+18:28:51.997  === IDENTIFY AND READ FAULTS ===
+18:28:51.998  The vendor's sequence: 19200 for setup, its 0x83F0 reply read at 19200, then
+18:28:51.998  9600 8E1 for the queries.
+
+18:28:51.998  IGNITION MUST BE IN POSITION 2, or the engine running. The cable runs off pin 16
+18:28:51.999  and works regardless, but the modules are asleep otherwise and there is nothing
+18:28:51.999  to answer - which looks identical to a protocol fault and is not one.
+
+18:28:52.318    0x00  handshake ok
+18:28:53.333          0xA77A   -> 77 07 77 07 77 07 70
+18:28:53.941          0xB318   -> 77 07 77 07 77 07 70
+18:28:54.648          0x83F0   -> 77 07 77 07 77 07 70
+18:28:55.362          0x46F1   -> C4 F0 C4 B8 FF F9
+18:28:55.664    0x08  handshake ok
+18:28:56.673          0xA77A   -> 77 07 77 07 77 07 70
+18:28:57.280          0xB318   -> 77 07 77 07 77 07 70
+18:28:57.988          0x83F0   -> 77 07 77 07 77 07 70
+18:28:58.699          0x46F1   -> C4 F0 C4 B8 7F 1C
+18:28:59.004    0x12  handshake ok
+18:29:00.012          0xA77A   -> 77 07 77 07 77 07 70
+18:29:00.619          0xB318   -> 77 07 77 07 77 07 70
+18:29:01.325          0x83F0   -> 77 07 77 07 77 07 70
+18:29:02.035          0x46F1   -> C4 F0 C4 B8 7D FF
+
+18:32:01.438    No module answered. The line change is in place now, so if this still
+18:32:01.442    happens the difference from the vendor is somewhere else in the sequence.
+18:32:01.444  === end ===

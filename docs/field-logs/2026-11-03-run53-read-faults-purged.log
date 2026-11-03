@@ -1,0 +1,28 @@
+18:09:37.000  BMW DS2 Probe 0.47-faults
+18:09:37.013  Looking for the cable: VID 0x0333 / PID 0x0137
+
+18:09:37.021  USB rescan: 1 device(s)
+18:09:37.023    /dev/bus/usb/001/002  0333:0137
+18:09:39.858  === IDENTIFY AND READ FAULTS ===
+18:09:39.861  The vendor's sequence, with the line change where it belongs: 19200 for setup,
+18:09:39.861  then 9600 8E1 for every query. Engine running is best.
+
+18:09:40.184    0x00  handshake ok
+18:09:40.494          0xA77A   -> nothing
+18:09:40.800          0xB318   -> 77 07 77 07 77 07 70
+18:09:41.250          0x83F0   -> C4 20 38 75 A7 C7 D9
+18:09:41.960          0x46F1   -> C4 D8 3B DC 27 FF
+18:09:42.263    0x08  handshake ok
+18:09:42.568          0xA77A   -> nothing
+18:09:42.873          0xB318   -> 77 07 77 07 77 07 70
+18:09:43.320          0x83F0   -> 65 3D 01 C7 C4 18 4A D0
+18:09:44.025          0x46F1   -> C4 A8 B8 39 7D FA
+18:09:44.327    0x12  handshake ok
+18:09:44.630          0xA77A   -> nothing
+18:09:44.934          0xB318   -> 77 07 77 07 77 07 70
+18:09:45.381          0x83F0   -> 65 3D 01 C7 C4 08 4A C8
+18:09:46.086          0x46F1   -> C4 A8 B8 39 7D FF
+
+18:11:37.411    No module answered. The line change is in place now, so if this still
+18:11:37.411    happens the difference from the vendor is somewhere else in the sequence.
+18:11:37.413  === end ===

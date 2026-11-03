@@ -1,5 +1,8 @@
 # Handover — where this project stands
 
+> **Start here: [`docs/STATE.md`](docs/STATE.md)** — one page, what is settled, what is not, and
+> the leading suspect. Written 2026-11-03 because the detail is spread over fifty-eight runs.
+
 > ## The cable works — 2026-11-03
 >
 > The genuine vendor software on a laptop, with the genuine driver, **read and cleared this car's

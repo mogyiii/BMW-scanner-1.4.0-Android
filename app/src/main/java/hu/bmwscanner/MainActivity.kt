@@ -166,6 +166,7 @@ class MainActivity : AppCompatActivity() {
                 "retry" -> guarded(what) { retryTest(device!!) }
                 "realscan" -> guarded(what) { realScan(device!!) }
                 "faults" -> guarded(what) { readFaults(device!!) }
+                "timing" -> guarded(what) { timingSweep(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
                 "latehunt" -> guarded(what) { mcuHunt(device!!) }
@@ -3286,8 +3287,12 @@ class MainActivity : AppCompatActivity() {
      */
     private fun readFaults(device: UsbDevice) {
         log("=== IDENTIFY AND READ FAULTS ===")
-        log("The vendor's sequence, with the line change where it belongs: 19200 for setup,")
-        log("then 9600 8E1 for every query. Engine running is best.")
+        log("The vendor's sequence: 19200 for setup, its 0x83F0 reply read at 19200, then")
+        log("9600 8E1 for the queries.")
+        log("")
+        log("IGNITION MUST BE IN POSITION 2, or the engine running. The cable runs off pin 16")
+        log("and works regardless, but the modules are asleep otherwise and there is nothing")
+        log("to answer - which looks identical to a protocol fault and is not one.")
         log("")
 
         val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
@@ -3297,38 +3302,90 @@ class MainActivity : AppCompatActivity() {
         try {
             dev = FtdiDevice.open(usbManager, device, 0)
 
+            // Configure once, as the vendor does. It opens the device, sets 19200 8N1 and the
+            // timeouts, and never touches them again except for the one switch to 9600. Calling
+            // configure() per address additionally issued SIO_RESET, which resets the chip - a
+            // difference from the vendor that had no reason to be there.
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            var verbose = 3
             for (addr in VendorProtocol.QUERY_ADDRESSES) {
                 if (stopRequested) { log("stopped"); break }
 
-                dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+                dev.setBaudRate(19200)
+                dev.setLineProperties(8, FtdiDevice.Parity.NONE, FtdiDevice.StopBits.ONE)
                 dev.purge()
                 dev.setModemControl(dtr = true, rts = null)
-                Thread.sleep(80)
+                Thread.sleep(150)          // the vendor holds DTR for about 150 ms, not 80
                 dev.setModemControl(dtr = false, rts = null)
                 val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
-                if (VendorHandshake.decode(raw) == null) continue
+                if (VendorHandshake.decode(raw) == null) {
+                    if (verbose > 0) log("  0x%02X  handshake failed".format(addr))
+                    continue
+                }
                 if (!VendorProtocol.matchesRecordedCable(raw)) { log("  announcement changed"); break }
 
                 var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
-                fun put(f: ByteArray) {
-                    val (w, n) = VendorProtocol.scramble(f, key); key = n; dev!!.write(w)
+
+                // Purge before every write, which is what the vendor does - twice before 0x83F0.
+                // Leftover bytes in the receive buffer shift every read after them, and this
+                // project was purging only before the query.
+                fun put(f: ByteArray, label: String, windowMs: Int): ByteArray {
+                    dev!!.purge()
+                    val (w, n) = VendorProtocol.scramble(f, key)
+                    key = n
+                    dev.write(w)
+                    val got = dev.readTimed(windowMs).flatMap { it.second.asIterable() }.toByteArray()
+                    if (verbose > 0) {
+                        log("        %-8s -> %s".format(label,
+                            if (got.isEmpty()) "nothing" else Ds2.hex(got)))
+                    }
+                    return got
                 }
 
-                put(VendorProtocol.SIGN_ON_FRAME); dev.readTimed(250)
+                if (verbose > 0) log("  0x%02X  handshake ok".format(addr))
+
+                // A full second for the sign-on. Run 33 measured its reply arriving at **306 ms**,
+                // and the window here was 300 - so it was cut off by six milliseconds, landed in
+                // the next read instead, and shifted every reply in the sequence by one. The
+                // `77 07` that looked like 0xB318's answer was the sign-on's, and by the time the
+                // query went out there was nothing left but the tail of someone else's reply.
+                //
+                // The measurement that settles it was in our own logs the whole time.
+                put(VendorProtocol.SIGN_ON_FRAME, "0xA77A", 1000)
                 put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
-                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte()))); dev.readTimed(250)
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318", 600)
 
                 // One 0x83F0, then the line moves and stays moved.
-                put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload))
+                //
+                // The wait matters. `write` returns when the chip has accepted the bytes, not when
+                // they have left the wire: eleven bytes at 19200 take about 6 ms. Changing the baud
+                // immediately after - which is what the earlier version did - sends the tail of our
+                // own frame out at 9600 and hands the cable a half-corrupted command. The vendor
+                // leaves about 20 ms between the write and the switch.
+                // One 0x83F0 at 19200, a pause so the frame is actually on the wire, then the
+                // line moves and stays moved.
+                // Read 0x83F0's reply at 19200 and only then move the line. Run 56 measured both
+                // arrangements: read at 19200 gives the vendor's exact `77 07 77 07 77 07 70`,
+                // read at 9600 gives a corrupted fragment. The vendor's log appears to read it at
+                // 9600 only because the bytes were already decoded into the chip's buffer before
+                // its FT_SetBaudRate - a late switch cannot spoil what is already decoded.
+                val busReply = put(
+                    VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
+                    "0x83F0", 700)
                 dev.setBaudRate(9600)
                 dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
-                dev.readTimed(250)
 
-                dev.purge()
-                put(VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr))
-                val r = dev.readTimed(700).flatMap { it.second.asIterable() }.toByteArray()
+                val r = put(VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr),
+                            "0x46F1", 700)
                 val split = splitDs2(r)
                 val answer = split?.answer
+                if (verbose > 0) {
+                    verbose--
+                    if (split != null) log("        echo ${Ds2.hex(split.echo)}" +
+                        (answer?.let { "   answer ${Ds2.hex(it)}" } ?: "   no answer frame"))
+                }
+
                 if (answer == null || !ds2Ok(answer)) continue
 
                 found += addr to answer
@@ -3337,10 +3394,9 @@ class MainActivity : AppCompatActivity() {
                 // Fault memory. Page 0 is the count, pages 1.. the entries.
                 for (page in 0..8) {
                     if (stopRequested) break
-                    dev.purge()
-                    put(VendorProtocol.buildFrame(
-                        VendorProtocol.Command.FAULTS, addr, byteArrayOf(page.toByte())))
-                    val fr = dev.readTimed(700).flatMap { it.second.asIterable() }.toByteArray()
+                    val fr = put(VendorProtocol.buildFrame(
+                        VendorProtocol.Command.FAULTS, addr, byteArrayOf(page.toByte())),
+                        "0xC731", 700)
                     val fa = splitDs2(fr)?.answer ?: break
                     if (!ds2Ok(fa)) break
                     if (page == 0) {
@@ -3361,6 +3417,95 @@ class MainActivity : AppCompatActivity() {
             } else {
                 log("  ${found.size} module(s) present: " +
                     found.joinToString(" ") { "0x%02X".format(it.first) })
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end ===")
+    }
+
+    /**
+     * Sweeps the gap between writing `0x83F0` and switching the line, and reports what comes back.
+     *
+     * Everything up to that point now matches the vendor byte for byte: the sign-on and `0xB318`
+     * both return `77 07 77 07 77 07 70`, exactly as its log shows. The vendor then gets the same
+     * seven bytes for `0x83F0` and we get a corrupted fragment, and the fragment changes with the
+     * delay - no wait gave one thing, 40 ms gives another. So the moment of the switch matters and
+     * we are in the wrong place.
+     *
+     * Rather than guess a third time, this tries a spread of delays against one address and prints
+     * each result. The one that returns `77 07 77 07 77 07 70` is the answer; anything else is a
+     * reply being decoded at a rate nobody is sending it at.
+     */
+    private fun timingSweep(device: UsbDevice) {
+        log("=== QUERY RATE MATRIX ===")
+        log("Everything up to 0x83F0 now matches the vendor byte for byte, with its reply read")
+        log("at 19200 - run 56 settled that. Only the query is left, and until now I have been")
+        log("changing the transmit rate and the receive rate together, so a failure could not")
+        log("say which was wrong. Four combinations, separately.")
+        log("")
+
+        val addr = 0x80
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0xC8.toByte(), 0x14)
+        val rates = intArrayOf(19200, 9600)
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            fun line(baud: Int) {
+                dev!!.setBaudRate(baud)
+                dev.setLineProperties(8,
+                    if (baud == 9600) FtdiDevice.Parity.EVEN else FtdiDevice.Parity.NONE,
+                    FtdiDevice.StopBits.ONE)
+            }
+
+            for (txRate in rates) for (rxRate in rates) {
+                if (stopRequested) { log("stopped"); break }
+                log("  --- query sent at $txRate, read at $rxRate ---")
+
+                line(19200)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(150)
+                dev.setModemControl(dtr = false, rts = null)
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
+                if (VendorHandshake.decode(raw) == null) { log("      handshake failed"); continue }
+
+                var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                fun put(f: ByteArray, windowMs: Int): ByteArray {
+                    dev!!.purge()
+                    val (w, n) = VendorProtocol.scramble(f, key); key = n
+                    dev.write(w)
+                    return dev.readTimed(windowMs).flatMap { it.second.asIterable() }.toByteArray()
+                }
+                put(VendorProtocol.SIGN_ON_FRAME, 1000)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), 600)
+                val bus = put(VendorProtocol.buildFrame(
+                    VendorProtocol.Command.BUS, addr, busPayload), 700)
+                log("      0x83F0 -> ${if (bus.isEmpty()) "nothing" else Ds2.hex(bus)}")
+
+                // Transmit the query at one rate, then read at the other.
+                line(txRate)
+                dev.purge()
+                val (w, n) = VendorProtocol.scramble(
+                    VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr), key)
+                key = n
+                dev.write(w)
+                Thread.sleep(30)          // let the frame leave the wire before touching the line
+                if (rxRate != txRate) line(rxRate)
+                val q = dev.readTimed(900).flatMap { it.second.asIterable() }.toByteArray()
+                log("      0x46F1 -> ${if (q.isEmpty()) "nothing" else Ds2.hex(q)}")
+
+                val split = splitDs2(q)
+                if (split?.answer != null && ds2Ok(split.answer)) {
+                    log("      <<<<<< MODULE ANSWERED  ${Ds2.hex(split.answer)}")
+                }
+                log("")
             }
         } catch (e: Throwable) {
             log("  failed: ${e.javaClass.simpleName}: ${e.message}")
@@ -4165,5 +4310,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.45-faults"
+    const val NAME = "0.52-faults"
 }

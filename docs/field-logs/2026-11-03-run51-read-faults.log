@@ -1,0 +1,17 @@
+16:32:36.617  BMW DS2 Probe 0.45-faults
+16:32:36.628  Looking for the cable: VID 0x0333 / PID 0x0137
+
+16:32:36.634  USB rescan: 1 device(s)
+16:32:36.636    /dev/bus/usb/001/002  0333:0137
+16:32:42.400  === IDENTIFY AND READ FAULTS ===
+16:32:42.403  The vendor's sequence, with the line change where it belongs: 19200 for setup,
+16:32:42.403  then 9600 8E1 for every query. Engine running is best.
+
+16:33:04.167  faults NOT STARTED: 'faults' is still running. Press Stop and wait for
+16:33:04.170    its '=== end ... ===' line, then try again.
+16:33:12.133  faults NOT STARTED: 'faults' is still running. Press Stop and wait for
+16:33:12.145    its '=== end ... ===' line, then try again.
+
+16:34:19.414    No module answered. The line change is in place now, so if this still
+16:34:19.415    happens the difference from the vendor is somewhere else in the sequence.
+16:34:19.417  === end ===
