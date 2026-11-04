@@ -429,7 +429,7 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "HOW THE BYTES LEAVE  (1 min)"
+                text = "DTR / RTS SWEEP  (1 min)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
                 setOnClickListener { withCable("laststand") { d -> lastStand(d) } }
@@ -3597,12 +3597,14 @@ class MainActivity : AppCompatActivity() {
     )
 
     private fun lastStand(device: UsbDevice) {
-        log("=== HOW THE BYTES LEAVE ===")
-        log("One address (0x80), four variants, about a minute. Ignition in position 2 or the")
-        log("engine running - the modules are asleep otherwise and nothing can answer.")
+        log("=== HANDSHAKE LINES DURING THE QUERY ===")
+        log("Run 59 ruled out everything about the bytes: all four pacings failed, including a")
+        log("verbatim replay of the vendor's exact recorded stream with its own line changes.")
+        log("So it is not what we send, not how we pace it, and not our reconstruction.")
         log("")
-        log("Setup already matches the vendor byte for byte. The untested difference is that it")
-        log("writes one byte at a time with gaps, and we write whole frames at once.")
+        log("What has never been varied is DTR and RTS while the query goes out. On interfaces")
+        log("like this one a handshake line often gates the K-line driver - which would look")
+        log("exactly like this: every command acknowledged, nothing reaching the bus.")
         log("")
 
         val addr = 0x80
@@ -3615,87 +3617,44 @@ class MainActivity : AppCompatActivity() {
             log("  idle check: ${lineIdleLevel(dev)}")
             log("")
 
-            fun handshake(): Boolean {
-                dev!!.setBaudRate(19200)
+            for (dtr in listOf(false, true)) for (rts in listOf(false, true)) {
+                if (stopRequested) { log("stopped"); break }
+                log("  --- DTR ${if (dtr) "on" else "off"}, RTS ${if (rts) "on" else "off"} ---")
+
+                dev.setBaudRate(19200)
                 dev.setLineProperties(8, FtdiDevice.Parity.NONE, FtdiDevice.StopBits.ONE)
                 dev.purge()
                 dev.setModemControl(dtr = true, rts = null)
                 Thread.sleep(150)
                 dev.setModemControl(dtr = false, rts = null)
                 val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
-                return VendorHandshake.decode(raw) != null
-            }
+                if (VendorHandshake.decode(raw) == null) { log("      handshake failed"); continue }
 
-            /** Writes byte by byte with [gapMs] between, the way the vendor's driver calls look. */
-            fun writeSpaced(bytes: ByteArray, gapMs: Long) {
-                if (gapMs <= 0) { dev!!.write(bytes); return }
-                for (b in bytes) {
-                    dev!!.write(byteArrayOf(b))
-                    Thread.sleep(gapMs)
+                var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                fun put(f: ByteArray, label: String, window: Int): ByteArray {
+                    dev!!.purge()
+                    val (w, n) = VendorProtocol.scramble(f, key); key = n
+                    dev.write(w)
+                    val got = dev.readTimed(window).flatMap { it.second.asIterable() }.toByteArray()
+                    log("      %-7s -> %s".format(label, if (got.isEmpty()) "nothing" else Ds2.hex(got)))
+                    return got
                 }
-            }
+                put(VendorProtocol.SIGN_ON_FRAME, "0xA77A", 1000)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318", 600)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
+                    "0x83F0", 700)
 
-            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
-
-            for (variant in 1..4) {
-                if (stopRequested) { log("stopped"); break }
-                val gap = when (variant) { 2 -> 3L; 3 -> 15L; else -> 0L }
-                log("  --- variant $variant: " + when (variant) {
-                    1 -> "whole frames at once (what we do now)"
-                    2 -> "byte at a time, 3 ms apart"
-                    3 -> "byte at a time, 15 ms apart - the vendor's observed spacing"
-                    else -> "verbatim replay of the vendor's recorded bytes"
-                })
-
-                if (!handshake()) { log("      handshake failed"); continue }
-
-                var reply = ByteArray(0)
-                if (variant < 4) {
-                    var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
-                    fun put(f: ByteArray, label: String, window: Int): ByteArray {
-                        dev!!.purge()
-                        val (w, n) = VendorProtocol.scramble(f, key)
-                        key = n
-                        writeSpaced(w, gap)
-                        val got = dev.readTimed(window).flatMap { it.second.asIterable() }
-                            .toByteArray()
-                        log("      %-7s -> %s".format(label,
-                            if (got.isEmpty()) "nothing" else Ds2.hex(got)))
-                        return got
-                    }
-                    put(VendorProtocol.SIGN_ON_FRAME, "0xA77A", 1000)
-                    put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
-                        byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318", 600)
-                    put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
-                        "0x83F0", 700)
-                    dev.setBaudRate(9600)
-                    dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
-                    reply = put(VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr),
+                dev.setBaudRate(9600)
+                dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
+                dev.setModemControl(dtr = dtr, rts = rts)
+                val reply = put(VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr),
                                 "0x46F1", 900)
-                } else {
-                    for (st in vendorSteps()) {
-                        when (st) {
-                            is Step.Purge -> dev.purge()
-                            is Step.Baud -> dev.setBaudRate(st.rate)
-                            is Step.Line -> dev.setLineProperties(st.bits,
-                                FtdiDevice.Parity.entries.first { it.code == st.parity },
-                                FtdiDevice.StopBits.entries.first { it.code == st.stop })
-                            is Step.Tx -> {
-                                writeSpaced(st.bytes, 15L)
-                                val got = dev.readTimed(700).flatMap { it.second.asIterable() }
-                                    .toByteArray()
-                                log("      %2d bytes -> %s".format(st.bytes.size,
-                                    if (got.isEmpty()) "nothing" else Ds2.hex(got)))
-                                reply = got
-                            }
-                        }
-                    }
-                }
 
                 val split = splitDs2(reply)
                 if (split?.answer != null && ds2Ok(split.answer)) {
                     log("      <<<<<< MODULE ANSWERED  ${Ds2.hex(split.answer)}")
-                    log("      THIS IS THE ONE. Stop here and tell me.")
+                    log("      THIS IS THE ONE. Stop and tell me.")
                 }
                 log("")
             }
@@ -4502,5 +4461,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.54-bytes"
+    const val NAME = "0.55-modem"
 }

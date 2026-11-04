@@ -1,0 +1,41 @@
+13:41:54.975  BMW DS2 Probe 0.55-modem
+13:41:54.987  Looking for the cable: VID 0x0333 / PID 0x0137
+
+13:41:54.994  USB rescan: 1 device(s)
+13:41:54.995    /dev/bus/usb/001/002  0333:0137
+13:41:57.416  === HANDSHAKE LINES DURING THE QUERY ===
+13:41:57.417  Run 59 ruled out everything about the bytes: all four pacings failed, including a
+13:41:57.417  verbatim replay of the vendor's exact recorded stream with its own line changes.
+13:41:57.417  So it is not what we send, not how we pace it, and not our reconstruction.
+
+13:41:57.419  What has never been varied is DTR and RTS while the query goes out. On interfaces
+13:41:57.419  like this one a handshake line often gates the K-line driver - which would look
+13:41:57.420  exactly like this: every command acknowledged, nothing reaching the bus.
+
+13:41:58.051    idle check: receive line high in 100% of 200 samples  (steady high - what a powered K-line should look like)
+
+13:41:58.052    --- DTR off, RTS off ---
+13:41:59.359        0xA77A  -> 77 07 77 07 77 07 70
+13:41:59.963        0xB318  -> 77 07 77 07 77 07 70
+13:42:00.667        0x83F0  -> 77 07 77 07 77 07 70
+13:42:01.580        0x46F1  -> C4 F0 C4 B8 FF
+
+13:42:01.581    --- DTR off, RTS on ---
+13:42:02.885        0xA77A  -> 77 07 77 07 77 07 70
+13:42:03.490        0xB318  -> 77 07 77 07 77 07 70
+13:42:04.199        0x83F0  -> 77 07 77 07 77 07 70
+13:42:05.127        0x46F1  -> C4 F0 C4 B8 FF
+
+13:42:05.128    --- DTR on, RTS off ---
+13:42:06.435        0xA77A  -> 77 07 77 07 77 07 70
+13:42:07.042        0xB318  -> 77 07 77 07 77 07 70
+13:42:07.746        0x83F0  -> 77 07 77 07 77 07 70
+13:42:08.661        0x46F1  -> nothing
+
+13:42:08.663    --- DTR on, RTS on ---
+13:42:09.969        0xA77A  -> 77 07 77 07 77 07 70
+13:42:10.576        0xB318  -> 77 07 77 07 77 07 70
+13:42:11.279        0x83F0  -> 77 07 77 07 77 07 70
+13:42:12.192        0x46F1  -> nothing
+
+13:42:12.194  === end ===

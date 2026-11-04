@@ -1,0 +1,39 @@
+13:37:10.706  BMW DS2 Probe 0.54-bytes
+13:37:10.717  Looking for the cable: VID 0x0333 / PID 0x0137
+
+13:37:10.723  USB rescan: 1 device(s)
+13:37:10.725    /dev/bus/usb/001/002  0333:0137
+13:37:19.231  === HOW THE BYTES LEAVE ===
+13:37:19.231  One address (0x80), four variants, about a minute. Ignition in position 2 or the
+13:37:19.232  engine running - the modules are asleep otherwise and nothing can answer.
+
+13:37:19.232  Setup already matches the vendor byte for byte. The untested difference is that it
+13:37:19.233  writes one byte at a time with gaps, and we write whole frames at once.
+
+13:37:19.880    idle check: receive line high in 100% of 200 samples  (steady high - what a powered K-line should look like)
+
+13:37:19.896    --- variant 1: whole frames at once (what we do now)
+13:37:21.203        0xA77A  -> 77 07 77 07 77 07 70
+13:37:21.809        0xB318  -> 77 07 77 07 77 07 70
+13:37:22.514        0x83F0  -> 77 07 77 07 77 07 70
+13:37:23.426        0x46F1  -> C4 F0 C4 B8 FF
+
+13:37:23.427    --- variant 2: byte at a time, 3 ms apart
+13:37:24.868        0xA77A  -> 77 07 77 07 77 07 70
+13:37:25.498        0xB318  -> 77 07 77 07 77 07 70
+13:37:26.248        0x83F0  -> 77 07 77 07 77 07 70
+13:37:27.188        0x46F1  -> C4 F0 C4 D8 3D F6
+
+13:37:27.190    --- variant 3: byte at a time, 15 ms apart - the vendor's observed spacing
+13:37:29.101        0xA77A  -> 77 07 77 07 77 07 70
+13:37:29.801        0xB318  -> 77 07 77 07 77 07 70
+13:37:30.679        0x83F0  -> 77 07 77 07 77 07 70
+13:37:31.671        0x46F1  -> C4 F0 C4 D8 3D F6
+
+13:37:31.682    --- variant 4: verbatim replay of the vendor's recorded bytes
+13:37:33.262        36 bytes -> 77 07 77 07 77 07 70
+13:37:34.061         6 bytes -> 77 07 77 07 77 07 70
+13:37:34.940        11 bytes -> 77 07 77 07 77 07 70
+13:37:35.728         5 bytes -> C4 C8 81 B5 71 FF
+
+13:37:35.730  === end ===
