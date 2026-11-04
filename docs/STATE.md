@@ -1,26 +1,25 @@
 # Where this project stands — 2026-11-03
 
-> # 🎉 It reads the car — 2026-11-04
+> # 🎉 It reads the car — both protocols — 2026-11-04
 >
-> Seven modules answered the Android app with identification data and fault memories, and the codes
-> match the vendor's own output byte for byte. The steering angle sensor at `0x57`:
+> **DS2, seven modules.** Steering angle sensor `0x57` returns three faults, `0B/AF`, `09/97`,
+> `04/17`, which is exactly what `BMWScan140` printed for it. Air conditioning `0x5B` returns
+> `1C 44` and `1E 42`.
+>
+> **KWP2000, the engine controller.** `0x12` ignores DS2 — the vendor's own capture shows it getting
+> the same nothing — and answers KWP instead:
 >
 > ```
-> 57 14 A0 03   0B 00 AF   09 00 97   04 00 17 ...
+> 0x0DE7 -> 1A 90        -> 5A 90 4B 50 30 34 32 32 30     VIN  KP04220
+> 0xC358 -> 18 02 FF FF  -> 58 01 27 C3 64                 DTC  27C3 / 64
 > ```
 >
-> three faults, then `0B/AF`, `09/97`, `04/17` — exactly what `BMWScan140` printed for that module.
-> The air conditioning at `0x5B` likewise: `1C 44` and `1E 42`, its "AUC sensor" and "AUC heating".
+> Both match the control set: the vendor read this car's VIN as `KP04220` and its engine fault as
+> `27C3/64 - Failure oil status sensor`.
 >
-> **The fix was one number.** Reads waited 200 ms of silence; the cable's later blocks arrive after
-> that, so each reply was cut short and the remainder was purged before the next command. At 800 ms
-> everything matches. Run 63 settled it at a desk, with no car and no battery cost, by comparing
-> against the counts a Windows run of the identical sequence had produced.
->
-> Still outstanding: `0x12` (DME) and `0x56` (ABS) return the request echo and no answer. Those are
-> the two the vendor's own log marks with an asterisk, and on an N42 the engine controller speaks
-> KWP2000 rather than DS2 — which is mode 4 in `VendorTransaction`, already transcribed and never
-> exercised. A known next step, not a mystery.
+> Eight of the nine modules the vendor found, on both protocols, from the phone. Only `0x56` (ABS)
+> is unread, and the working capture has nothing for it — the vendor did not query it in that
+> session.
 
 > # ✅ Solved — 2026-11-04
 >

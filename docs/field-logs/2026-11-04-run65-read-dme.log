@@ -1,0 +1,22 @@
+14:43:31.296  BMW DS2 Probe 0.59-dme
+14:43:31.306  Looking for the cable: VID 0x0333 / PID 0x0137
+
+14:43:31.312  USB rescan: 1 device(s)
+14:43:31.314    /dev/bus/usb/001/002  0333:0137
+14:43:35.203  === ENGINE CONTROLLER (KWP2000) ===
+14:43:35.203  0x12 does not answer 0x46F1 - it is not a DS2 module. These are the vendor's own
+14:43:35.203  KWP commands for it. Expect DTC 27C3/64 and the VIN KP04220.
+
+14:43:35.915    idle check: receive line high in 100% of 200 samples  (steady high - what a powered K-line should look like)
+14:43:37.343    0xA77A  -> 77 07 77 07 77 07 70
+14:43:39.013    0xB318  -> 77 07 77 07 77 07 70 77 07 77 07 77 07 70
+14:43:40.121    0x83F0  -> 7E 98 00 7E 98 00 7E 98 00 00 FE
+14:43:40.991    0x46F1  -> 12 04 00 16
+14:43:41.974    0x06F3  -> B8 12 F1 02 1A 80 C3 B8 F1 12 1F 5A 80 00 00 07 51 95 92 10 0C 00 0F 30 4C 20 02 04 09 08 00 11 16 06 FF FF 02 03 0D 00 00 00 8A
+14:43:42.915    0x0DE7  -> B8 12 F1 02 1A 90 D3 B8 F1 12 09 5A 90 4B 50 30 34 32 32 30 B7
+14:43:43.859    0xC358  -> B8 12 F1 04 18 02 FF FF 45 B8 F1 12 05 58 01 27 C3 64 87
+
+14:43:43.862    VIN text in the reply: KP04220 
+14:43:43.862    fault codes: 1
+14:43:43.862      27C3 / 64
+14:43:43.863  === end ===

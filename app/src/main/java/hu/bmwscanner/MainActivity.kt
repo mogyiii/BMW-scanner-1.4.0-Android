@@ -168,6 +168,7 @@ class MainActivity : AppCompatActivity() {
                 "faults" -> guarded(what) { readFaults(device!!) }
                 "laststand" -> guarded(what) { lastStand(device!!) }
                 "desk" -> guarded(what) { deskCheck(device!!) }
+                "dme" -> guarded(what) { readDme(device!!) }
                 "timing" -> guarded(what) { timingSweep(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
@@ -430,10 +431,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "READ FAULTS  (about 1 min)"
+                text = "READ DME  (15 s)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("laststand") { d -> lastStand(d) } }
+                setOnClickListener { withCable("dme") { d -> readDme(d) } }
             },
             wide(),
         )
@@ -3769,6 +3770,104 @@ class MainActivity : AppCompatActivity() {
         log("=== end desk check ===")
     }
 
+    /**
+     * Reads the engine controller, which does not speak DS2.
+     *
+     * `0x46F1` returns only the echoed request for `0x12`, and the vendor's own capture shows it
+     * getting exactly the same nothing before switching approach. The DME on an N42 speaks
+     * KWP2000, and the vendor's commands for it map to KWP services:
+     *
+     * ```
+     * 0x06F3 -> 1A 80          read ECU identification
+     * 0x0DE7 -> 1A 90          the VIN
+     * 0xC358 -> 18 02 FF FF    read diagnostic trouble codes
+     * ```
+     *
+     * Each reply is again two frames: the request echoed by the K-line, then the answer. KWP frames
+     * are `[format][target][source][service][data][additive checksum]`, and a negative reply opens
+     * `7F`.
+     *
+     * The control value is known. In the vendor's session this car's DME reported `27C3` with
+     * status `0x64` - "Failure oil status sensor" - and its VIN came back as the ASCII of
+     * `KP04220`. Both should appear below.
+     */
+    private fun readDme(device: UsbDevice) {
+        log("=== ENGINE CONTROLLER (KWP2000) ===")
+        log("0x12 does not answer 0x46F1 - it is not a DS2 module. These are the vendor's own")
+        log("KWP commands for it. Expect DTC 27C3/64 and the VIN KP04220.")
+        log("")
+
+        val addr = 0x12
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0xC8.toByte(), 0x14)
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+            log("  idle check: ${lineIdleLevel(dev)}")
+
+            dev.purge()
+            dev.setModemControl(dtr = true, rts = null)
+            Thread.sleep(150)
+            dev.setModemControl(dtr = false, rts = null)
+            val raw = dev.readBytes(VendorHandshake.LENGTH, 1200)
+            if (VendorHandshake.decode(raw) == null) { log("  handshake failed"); return }
+            if (!VendorProtocol.matchesRecordedCable(raw)) { log("  announcement changed"); return }
+
+            var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+            fun put(f: ByteArray, label: String): ByteArray {
+                dev!!.purge()
+                val (w, n) = VendorProtocol.scramble(f, key); key = n
+                dev.write(w)
+                val got = dev.readUntilQuiet(quietMs = 800, overallTimeoutMs = 3000)
+                log("  %-7s -> %s".format(label, if (got.isEmpty()) "nothing" else Ds2.hex(got)))
+                return got
+            }
+
+            put(VendorProtocol.SIGN_ON_FRAME, "0xA77A")
+            put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
+                byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318")
+            put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload), "0x83F0")
+
+            dev.setBaudRate(9600)
+            dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
+
+            put(VendorProtocol.buildFrame(0x46F1, addr), "0x46F1")      // the DS2 attempt, for the record
+            put(VendorProtocol.buildFrame(0x06F3, addr), "0x06F3")      // KWP 1A 80, identification
+            val vin = put(VendorProtocol.buildFrame(0x0DE7, addr), "0x0DE7")   // KWP 1A 90, the VIN
+            val dtc = put(VendorProtocol.buildFrame(0xC358, addr), "0xC358")   // KWP 18 02 FF FF
+
+            // The VIN is plain ASCII inside the reply; pull out anything printable and long enough.
+            val text = StringBuilder()
+            var run = StringBuilder()
+            for (b in vin) {
+                val c = b.toInt() and 0xFF
+                if (c in 0x30..0x5A) run.append(c.toChar())
+                else { if (run.length >= 5) text.append(run).append(' '); run = StringBuilder() }
+            }
+            if (run.length >= 5) text.append(run)
+            if (text.isNotEmpty()) log("")
+            if (text.isNotEmpty()) log("  VIN text in the reply: $text")
+
+            // A KWP positive reply to 18 02 is `58 <count> <dtc hi> <dtc lo> <status> ...`
+            val at = dtc.indexOfFirst { (it.toInt() and 0xFF) == 0x58 }
+            if (at >= 0 && at + 4 < dtc.size) {
+                val count = dtc[at + 1].toInt() and 0xFF
+                log("  fault codes: $count")
+                var i = at + 2
+                while (i + 2 < dtc.size && i < at + 2 + count * 3) {
+                    log("    %02X%02X / %02X".format(dtc[i], dtc[i + 1], dtc[i + 2]))
+                    i += 3
+                }
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end ===")
+    }
+
     private fun vendorInit(device: UsbDevice) {
         log("=== VENDOR INIT REPLAY ===")
         log("Reproducing BMWScan140.exe's start-up exactly, from the USB capture.")
@@ -4564,5 +4663,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.58-faults"
+    const val NAME = "0.59-dme"
 }
