@@ -1,0 +1,26 @@
+14:33:09.461  BMW DS2 Probe 0.57-desk
+14:33:09.471  Looking for the cable: VID 0x0333 / PID 0x0137
+
+14:33:09.477  USB rescan: 1 device(s)
+14:33:09.479    /dev/bus/usb/001/002  0333:0137
+14:33:13.300  === DESK CHECK - no car needed ===
+14:33:13.300  The same three commands with a much more patient read. Windows saw 7, 14 and 11
+14:33:13.301  bytes; we have been seeing 7, 7 and 7.
+
+14:33:13.316    --- quiet period 200 ms ---
+14:33:14.135        0xA77A   7 bytes (Windows saw 7)   MATCH
+14:33:14.138                77 07 77 07 77 07 70
+14:33:14.638        0xB318   7 bytes (Windows saw 14)
+14:33:14.639                77 07 77 07 77 07 70
+14:33:15.212        0x83F0   7 bytes (Windows saw 11)
+14:33:15.214                77 07 77 07 77 07 70
+
+14:33:15.215    --- quiet period 800 ms ---
+14:33:16.630        0xA77A   7 bytes (Windows saw 7)   MATCH
+14:33:16.631                77 07 77 07 77 07 70
+14:33:18.303        0xB318  14 bytes (Windows saw 14)   MATCH
+14:33:18.304                77 07 77 07 77 07 70 77 07 77 07 77 07 70
+14:33:19.412        0x83F0  11 bytes (Windows saw 11)   MATCH
+14:33:19.414                7E 98 00 7E 98 00 7E 98 00 00 FE
+
+14:33:19.416  === end desk check ===

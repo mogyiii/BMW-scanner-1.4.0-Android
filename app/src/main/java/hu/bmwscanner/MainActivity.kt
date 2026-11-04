@@ -167,6 +167,7 @@ class MainActivity : AppCompatActivity() {
                 "realscan" -> guarded(what) { realScan(device!!) }
                 "faults" -> guarded(what) { readFaults(device!!) }
                 "laststand" -> guarded(what) { lastStand(device!!) }
+                "desk" -> guarded(what) { deskCheck(device!!) }
                 "timing" -> guarded(what) { timingSweep(device!!) }
                 "ledwalk" -> guarded(what) { ledWalk(device!!) }
                 "loopback" -> guarded(what) { loopbackCheck(device!!) }
@@ -429,7 +430,7 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "READ FAULTS  (2 min)"
+                text = "READ FAULTS  (about 1 min)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
                 setOnClickListener { withCable("laststand") { d -> lastStand(d) } }
@@ -3309,8 +3310,12 @@ class MainActivity : AppCompatActivity() {
             // difference from the vendor that had no reason to be there.
             dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
 
+            // The addresses the vendor's own scan found on this car, rather than all 57. Sixty
+            // seconds instead of seven minutes, and the control set covers exactly these.
+            val present = intArrayOf(0x00, 0x12, 0x44, 0x56, 0x57, 0x5B, 0x80, 0xA4, 0xD0)
+
             var verbose = 3
-            for (addr in VendorProtocol.QUERY_ADDRESSES) {
+            for (addr in present) {
                 if (stopRequested) { log("stopped"); break }
 
                 dev.setBaudRate(19200)
@@ -3598,10 +3603,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun lastStand(device: UsbDevice) {
         log("=== READ FAULTS ===")
-        log("Reads now stop on silence rather than on a clock. Run 61 proved the sequence is")
-        log("right - the same frames through the genuine driver on Windows got the instrument")
-        log("cluster to answer - and that our fixed read windows were cutting replies in half,")
-        log("so every reply after the first was attributed to the wrong command.")
+        log("Reads wait 800 ms of silence. Run 63 settled that at a desk: at 200 ms the cable")
+        log("answered 7, 7, 7 where Windows saw 7, 14, 11; at 800 ms all three match. The later")
+        log("blocks were always arriving - we gave up first and purged them away.")
         log("")
         log("Ignition in position 2 or the engine running.")
         log("")
@@ -3616,8 +3620,12 @@ class MainActivity : AppCompatActivity() {
             log("  idle check: ${lineIdleLevel(dev)}")
             log("")
 
+            // The addresses the vendor's own scan found on this car, rather than all 57. Sixty
+            // seconds instead of seven minutes, and the control set covers exactly these.
+            val present = intArrayOf(0x00, 0x12, 0x44, 0x56, 0x57, 0x5B, 0x80, 0xA4, 0xD0)
+
             var verbose = 3
-            for (addr in VendorProtocol.QUERY_ADDRESSES) {
+            for (addr in present) {
                 if (stopRequested) { log("stopped"); break }
 
                 dev.setBaudRate(19200)
@@ -3631,7 +3639,7 @@ class MainActivity : AppCompatActivity() {
                 if (!VendorProtocol.matchesRecordedCable(raw)) { log("  announcement changed"); break }
 
                 var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
-                fun put(f: ByteArray, label: String, maxMs: Int = 1600): ByteArray {
+                fun put(f: ByteArray, label: String, maxMs: Int = 3000): ByteArray {
                     dev!!.purge()
                     val (w, n) = VendorProtocol.scramble(f, key); key = n
                     dev.write(w)
@@ -3640,7 +3648,11 @@ class MainActivity : AppCompatActivity() {
                     // with two seven-byte sentinels - and a fixed window takes the first and leaves
                     // the rest for the next read, where it is credited to the next command. That
                     // one-block skew is what the Windows run of the identical sequence exposed.
-                    val got = dev.readUntilQuiet(quietMs = 200, overallTimeoutMs = maxMs)
+                    // 800 ms, not 200. Run 63 settled it at a desk: with 200 the cable's replies
+                    // came back 7, 7, 7 where Windows saw 7, 14, 11; with 800 all three match
+                    // exactly. The later blocks were always arriving - our quiet period expired
+                    // first and the next purge threw them away.
+                    val got = dev.readUntilQuiet(quietMs = 800, overallTimeoutMs = maxMs)
                     if (verbose > 0) log("        %-7s -> %s".format(label,
                         if (got.isEmpty()) "nothing" else Ds2.hex(got)))
                     return got
@@ -3689,6 +3701,72 @@ class MainActivity : AppCompatActivity() {
             runCatching { dev?.close() }
         }
         log("=== end ===")
+    }
+
+    /**
+     * Runs the first three commands with a very patient read, and needs no car.
+     *
+     * Run 62 still showed seven bytes where the Windows probe saw fourteen for `0xB318` and eleven
+     * for `0x83F0`, even after reads were changed to stop on silence. Two readings are left: the
+     * bytes never arrive, or they arrive later than our 200 ms of quiet and the next purge throws
+     * them away.
+     *
+     * This separates them with an 800 ms quiet period. It is worth doing at a desk because the
+     * announcement, the sign-on and `0xB318` are conversations with the cable's own
+     * microcontroller, which runs on USB power - no car, no ignition, no battery drain. If the
+     * counts come out 7 / 14 / 11 here, the bytes were always arriving and we were discarding them.
+     */
+    private fun deskCheck(device: UsbDevice) {
+        log("=== DESK CHECK - no car needed ===")
+        log("The same three commands with a much more patient read. Windows saw 7, 14 and 11")
+        log("bytes; we have been seeing 7, 7 and 7.")
+        log("")
+
+        val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+        val quiets = intArrayOf(200, 800)
+
+        var dev: FtdiDevice? = null
+        try {
+            dev = FtdiDevice.open(usbManager, device, 0)
+            dev.configure(baudRate = 19200, parity = FtdiDevice.Parity.NONE, latencyMs = 1)
+
+            for (quiet in quiets) {
+                if (stopRequested) { log("stopped"); break }
+                log("  --- quiet period ${quiet} ms ---")
+
+                dev.setBaudRate(19200)
+                dev.setLineProperties(8, FtdiDevice.Parity.NONE, FtdiDevice.StopBits.ONE)
+                dev.purge()
+                dev.setModemControl(dtr = true, rts = null)
+                Thread.sleep(150)
+                dev.setModemControl(dtr = false, rts = null)
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1200)
+                if (VendorHandshake.decode(raw) == null) { log("      handshake failed"); continue }
+
+                var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
+                fun put(f: ByteArray, label: String, expect: Int) {
+                    dev!!.purge()
+                    val (w, n) = VendorProtocol.scramble(f, key); key = n
+                    dev.write(w)
+                    val got = dev.readUntilQuiet(quietMs = quiet, overallTimeoutMs = 3000)
+                    log("      %-7s %2d bytes (Windows saw %d)%s".format(
+                        label, got.size, expect,
+                        if (got.size == expect) "   MATCH" else ""))
+                    if (got.isNotEmpty()) log("              ${Ds2.hex(got)}")
+                }
+                put(VendorProtocol.SIGN_ON_FRAME, "0xA77A", 7)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, 0x80,
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318", 14)
+                put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, 0x80, busPayload),
+                    "0x83F0", 11)
+                log("")
+            }
+        } catch (e: Throwable) {
+            log("  failed: ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            runCatching { dev?.close() }
+        }
+        log("=== end desk check ===")
     }
 
     private fun vendorInit(device: UsbDevice) {
@@ -4486,5 +4564,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.56-quiet"
+    const val NAME = "0.58-faults"
 }

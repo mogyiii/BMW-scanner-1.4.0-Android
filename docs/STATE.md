@@ -1,5 +1,27 @@
 # Where this project stands — 2026-11-03
 
+> # 🎉 It reads the car — 2026-11-04
+>
+> Seven modules answered the Android app with identification data and fault memories, and the codes
+> match the vendor's own output byte for byte. The steering angle sensor at `0x57`:
+>
+> ```
+> 57 14 A0 03   0B 00 AF   09 00 97   04 00 17 ...
+> ```
+>
+> three faults, then `0B/AF`, `09/97`, `04/17` — exactly what `BMWScan140` printed for that module.
+> The air conditioning at `0x5B` likewise: `1C 44` and `1E 42`, its "AUC sensor" and "AUC heating".
+>
+> **The fix was one number.** Reads waited 200 ms of silence; the cable's later blocks arrive after
+> that, so each reply was cut short and the remainder was purged before the next command. At 800 ms
+> everything matches. Run 63 settled it at a desk, with no car and no battery cost, by comparing
+> against the counts a Windows run of the identical sequence had produced.
+>
+> Still outstanding: `0x12` (DME) and `0x56` (ABS) return the request echo and no answer. Those are
+> the two the vendor's own log marks with an asterisk, and on an N42 the engine controller speaks
+> KWP2000 rather than DS2 — which is mode 4 in `VendorTransaction`, already transcribed and never
+> exercised. A known next step, not a mystery.
+
 > # ✅ Solved — 2026-11-04
 >
 > The same sequence, sent through the genuine driver on Windows by `tools/ds2-probe-win`, got the

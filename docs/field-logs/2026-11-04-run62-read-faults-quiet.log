@@ -1,0 +1,33 @@
+14:28:05.082  BMW DS2 Probe 0.56-quiet
+14:28:05.092  Looking for the cable: VID 0x0333 / PID 0x0137
+
+14:28:05.097  USB rescan: 1 device(s)
+14:28:05.099    /dev/bus/usb/001/002  0333:0137
+14:28:19.480  === READ FAULTS ===
+14:28:19.483  Reads now stop on silence rather than on a clock. Run 61 proved the sequence is
+14:28:19.483  right - the same frames through the genuine driver on Windows got the instrument
+14:28:19.483  cluster to answer - and that our fixed read windows were cutting replies in half,
+14:28:19.484  so every reply after the first was attributed to the wrong command.
+
+14:28:19.484  Ignition in position 2 or the engine running.
+
+14:28:20.234    idle check: receive line high in 100% of 200 samples  (steady high - what a powered K-line should look like)
+
+14:28:20.554    0x00
+14:28:21.068          0xA77A  -> 77 07 77 07 77 07 70
+14:28:21.569          0xB318  -> 77 07 77 07 77 07 70
+14:28:22.142          0x83F0  -> 77 07 77 07 77 07 70
+14:28:22.450          0x46F1  -> C4 F0 C4 B8 FF F9
+14:28:22.752    0x08
+14:28:23.266          0xA77A  -> 77 07 77 07 77 07 70
+14:28:23.764          0xB318  -> 77 07 77 07 77 07 70
+14:28:24.338          0x83F0  -> 77 07 77 07 77 07 70
+14:28:24.647          0x46F1  -> C4 F0 C4 B8 7F 1C
+14:28:24.948    0x12
+14:28:25.464          0xA77A  -> 77 07 77 07 77 07 70
+14:28:25.961          0xB318  -> 77 07 77 07 77 07 70
+14:28:26.540          0x83F0  -> 77 07 77 07 77 07 70
+14:28:26.848          0x46F1  -> C4 F0 C4 B8 7D FF
+
+14:30:25.244    No module answered.
+14:30:25.246  === end ===
