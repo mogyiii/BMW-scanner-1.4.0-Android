@@ -110,6 +110,66 @@ function trace(label, bytes) {
 
 function setStatus(text) { $('status').textContent = text; }
 
+/**
+ * Builds the log in the form that is actually useful to read later.
+ *
+ * The Android app wrote files that could be pulled over adb; a browser has no such thing, so the
+ * trace has to leave by the share sheet or the clipboard. It carries the decoded results as well as
+ * the raw traffic, because a byte dump on its own has repeatedly turned out to be unreadable
+ * without knowing which command each reply belonged to.
+ */
+function buildLog() {
+  const lines = [];
+  lines.push(`BMW E46 diagnosztika - ${new Date().toISOString()}`);
+  lines.push(`user agent: ${navigator.userAgent}`);
+  lines.push('');
+  for (const mod of P.MODULES) {
+    const r = state.results.get(mod.addr);
+    if (!r) continue;
+    const head = `0x${mod.addr.toString(16).toUpperCase().padStart(2, '0')}  ${mod.name}`;
+    if (!r.present) { lines.push(`${head}  -  ${r.reason || 'nem válaszolt'}`); continue; }
+    lines.push(`${head}  jelen van`);
+    if (r.vin) lines.push(`      VIN ${r.vin}`);
+    if (r.ident) lines.push(`      azonosító ${P.hex(r.ident)}`);
+    lines.push(`      hibák: ${r.faults ? r.faults.count : 0}`);
+    for (const e of (r.faults ? r.faults.entries : [])) {
+      const code = e.wide ? e.code.toString(16).toUpperCase().padStart(4, '0')
+                          : e.code.toString(16).toUpperCase().padStart(2, '0');
+      const par = e.param === null ? '??' : e.param.toString(16).toUpperCase().padStart(2, '0');
+      lines.push(`        ${code} / ${par}    ${P.hex(e.raw)}`);
+    }
+  }
+  lines.push('');
+  lines.push('--- nyers forgalom ---');
+  lines.push($('trace').textContent.trimEnd());
+  return lines.join(String.fromCharCode(10));
+}
+
+async function shareLog() {
+  const text = buildLog();
+  const name = `e46-diag-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '')}.txt`;
+  const file = new File([text], name, { type: 'text/plain' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'Diagnosztikai napló' }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  // No share sheet - fall back to a download, which works everywhere.
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+  $('savedmsg').textContent = 'Letöltve.';
+}
+
+async function copyLog() {
+  try {
+    await navigator.clipboard.writeText(buildLog());
+    $('savedmsg').textContent = 'Vágólapra másolva.';
+  } catch (e) {
+    $('savedmsg').textContent = 'A vágólap nem elérhető - használd a megosztást.';
+  }
+}
+
 /* ------------------------------------------------------------------ actions */
 
 async function connect() {
@@ -187,6 +247,8 @@ $('connect').addEventListener('click', connect);
 $('scan').addEventListener('click', run);
 $('stop').addEventListener('click', () => { state.stop = true; setStatus('Leállítás a modul végén…'); });
 $('d-close').addEventListener('click', () => $('detail').close());
+$('share').addEventListener('click', shareLog);
+$('copy').addEventListener('click', copyLog);
 draw();
 
 if ('serviceWorker' in navigator) {
