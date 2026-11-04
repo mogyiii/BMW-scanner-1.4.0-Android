@@ -1,5 +1,25 @@
 # Where this project stands — 2026-11-03
 
+> # ✅ Solved — 2026-11-04
+>
+> The same sequence, sent through the genuine driver on Windows by `tools/ds2-probe-win`, got the
+> instrument cluster to answer:
+>
+> ```
+> -> 0x46F1 query
+> rx (22): 80 04 00 84 | 80 12 A0 F6 91 12 86 12 06 53 12 14 02 26 23 06 87 06
+> ```
+>
+> **So the sequence was always right, and the fault was in how the Android side reads.** The same
+> log shows it: `0xB318` answers with **fourteen** bytes — two seven-byte sentinels — and `0x83F0`
+> with **eleven**, where Android recorded seven for each. Our reads used a fixed window and stopped
+> on a clock, so each reply was cut after its first block and the remainder arrived inside the
+> *next* read, credited to the next command. Every reply from there was one block out of step.
+>
+> The project already had `readUntilQuiet`, which stops on silence instead. It was never used on
+> this path, and I wrote a second copy of it before noticing — the same mistake as setting a 300 ms
+> window without re-reading the log that already recorded a 306 ms reply.
+
 One page, written because the detail is spread over fifty-eight runs and nobody should have to read
 them to pick this up. `findings.md` is the full record; this is what it adds up to.
 

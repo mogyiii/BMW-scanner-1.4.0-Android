@@ -429,7 +429,7 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "DTR / RTS SWEEP  (1 min)"
+                text = "READ FAULTS  (2 min)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
                 setOnClickListener { withCable("laststand") { d -> lastStand(d) } }
@@ -3597,18 +3597,17 @@ class MainActivity : AppCompatActivity() {
     )
 
     private fun lastStand(device: UsbDevice) {
-        log("=== HANDSHAKE LINES DURING THE QUERY ===")
-        log("Run 59 ruled out everything about the bytes: all four pacings failed, including a")
-        log("verbatim replay of the vendor's exact recorded stream with its own line changes.")
-        log("So it is not what we send, not how we pace it, and not our reconstruction.")
+        log("=== READ FAULTS ===")
+        log("Reads now stop on silence rather than on a clock. Run 61 proved the sequence is")
+        log("right - the same frames through the genuine driver on Windows got the instrument")
+        log("cluster to answer - and that our fixed read windows were cutting replies in half,")
+        log("so every reply after the first was attributed to the wrong command.")
         log("")
-        log("What has never been varied is DTR and RTS while the query goes out. On interfaces")
-        log("like this one a handshake line often gates the K-line driver - which would look")
-        log("exactly like this: every command acknowledged, nothing reaching the bus.")
+        log("Ignition in position 2 or the engine running.")
         log("")
 
-        val addr = 0x80
         val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0x28, 0x14)
+        val found = mutableListOf<Pair<Int, ByteArray>>()
 
         var dev: FtdiDevice? = null
         try {
@@ -3617,9 +3616,9 @@ class MainActivity : AppCompatActivity() {
             log("  idle check: ${lineIdleLevel(dev)}")
             log("")
 
-            for (dtr in listOf(false, true)) for (rts in listOf(false, true)) {
+            var verbose = 3
+            for (addr in VendorProtocol.QUERY_ADDRESSES) {
                 if (stopRequested) { log("stopped"); break }
-                log("  --- DTR ${if (dtr) "on" else "off"}, RTS ${if (rts) "on" else "off"} ---")
 
                 dev.setBaudRate(19200)
                 dev.setLineProperties(8, FtdiDevice.Parity.NONE, FtdiDevice.StopBits.ONE)
@@ -3627,37 +3626,63 @@ class MainActivity : AppCompatActivity() {
                 dev.setModemControl(dtr = true, rts = null)
                 Thread.sleep(150)
                 dev.setModemControl(dtr = false, rts = null)
-                val raw = dev.readBytes(VendorHandshake.LENGTH, 1000)
-                if (VendorHandshake.decode(raw) == null) { log("      handshake failed"); continue }
+                val raw = dev.readBytes(VendorHandshake.LENGTH, 1200)
+                if (VendorHandshake.decode(raw) == null) continue
+                if (!VendorProtocol.matchesRecordedCable(raw)) { log("  announcement changed"); break }
 
                 var key = VendorProtocol.RECORDED_ANNOUNCEMENT[0].toInt() and 0xFF
-                fun put(f: ByteArray, label: String, window: Int): ByteArray {
+                fun put(f: ByteArray, label: String, maxMs: Int = 1600): ByteArray {
                     dev!!.purge()
                     val (w, n) = VendorProtocol.scramble(f, key); key = n
                     dev.write(w)
-                    val got = dev.readTimed(window).flatMap { it.second.asIterable() }.toByteArray()
-                    log("      %-7s -> %s".format(label, if (got.isEmpty()) "nothing" else Ds2.hex(got)))
+                    // The project already had this: read until the line goes quiet rather than
+                    // until a clock expires. A reply can arrive in several blocks - 0xB318 answers
+                    // with two seven-byte sentinels - and a fixed window takes the first and leaves
+                    // the rest for the next read, where it is credited to the next command. That
+                    // one-block skew is what the Windows run of the identical sequence exposed.
+                    val got = dev.readUntilQuiet(quietMs = 200, overallTimeoutMs = maxMs)
+                    if (verbose > 0) log("        %-7s -> %s".format(label,
+                        if (got.isEmpty()) "nothing" else Ds2.hex(got)))
                     return got
                 }
-                put(VendorProtocol.SIGN_ON_FRAME, "0xA77A", 1000)
+
+                if (verbose > 0) log("  0x%02X".format(addr))
+                put(VendorProtocol.SIGN_ON_FRAME, "0xA77A")
                 put(VendorProtocol.buildFrame(VendorProtocol.Command.MODULE, addr,
-                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318", 600)
+                    byteArrayOf(VendorProtocol.QUERY_IDENTIFY.toByte())), "0xB318")
                 put(VendorProtocol.buildFrame(VendorProtocol.Command.BUS, addr, busPayload),
-                    "0x83F0", 700)
+                    "0x83F0")
 
                 dev.setBaudRate(9600)
                 dev.setLineProperties(8, FtdiDevice.Parity.EVEN, FtdiDevice.StopBits.ONE)
-                dev.setModemControl(dtr = dtr, rts = rts)
-                val reply = put(VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr),
-                                "0x46F1", 900)
+                val r = put(VendorProtocol.buildFrame(VendorProtocol.Command.QUERY, addr), "0x46F1")
+                if (verbose > 0) verbose--
 
-                val split = splitDs2(reply)
-                if (split?.answer != null && ds2Ok(split.answer)) {
-                    log("      <<<<<< MODULE ANSWERED  ${Ds2.hex(split.answer)}")
-                    log("      THIS IS THE ONE. Stop and tell me.")
+                val answer = splitDs2(r)?.answer
+                if (answer == null || !ds2Ok(answer)) continue
+                found += addr to answer
+                log("  0x%02X  PRESENT  ${Ds2.hex(answer)}".format(addr))
+
+                for (page in 0..8) {
+                    if (stopRequested) break
+                    val fa = splitDs2(put(VendorProtocol.buildFrame(
+                        VendorProtocol.Command.FAULTS, addr, byteArrayOf(page.toByte())),
+                        "0xC731"))?.answer ?: break
+                    if (!ds2Ok(fa)) break
+                    if (page == 0) {
+                        val count = if (fa.size > 3) fa[3].toInt() and 0xFF else 0
+                        log("        faults: $count")
+                        if (count == 0) break
+                    } else {
+                        log("        page $page  ${Ds2.hex(fa)}")
+                        if (fa.size <= 4) break
+                    }
                 }
-                log("")
             }
+
+            log("")
+            if (found.isEmpty()) log("  No module answered.")
+            else log("  ${found.size} module(s): " + found.joinToString(" ") { "0x%02X".format(it.first) })
         } catch (e: Throwable) {
             log("  failed: ${e.javaClass.simpleName}: ${e.message}")
         } finally {
@@ -4461,5 +4486,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.55-modem"
+    const val NAME = "0.56-quiet"
 }

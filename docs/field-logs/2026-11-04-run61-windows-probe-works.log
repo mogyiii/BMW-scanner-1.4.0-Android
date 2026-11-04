@@ -1,0 +1,20 @@
+opened
+    announcement (27): 9B CD AA AF AF D9 F5 A2 9B 17 28 FE 72 D1 17 4C 5E 80 38 09 ED 2E B5 CF AA 07 2B
+    XOR of 27 = 00 (should be 00)
+    key = 9B
+  -> 0xA77A sign-on
+    tx (36): B9 41 4B 2A F6 26 69 EA 9D 07 14 EA B0 44 1C 45 33 16 56 86 81 6B F1 C7 4D 3C 45 DD 5F 63 E5 E9 7F CE 92 06
+    rx (7): 77 07 77 07 77 07 70
+  -> 0xB318 open
+    tx (6): 23 C1 A5 88 52 CE
+    rx (14): 77 07 77 07 77 07 70 77 07 77 07 77 07 70
+  -> 0x83F0 timing
+    tx (11): E0 B7 8F 4A F0 30 EC 90 69 98 CD
+    rx (11): 7E 98 00 7E 98 00 7E 98 00 00 FE
+  -- line to 9600 8E1
+  -> 0x46F1 query
+    tx (5): 21 2B 49 83 F4
+    rx (22): 80 04 00 84 80 12 A0 F6 91 12 86 12 06 53 12 14 02 26 23 06 87 06
+
+If the query line shows 80 04 00 84 80 12 A0 ... then the sequence is right
+and the Android side's raw-USB FTDI layer is what differs.
