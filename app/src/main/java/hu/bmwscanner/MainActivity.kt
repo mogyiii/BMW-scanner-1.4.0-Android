@@ -431,10 +431,10 @@ class MainActivity : AppCompatActivity() {
         // pressing - ended up below the fold where it could not be reached at all.
         controls.addView(
             Button(this).apply {
-                text = "READ DME  (15 s)"
+                text = "READ FAULTS  (about 1 min)"
                 textSize = 16f
                 setTypeface(typeface, Typeface.BOLD)
-                setOnClickListener { withCable("dme") { d -> readDme(d) } }
+                setOnClickListener { withCable("laststand") { d -> lastStand(d) } }
             },
             wide(),
         )
@@ -3676,20 +3676,20 @@ class MainActivity : AppCompatActivity() {
                 found += addr to answer
                 log("  0x%02X  PRESENT  ${Ds2.hex(answer)}".format(addr))
 
-                for (page in 0..8) {
-                    if (stopRequested) break
-                    val fa = splitDs2(put(VendorProtocol.buildFrame(
-                        VendorProtocol.Command.FAULTS, addr, byteArrayOf(page.toByte())),
-                        "0xC731"))?.answer ?: break
-                    if (!ds2Ok(fa)) break
-                    if (page == 0) {
-                        val count = if (fa.size > 3) fa[3].toInt() and 0xFF else 0
-                        log("        faults: $count")
-                        if (count == 0) break
-                    } else {
-                        log("        page $page  ${Ds2.hex(fa)}")
-                        if (fa.size <= 4) break
-                    }
+                // Page 0 carries the count, page 1 the entries, and every page after that
+                // repeats page 1 - the logs show 0x80 returning the same eighteen bytes eight
+                // times over. The vendor walks further for its own reasons; there is nothing
+                // behind page 1 to walk to, so this stops there.
+                val counts = splitDs2(put(VendorProtocol.buildFrame(
+                    VendorProtocol.Command.FAULTS, addr, byteArrayOf(0)), "0xC731"))?.answer
+                if (counts != null && ds2Ok(counts) &&
+                    counts.size > 3 && (counts[3].toInt() and 0xFF) > 0) {
+                    val entries = splitDs2(put(VendorProtocol.buildFrame(
+                        VendorProtocol.Command.FAULTS, addr, byteArrayOf(1)), "0xC731"))?.answer
+                    if (entries != null && ds2Ok(entries)) showFaults(entries)
+                    else log("        faults: ${counts[3].toInt() and 0xFF}  (entries unreadable)")
+                } else {
+                    log("        faults: 0")
                 }
             }
 
@@ -3791,6 +3791,55 @@ class MainActivity : AppCompatActivity() {
      * status `0x64` - "Failure oil status sensor" - and its VIN came back as the ASCII of
      * `KP04220`. Both should appear below.
      */
+    /**
+     * Splits a fault-memory reply into its entries and prints them as the vendor prints them.
+     *
+     * The frame is `[addr][len][A0][count][entries...][XOR]`, and **the entry size is not fixed**:
+     * it varies by module, which is why dividing by a constant would mangle half of them. Measured
+     * against the vendor's own decoded output for this car:
+     *
+     * ```
+     * 0x57  03 | 0B 00 AF | 09 00 97 | 04 00 17        three bytes each
+     * 0x5B  02 | 1C 44 15 54 44 A8 08 11 03 89 | ...   ten
+     * 0x80  01 | BE 48 28 00 80 ...                    fourteen
+     * ```
+     *
+     * So the size is the data length divided by the count, with trailing zero padding stripped
+     * first - `0x57` pads six zeros past its three entries and would otherwise come out as five
+     * bytes each.
+     *
+     * Within an entry the code is the first byte and the parameter is **the first non-zero byte
+     * after it**: `0B 00 AF` gives `0B/AF`, `1C 44 …` gives `1C/44`, `BE 48 …` gives `BE/48`, and
+     * the vendor printed exactly those. That rule is fitted to three modules and no more, so the
+     * raw bytes are printed alongside and nothing is hidden behind the interpretation.
+     */
+    private fun showFaults(frame: ByteArray) {
+        if (frame.size < 5) { log("        (too short to read)"); return }
+        val count = frame[3].toInt() and 0xFF
+        log("        faults: $count")
+        if (count == 0) return
+
+        var end = frame.size - 1                       // drop the checksum
+        while (end > 4 && frame[end - 1].toInt() == 0) end--   // drop trailing padding
+        val data = frame.copyOfRange(4, end)
+        if (data.isEmpty()) { log("        (no entry bytes)"); return }
+
+        val size = data.size / count
+        if (size < 2) {
+            log("        entries: ${Ds2.hex(data)}  (cannot split ${data.size} bytes into $count)")
+            return
+        }
+        for (i in 0 until count) {
+            val from = i * size
+            if (from + size > data.size) break
+            val e = data.copyOfRange(from, from + size)
+            var p = 1
+            while (p < e.size && e[p].toInt() == 0) p++
+            val param = if (p < e.size) "%02X".format(e[p]) else "??"
+            log("          %02X / %s    %s".format(e[0], param, Ds2.hex(e)))
+        }
+    }
+
     private fun readDme(device: UsbDevice) {
         log("=== ENGINE CONTROLLER (KWP2000) ===")
         log("0x12 does not answer 0x46F1 - it is not a DS2 module. These are the vendor's own")
@@ -4663,5 +4712,5 @@ class MainActivity : AppCompatActivity() {
 
 /** Kept separate so the version string does not depend on the generated BuildConfig class. */
 private object BuildConfigVersion {
-    const val NAME = "0.59-dme"
+    const val NAME = "0.60-faults"
 }
