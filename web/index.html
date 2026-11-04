@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>BMW E46 diagnosztika</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root {
+    --bg: #f6f7f9;  --card: #fff;      --ink: #11161d;  --dim: #5b6572;
+    --line: #dfe3e8; --ok: #1a7f4b;    --warn: #b8690a; --bad: #b3261e;
+    --accent: #0b5cad; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --card: #161b22; --ink: #e6edf3; --dim: #8b949e;
+      --line: #2a313a; --ok: #3fb950; --warn: #d29922; --bad: #f85149;
+      --accent: #58a6ff; --shadow: none;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f7f9; --card: #fff; --ink: #11161d; --dim: #5b6572;
+    --line: #dfe3e8; --ok: #1a7f4b; --warn: #b8690a; --bad: #b3261e;
+    --accent: #0b5cad; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.05);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --card: #161b22; --ink: #e6edf3; --dim: #8b949e;
+    --line: #2a313a; --ok: #3fb950; --warn: #d29922; --bad: #f85149;
+    --accent: #58a6ff; --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+    max-width: 760px; margin-inline: auto;
+  }
+  h1 { font-size: 1.1rem; margin: 0 0 2px; letter-spacing: -.01em; }
+  .sub { color: var(--dim); font-size: .85rem; }
+
+  header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  header .vin { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--dim); font-size: .85rem; }
+
+  button {
+    font: inherit; font-weight: 600; color: #fff; background: var(--accent);
+    border: 0; border-radius: 10px; padding: 11px 18px; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); font-weight: 500; }
+
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .status { color: var(--dim); font-size: .85rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .tile {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px; box-shadow: var(--shadow); text-align: left;
+    display: flex; flex-direction: column; gap: 3px; min-height: 104px;
+    color: inherit; font: inherit; font-weight: 400; cursor: default;
+  }
+  .tile.clickable { cursor: pointer; }
+  .tile .icon { font-size: 1.5rem; line-height: 1; }
+  .tile .name { font-weight: 650; letter-spacing: -.01em; }
+  .tile .label { color: var(--dim); font-size: .8rem; }
+  .tile .state { margin-top: auto; font-size: .85rem; font-weight: 600; }
+  .tile.ok .state   { color: var(--ok); }
+  .tile.warn .state { color: var(--warn); }
+  .tile.off  { opacity: .55; }
+  .tile.busy .state { color: var(--dim); }
+  .tile.busy { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .62; } }
+
+  dialog {
+    border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink);
+    max-width: 560px; width: calc(100% - 24px); padding: 0;
+  }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .dlg-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
+  .dlg-body { padding: 14px 16px; }
+  .fault { border-left: 3px solid var(--warn); padding: 6px 0 6px 10px; margin-bottom: 10px; }
+  .fault code { font-size: 1rem; font-weight: 700; }
+  .fault .raw { color: var(--dim); font-size: .75rem; font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all; }
+  .dlg-foot { padding: 12px 16px; border-top: 1px solid var(--line); text-align: right; }
+
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--dim); font-size: .85rem; }
+  pre#trace {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px; overflow-x: auto; font-size: .72rem; line-height: 1.45;
+    font-family: ui-monospace, Menlo, Consolas, monospace; max-height: 42vh;
+  }
+  .note { color: var(--dim); font-size: .8rem; margin-top: 14px; }
+  .warnbox {
+    border: 1px solid var(--warn); border-radius: 10px; padding: 10px 12px;
+    margin-bottom: 14px; font-size: .85rem;
+  }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>BMW E46 diagnosztika</h1>
+    <div class="sub">316i · N42 · DS2 és KWP2000</div>
+  </div>
+  <div class="vin" id="vin"></div>
+</header>
+
+<div class="warnbox" id="unsupported" hidden>
+  Ez a böngésző nem tud USB-eszközhöz nyúlni. Androidon vagy asztali gépen <b>Chrome</b> vagy
+  <b>Edge</b> kell hozzá. iOS-en a Safari nem támogatja, és natív alkalmazásból sem érhető el —
+  iPhone-on ez sajnos nem fog működni.
+</div>
+
+<div class="bar">
+  <button id="connect">Kábel csatlakoztatása</button>
+  <button id="scan" class="ghost" disabled>Olvasás</button>
+  <button id="stop" class="ghost" hidden>Leállítás</button>
+  <span class="status" id="status">Nincs csatlakoztatva.</span>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<p class="note" id="ignhint" hidden></p>
+
+<details>
+  <summary>Nyers forgalom</summary>
+  <pre id="trace"></pre>
+</details>
+
+<p class="note">
+  A hibakódok mellett mindig ott a nyers bájtsor. A kód és a paraméter kiolvasása három modulon
+  van igazolva a gyári szoftver kimenetéhez — ezért látszik a nyers adat is, hogy egy téves
+  értelmezés ne tűnjön el mögötte.
+</p>
+
+<dialog id="detail">
+  <div class="dlg-head"><span id="d-icon" style="font-size:1.4rem"></span>
+    <div><b id="d-name"></b><div class="sub" id="d-label"></div></div></div>
+  <div class="dlg-body" id="d-body"></div>
+  <div class="dlg-foot"><button class="ghost" id="d-close">Bezár</button></div>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
