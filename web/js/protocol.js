@@ -32,6 +32,8 @@ export const CMD = {
   QUERY:   0x46f1,   // DS2 00  - identify
   FAULTS:  0xc731,   // DS2 04  - fault memory, payload is the page
   SHADOW:  0x9e56,   // DS2 14  - shadow fault memory, paged exactly like 04
+  MILEAGE: 0x8de3,   // DS2 02 01 - the odometer, on the instrument cluster
+  IKE_VIN: 0xc6e1,   // DS2 02 02 - the cluster's stored VIN
   ADFG:    0x71a0,   // DS2 0E  - the three assembly-release bytes
   CLEAR:   0x1bcf,   // DS2 05  - clear fault memory
   // The engine controller and the ABS are not DS2 modules; these map to KWP2000 services.
@@ -224,17 +226,21 @@ export function decodeFaults(frame) {
  * because 0x56 was never an address at all: it is the letter `V`, the sign-on command's parameter,
  * read out of a command tally as though it were a module. The full capture shows `18 02 FF FF`
  * going to exactly two addresses, 0x12 and 0x29.
+ *
+ * `icon` is the id of an SVG `<symbol>` in `index.html`, not a character. Emoji were used at first
+ * and look like filler; a symbol id means a pictogram can be replaced by editing one `<symbol>`
+ * without touching any code.
  */
 export const MODULES = [
-  { addr: 0x00, name: 'ZKE',   label: 'Karosszéria',     icon: '🚪' },
-  { addr: 0x12, name: 'DME',   label: 'Motorvezérlő',    icon: '⚙️', kwp: true },
-  { addr: 0x29, name: 'ABS',   label: 'ABS / DSC',       icon: '🛞', kwp: true },
-  { addr: 0x44, name: 'EWS',   label: 'Indításgátló',    icon: '🔑' },
-  { addr: 0x57, name: 'LEW',   label: 'Kormányszög',     icon: '🎚️' },
-  { addr: 0x5b, name: 'IHKA',  label: 'Klíma',           icon: '❄️' },
-  { addr: 0x80, name: 'IKE',   label: 'Műszerfal',       icon: '📟' },
-  { addr: 0xa4, name: 'SRS',   label: 'Légzsák',         icon: '⚠️' },
-  { addr: 0xd0, name: 'LCM',   label: 'Világítás',       icon: '💡' },
+  { addr: 0x00, name: 'ZKE',   label: 'Karosszéria',     icon: 'zke' },
+  { addr: 0x12, name: 'DME',   label: 'Motorvezérlő',    icon: 'dme',  kwp: true },
+  { addr: 0x29, name: 'ABS',   label: 'ABS / DSC',       icon: 'abs',  kwp: true },
+  { addr: 0x44, name: 'EWS',   label: 'Indításgátló',    icon: 'ews' },
+  { addr: 0x57, name: 'LEW',   label: 'Kormányszög',     icon: 'lew' },
+  { addr: 0x5b, name: 'IHKA',  label: 'Klíma',           icon: 'ihka' },
+  { addr: 0x80, name: 'IKE',   label: 'Műszerfal',       icon: 'ike' },
+  { addr: 0xa4, name: 'SRS',   label: 'Légzsák',         icon: 'srs' },
+  { addr: 0xd0, name: 'LCM',   label: 'Világítás',       icon: 'lcm' },
 ];
 
 /**
@@ -269,6 +275,71 @@ export const FAULT_TEXT = {
 export function faultText(addr, code) {
   const perModule = FAULT_TEXT[addr];
   return (perModule && perModule[code]) || '';
+}
+
+/**
+ * Decodes a module's identification into its BMW part number and hardware revision.
+ *
+ * Both are binary-coded decimal, and the part number's leading nibble is a filler that has to go:
+ * the cluster answers `A0 F6 91 12 86 12 …`, whose nibbles are `F 6 9 1 1 2 8 6`, and the vendor
+ * prints `6.911.286` with hardware `12`. The filler is not always `F` - the body module uses `8`
+ * and the steering angle sensor `0` - so it is dropped by position rather than by value.
+ *
+ * **Checked on all nine modules at once**, which is the only reason this is here rather than in a
+ * comment marked as a guess: 6914367, 7519592, 6759045, 6905666, 6759909, 6916882, 6911286,
+ * 6912755, 6919825, with hardware 11, 10, 04, 03, 04, 25, 12, 10, 15 - the vendor's `BMWTNR` and
+ * `HW` columns, in order, exactly.
+ */
+export function decodeIdent(mod) {
+  // DS2 identity is `[addr][len][A0][…]`; KWP identity is the `5A 80 00 00 …` data block.
+  const at = mod.kwp ? 4 : 3;
+  const src = mod.ident;
+  if (!src || src.length < at + 5) return null;
+  let nibbles = '';
+  for (const b of src.slice(at, at + 4)) {
+    nibbles += (b >> 4).toString(16) + (b & 0x0f).toString(16);
+  }
+  const part = nibbles.slice(1);
+  if (!/^\d{7}$/.test(part)) return null;
+  const hw = src[at + 4];
+  return {
+    part: `${part[0]}.${part.slice(1, 4)}.${part.slice(4)}`,
+    hw: hw.toString(16).toUpperCase().padStart(2, '0'),
+  };
+}
+
+/**
+ * Decodes the instrument cluster's odometer, which is packed as binary-coded decimal.
+ *
+ * `A0 01 32 17 40` is 321740 km - two decimal digits per byte, which is why it reads as hex that
+ * happens to look like the answer. The vendor's report for the same session says `321740 km`.
+ *
+ * Reading this is a read. Writing it has been out of scope since the first day of the project and
+ * there is no code here that could.
+ */
+export function decodeMileage(answer) {
+  if (!answer || answer.length < 8 || answer[2] !== 0xa0) return null;
+  let digits = '';
+  for (const b of answer.slice(4, -1)) {
+    digits += (b >> 4).toString() + (b & 0x0f).toString();
+  }
+  if (!/^\d+$/.test(digits)) return null;
+  const km = parseInt(digits, 10);
+  return Number.isFinite(km) && km > 0 ? km : null;
+}
+
+/**
+ * Decodes the cluster's stored VIN: two ASCII letters, then the rest as BCD.
+ *
+ * `A0 02 4B 50 04 22 00` is `KP` followed by `04220`, and the vendor prints `KP04220` for the same
+ * bytes - seven characters, so the final BCD nibble is padding and is dropped.
+ */
+export function decodeIkeVin(answer) {
+  if (!answer || answer.length < 7 || answer[2] !== 0xa0) return '';
+  const body = answer.slice(4, -1);
+  let out = String.fromCharCode(body[0], body[1]);
+  for (const b of body.slice(2)) out += (b >> 4).toString() + (b & 0x0f).toString();
+  return out.slice(0, 7);
 }
 
 export const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');

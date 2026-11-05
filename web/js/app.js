@@ -40,7 +40,7 @@ function tileFor(mod) {
     : `${count} + ${shadowCount} hiba`;
 
   el.innerHTML = `
-    <div class="icon">${mod.icon}</div>
+    <svg class="ic" aria-hidden="true"><use href="#ic-${mod.icon}"/></svg>
     <div class="name">${mod.name}</div>
     <div class="label">${mod.label}</div>
     <div class="state">${state_}</div>`;
@@ -57,6 +57,40 @@ function draw() {
   grid.textContent = '';
   for (const mod of P.MODULES) {
     grid.appendChild(tileFor(state.results.get(mod.addr) || { ...mod, present: false, reason: '' }));
+  }
+  drawVitals();
+}
+
+/**
+ * Fills the header from what the car said, and from nothing else.
+ *
+ * The page used to announce "316i · N42" because that is what this particular car is - typed in,
+ * true, and worth nothing: a diagnostic tool that states facts it did not measure is indistinguishable
+ * from one that measures them wrongly. Every figure here comes off the wire during the scan, and
+ * before the scan the row is empty rather than hopeful.
+ */
+function drawVitals() {
+  const results = [...state.results.values()].filter((r) => r.present && !r.busy);
+  const vin = results.map((r) => r.vin).filter(Boolean).sort((a, b) => b.length - a.length)[0];
+  const km = results.map((r) => r.mileage).find((m) => m);
+  const dl = $('vitals');
+  dl.textContent = '';
+
+  const add = (term, value) => {
+    if (!value) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'vital';
+    wrap.innerHTML = `<dt>${term}</dt><dd>${value}</dd>`;
+    dl.appendChild(wrap);
+  };
+  add('alvázszám', vin);
+  add('kilométeróra', km ? `${km.toLocaleString('hu-HU')} km` : '');
+  add('vezérlőegység', results.length ? `${results.length} / ${P.MODULES.length}` : '');
+
+  if (results.length) {
+    const kwp = results.filter((r) => r.kwp).length;
+    $('subtitle').textContent =
+      `${results.length - kwp} modul DS2-n, ${kwp} KWP2000-en — a kiolvasott adatokból`;
   }
 }
 
@@ -98,23 +132,30 @@ function renderStore(body, mod, store, heading, missing) {
 }
 
 function showDetail(mod) {
-  $('d-icon').textContent = mod.icon;
+  $('d-icon').setAttribute('href', `#ic-${mod.icon}`);
   $('d-name').textContent = `${mod.name} · 0x${mod.addr.toString(16).toUpperCase().padStart(2, '0')}`;
   $('d-label').textContent = mod.label + (mod.kwp ? ' · KWP2000' : ' · DS2');
 
   const body = $('d-body');
   body.textContent = '';
 
-  if (mod.vin) {
+  const ident = P.decodeIdent(mod);
+  const facts = [];
+  if (ident) facts.push(`<b>${ident.part}</b> · HW ${ident.hw}`);
+  if (mod.vin) facts.push(`alvázszám <b>${mod.vin}</b>`);
+  if (mod.mileage) facts.push(`<b>${mod.mileage.toLocaleString('hu-HU')} km</b>`);
+  if (facts.length) {
     const p = document.createElement('p');
-    p.innerHTML = `<b>VIN:</b> ${mod.vin}`;
+    p.style.margin = '0 0 4px';
+    p.innerHTML = facts.join(' &nbsp;·&nbsp; ');
     body.appendChild(p);
   }
 
   renderStore(body, mod, mod.faults, 'Hibamemória', 'nem válaszolt, a tartalma ismeretlen');
   // Only three modules on this car keep a shadow store; the rest refuse the command, and saying so
-  // is better than silence - a missing section reads as "we did not look".
-  renderStore(body, mod, mod.shadow, 'Árnyékmemória', 'nincs ilyen tároló');
+  // is better than silence - a missing section reads as "we did not look". KWP modules are left
+  // out altogether, because a DS2 shadow memory is not a thing they have rather than one they lack.
+  if (!mod.kwp) renderStore(body, mod, mod.shadow, 'Árnyékmemória', 'nincs ilyen tároló');
 
   if (mod.adfg) {
     const p = document.createElement('p');
@@ -131,7 +172,7 @@ function showDetail(mod) {
 
   const clear = $('d-clear');
   const hasAny = (mod.faults && mod.faults.count > 0) || (mod.shadow && mod.shadow.count > 0);
-  clear.hidden = !hasAny;
+  clear.hidden = !hasAny || !state.ftdi;   // no cable, nothing to clear - including in a replay
   clear.disabled = false;
   clear.textContent = 'Hibák törlése';
   clear.onclick = () => doClear(mod);
@@ -220,7 +261,10 @@ function buildLog() {
     const head = `0x${mod.addr.toString(16).toUpperCase().padStart(2, '0')}  ${mod.name}`;
     if (!r.present) { lines.push(`${head}  -  ${r.reason || 'nem válaszolt'}`); continue; }
     lines.push(`${head}  jelen van  (${r.kwp ? 'KWP2000' : 'DS2'})`);
+    const ident = P.decodeIdent(r);
+    if (ident) lines.push(`      BMWTNR ${ident.part}   HW ${ident.hw}`);
     if (r.vin) lines.push(`      VIN ${r.vin}`);
+    if (r.mileage) lines.push(`      kilométeróra ${r.mileage} km`);
     if (r.adfg) lines.push(`      ADFG ${P.hex(r.adfg).replace(/ /g, '')}`);
     if (r.ident) lines.push(`      azonosító ${P.hex(r.ident)}`);
     for (const [name, store, missing] of [
@@ -285,7 +329,7 @@ async function run() {
   state.stop = false;
   state.results.clear();
   $('trace').textContent = '';
-  $('vin').textContent = '';
+  $('subtitle').textContent = 'Olvasás folyamatban…';
   $('scan').disabled = true;
   $('stop').hidden = false;
   draw();
@@ -310,8 +354,6 @@ async function run() {
     const faulty = found.filter((r) => (r.faults && r.faults.count > 0)
       || (r.shadow && r.shadow.count > 0));
     const unreadable = found.filter((r) => !r.faults);
-    const vin = results.find((r) => r.vin);
-    if (vin) $('vin').textContent = vin.vin;
     setStatus(state.stop
       ? 'Leállítva.'
       : `${found.length} vezérlőegység válaszolt, ${faulty.length} hibával.`
@@ -326,7 +368,28 @@ async function run() {
 
 /* ------------------------------------------------------------------ start */
 
-if (!('usb' in navigator)) {
+/**
+ * `?demo=1` fills the page with this car's recorded readings instead of talking to a cable.
+ *
+ * Loaded on demand, so it costs nothing on the normal path. It says what it is on screen: a replay
+ * cannot be allowed to look like a reading.
+ */
+if (new URLSearchParams(location.search).has('demo')) {
+  const demo = await import('./demo.js');
+  for (const [label, hex] of demo.TRACE) {
+    trace(label, Uint8Array.from(hex.split(' '), (h) => parseInt(h, 16)));
+  }
+  for (const r of demo.replay()) state.results.set(r.addr, r);
+  draw();
+  $('connect').disabled = true;
+  $('scan').disabled = true;
+  $('unsupported').hidden = false;
+  $('unsupported').innerHTML =
+    '<b>Bemutató mód.</b> Ezek a 2026-11-05-i mérés rögzített válaszai, ugyanazokon a dekódolókon '
+    + 'átvezetve — <b>nincs kábel csatlakoztatva, és ez nem élő olvasás.</b> '
+    + '<a href="./" style="color:inherit">Vissza az éles módhoz</a>.';
+  setStatus('Rögzített mérés.');
+} else if (!('usb' in navigator)) {
   $('unsupported').hidden = false;
   $('connect').disabled = true;
   setStatus('');

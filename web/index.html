@@ -3,122 +3,296 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" content="#0f4c95">
+<meta name="color-scheme" content="light">
 <title>BMW E46 diagnosztika</title>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
+  /*
+   * A light theme, committed to rather than switched: this is read in daylight, in a car, on a
+   * phone propped against the wheel. There is no dark variant on purpose - an automatic one was
+   * here before and made the page look like a template rather than an instrument.
+   */
   :root {
-    --bg: #f6f7f9;  --card: #fff;      --ink: #11161d;  --dim: #5b6572;
-    --line: #dfe3e8; --ok: #1a7f4b;    --warn: #b8690a; --bad: #b3261e;
-    --accent: #0b5cad; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.05);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0d1117; --card: #161b22; --ink: #e6edf3; --dim: #8b949e;
-      --line: #2a313a; --ok: #3fb950; --warn: #d29922; --bad: #f85149;
-      --accent: #58a6ff; --shadow: none;
-    }
-  }
-  :root[data-theme="light"] {
-    --bg: #f6f7f9; --card: #fff; --ink: #11161d; --dim: #5b6572;
-    --line: #dfe3e8; --ok: #1a7f4b; --warn: #b8690a; --bad: #b3261e;
-    --accent: #0b5cad; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.05);
-  }
-  :root[data-theme="dark"] {
-    --bg: #0d1117; --card: #161b22; --ink: #e6edf3; --dim: #8b949e;
-    --line: #2a313a; --ok: #3fb950; --warn: #d29922; --bad: #f85149;
-    --accent: #58a6ff; --shadow: none;
+    --blue-900: #0a2d5e;
+    --blue-800: #0f3f7d;
+    --blue-700: #14529d;
+    --blue-600: #1a66bd;
+    --blue-500: #2a80dd;
+    --blue-200: #b6d4f4;
+    --blue-100: #dceaf9;
+    --blue-050: #f0f6fd;
+
+    --ink:   #0d1b2a;
+    --dim:   #566475;
+    --faint: #8b97a6;
+    --rule:  #d8e2ee;
+    --paper: #fff;
+
+    --amber: #b35c00;
+    --amber-bright: #ffc24d;
+    --red:   #a81e12;
+
+    --r: 14px;
   }
 
   * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    padding: max(12px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
-    max-width: 760px; margin-inline: auto;
-  }
-  h1 { font-size: 1.1rem; margin: 0 0 2px; letter-spacing: -.01em; }
-  .sub { color: var(--dim); font-size: .85rem; }
 
-  header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-  header .vin { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--dim); font-size: .85rem; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 520px at 12% -12%, #e3eefb 0%, rgba(227,238,251,0) 70%),
+      linear-gradient(#f7fafd, #eef3f9);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font: 15px/1.55 ui-sans-serif, "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: max(14px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom));
+    max-width: 780px;
+    margin-inline: auto;
+  }
+
+  /* ---------------------------------------------------------------- header */
+
+  header { margin-bottom: 16px; }
+  h1 {
+    font-size: 1.22rem; font-weight: 700; letter-spacing: -.02em; margin: 0;
+    color: var(--blue-900);
+  }
+  .sub { color: var(--dim); font-size: .84rem; }
+
+  /*
+   * The vitals come off the car, not out of the markup. The cluster is asked for its odometer and
+   * its stored VIN during the scan; before that there is nothing to show and nothing is shown.
+   */
+  .vitals {
+    display: flex; flex-wrap: wrap; gap: 0 26px; margin-top: 10px;
+    padding: 11px 14px; border-radius: var(--r);
+    background: var(--paper); border: 1px solid var(--rule);
+    box-shadow: 0 1px 2px rgba(13, 27, 42, .04);
+  }
+  .vitals:empty { display: none; }
+  .vital dt {
+    font-size: .64rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--faint); margin: 0;
+  }
+  .vital dd {
+    margin: 1px 0 0; font-size: .98rem; font-weight: 650;
+    font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: var(--blue-800);
+  }
+
+  /* ---------------------------------------------------------------- controls */
 
   button {
-    font: inherit; font-weight: 600; color: #fff; background: var(--accent);
-    border: 0; border-radius: 10px; padding: 11px 18px; cursor: pointer;
+    font: inherit; font-weight: 600; letter-spacing: -.005em;
+    border: 0; border-radius: 11px; padding: 11px 17px; cursor: pointer;
+    color: #fff; background: linear-gradient(180deg, var(--blue-600), var(--blue-700));
+    box-shadow: 0 1px 1px rgba(10, 45, 94, .2), inset 0 1px 0 rgba(255, 255, 255, .22);
   }
-  button:disabled { opacity: .5; cursor: default; }
-  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); font-weight: 500; }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .45; cursor: default; transform: none; }
+  button.ghost {
+    background: var(--paper); color: var(--blue-700);
+    border: 1px solid var(--blue-200); box-shadow: none; font-weight: 600;
+  }
+  button:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 
-  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
-  .status { color: var(--dim); font-size: .85rem; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .status { color: var(--dim); font-size: .84rem; }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  /* ---------------------------------------------------------------- tiles */
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); gap: 11px; }
+
   .tile {
-    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
-    padding: 12px; box-shadow: var(--shadow); text-align: left;
-    display: flex; flex-direction: column; gap: 3px; min-height: 104px;
-    color: inherit; font: inherit; font-weight: 400; cursor: default;
+    position: relative; overflow: hidden;
+    border: 0; border-radius: var(--r); padding: 13px;
+    min-height: 122px; text-align: left; font: inherit; font-weight: 400;
+    display: flex; flex-direction: column; gap: 2px;
+    color: #fff; background: linear-gradient(152deg, var(--blue-500) 0%, var(--blue-800) 100%);
+    box-shadow: 0 1px 2px rgba(10, 45, 94, .16), 0 8px 18px -8px rgba(10, 45, 94, .34);
+    cursor: default; transition: transform .14s ease, box-shadow .14s ease;
   }
+  /* A soft highlight across the top left, so the gradient reads as a surface and not as a fill. */
+  .tile::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(130% 90% at 0% 0%, rgba(255,255,255,.26), rgba(255,255,255,0) 58%);
+    pointer-events: none;
+  }
+  .tile > * { position: relative; }
+
   .tile.clickable { cursor: pointer; }
-  .tile .icon { font-size: 1.5rem; line-height: 1; }
-  .tile .name { font-weight: 650; letter-spacing: -.01em; }
-  .tile .label { color: var(--dim); font-size: .8rem; }
-  .tile .state { margin-top: auto; font-size: .85rem; font-weight: 600; }
-  .tile.ok .state   { color: var(--ok); }
-  .tile.warn .state { color: var(--warn); }
-  .tile.off  { opacity: .55; }
-  .tile.busy .state { color: var(--dim); }
-  .tile.busy { animation: pulse 1.2s ease-in-out infinite; }
-  @keyframes pulse { 50% { opacity: .62; } }
+  .tile.clickable:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(10,45,94,.18), 0 14px 26px -10px rgba(10,45,94,.44); }
+
+  .tile .ic { width: 27px; height: 27px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .95; }
+  .tile .name { font-weight: 700; font-size: 1.02rem; letter-spacing: -.015em; margin-top: 5px; }
+  .tile .label { color: rgba(255,255,255,.76); font-size: .78rem; line-height: 1.35; }
+  .tile .state { margin-top: auto; padding-top: 7px; font-size: .83rem; font-weight: 650; color: rgba(255,255,255,.9); }
+
+  /* Faults keep the blue tile and announce themselves in amber, which is legible on it. */
+  .tile.warn { background: linear-gradient(152deg, var(--blue-600) 0%, var(--blue-900) 100%); }
+  .tile.warn .state { color: var(--amber-bright); }
+  .tile.warn::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(90deg, var(--amber-bright), #ff9d2e);
+  }
+
+  /* Absent modules drop out of the blue entirely; they are not a result, they are an absence. */
+  .tile.off {
+    background: var(--paper); color: var(--faint);
+    border: 1px dashed var(--rule); box-shadow: none;
+  }
+  .tile.off::before { display: none; }
+  .tile.off .name { color: var(--dim); }
+  .tile.off .label, .tile.off .state { color: var(--faint); }
+  .tile.off .ic { opacity: .5; }
+
+  .tile.busy .state { color: rgba(255,255,255,.72); }
+  .tile.busy { animation: breathe 1.5s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .68; } }
+
+  /* ---------------------------------------------------------------- dialog */
 
   dialog {
-    border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink);
-    max-width: 560px; width: calc(100% - 24px); padding: 0;
+    border: 0; border-radius: 16px; background: var(--paper); color: var(--ink);
+    max-width: 580px; width: calc(100% - 26px); padding: 0;
+    box-shadow: 0 24px 60px -14px rgba(10, 45, 94, .5);
   }
-  dialog::backdrop { background: rgba(0,0,0,.45); }
-  .dlg-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
-  .dlg-body { padding: 14px 16px; }
-  .fault { border-left: 3px solid var(--warn); padding: 6px 0 6px 10px; margin-bottom: 10px; }
-  .fault code { font-size: 1rem; font-weight: 700; }
-  .fault .desc { font-size: .9rem; }
-  .fault .raw { color: var(--dim); font-size: .75rem; font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all; }
-  .store { font-weight: 650; margin: 14px 0 8px; font-size: .9rem; }
+  dialog::backdrop { background: rgba(10, 45, 94, .42); backdrop-filter: blur(2px); }
+  .dlg-head {
+    padding: 15px 17px; display: flex; gap: 12px; align-items: center;
+    color: #fff; background: linear-gradient(152deg, var(--blue-500), var(--blue-800));
+  }
+  .dlg-head .ic { width: 30px; height: 30px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .dlg-head b { font-size: 1.04rem; letter-spacing: -.01em; }
+  .dlg-head .sub { color: rgba(255,255,255,.78); }
+  .dlg-body { padding: 15px 17px; }
+
+  .store {
+    font-weight: 700; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--faint); margin: 17px 0 9px;
+  }
   .store:first-child { margin-top: 0; }
+
+  .fault {
+    border-left: 3px solid var(--amber); border-radius: 0 9px 9px 0;
+    background: linear-gradient(90deg, #fdf5e9, rgba(253,245,233,0));
+    padding: 8px 10px 8px 11px; margin-bottom: 9px;
+  }
+  .fault code {
+    font-size: 1.02rem; font-weight: 700; color: var(--amber);
+    font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+  .fault .desc { font-size: .92rem; margin-top: 1px; }
+  .fault .raw {
+    color: var(--faint); font-size: .72rem; margin-top: 3px; word-break: break-all;
+    font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  }
   .meta {
-    color: var(--dim); font-size: .75rem; word-break: break-all; margin: 4px 0 0;
-    font-family: ui-monospace, Menlo, Consolas, monospace;
+    color: var(--faint); font-size: .72rem; word-break: break-all; margin: 5px 0 0;
+    font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
   }
   .dlg-foot {
-    padding: 12px 16px; border-top: 1px solid var(--line);
+    padding: 12px 17px; border-top: 1px solid var(--rule);
     display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
   }
   .dlg-foot .status { flex: 1 1 100%; order: 3; }
   .dlg-foot #d-close { margin-left: auto; }
 
-  details { margin-top: 18px; }
-  summary { cursor: pointer; color: var(--dim); font-size: .85rem; }
-  pre#trace {
-    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-    padding: 10px; overflow-x: auto; font-size: .72rem; line-height: 1.45;
-    font-family: ui-monospace, Menlo, Consolas, monospace; max-height: 42vh;
+  /* ---------------------------------------------------------------- the rest */
+
+  details { margin-top: 20px; }
+  summary {
+    cursor: pointer; color: var(--blue-700); font-size: .84rem; font-weight: 600;
+    padding: 7px 0;
   }
-  .note { color: var(--dim); font-size: .8rem; margin-top: 14px; }
+  pre#trace {
+    background: #0c2746; color: #cfe2f7; border-radius: 11px;
+    padding: 12px; overflow-x: auto; font-size: .71rem; line-height: 1.5;
+    font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+    max-height: 44vh; margin: 2px 0 0;
+  }
+  .note { color: var(--dim); font-size: .81rem; margin-top: 15px; }
   .warnbox {
-    border: 1px solid var(--warn); border-radius: 10px; padding: 10px 12px;
-    margin-bottom: 14px; font-size: .85rem;
+    border: 1px solid #f0d49a; background: #fdf7ea; border-left: 3px solid var(--amber);
+    border-radius: 11px; padding: 11px 13px; margin-bottom: 15px; font-size: .85rem;
   }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 
+<!--
+  The pictograms, in one place.
+
+  Each module in `protocol.js` names a symbol id here; nothing else in the code knows what a module
+  looks like. To change a pictogram, replace the paths inside its `<symbol>` and leave everything
+  else alone. They are stroked line art on a 24x24 grid using `currentColor`, which is what lets the
+  same icon sit on a blue tile and on a white one.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ic-zke" viewBox="0 0 24 24">
+    <path d="M3.2 19.3v-8.7L7.5 4.7h13.3v14.6z"/>
+    <path d="M6.7 10.6h7.7V5.1"/>
+    <path d="M5.9 15.3h4.3"/>
+    <circle cx="17.2" cy="13.4" r="1"/>
+  </symbol>
+  <symbol id="ic-dme" viewBox="0 0 24 24">
+    <path d="M3 15.5v-4h1.8V9.3h3V7.5h4.4v1.8h2l3.3-2.2v10.3l-3.3-2.2h-2v1.8H7.8v-1.5z"/>
+    <path d="M9 7.5V4.8h3.2"/>
+  </symbol>
+  <symbol id="ic-abs" viewBox="0 0 24 24">
+    <circle cx="10.5" cy="12" r="7.6"/>
+    <circle cx="10.5" cy="12" r="2.7"/>
+    <path d="M17.6 8.6h2.3a1.2 1.2 0 0 1 1.2 1.2v4.4a1.2 1.2 0 0 1-1.2 1.2h-2.3"/>
+  </symbol>
+  <symbol id="ic-ews" viewBox="0 0 24 24">
+    <circle cx="8.2" cy="8.2" r="3.4"/>
+    <path d="M10.6 10.6 19.6 19.6"/>
+    <path d="M14.4 14.4l2.1-2.1"/>
+    <path d="M16.8 16.8l2.1-2.1"/>
+  </symbol>
+  <symbol id="ic-lew" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.8"/>
+    <circle cx="12" cy="12" r="2.6"/>
+    <path d="M12 9.4V3.2"/>
+    <path d="M9.7 13.3 4.3 16.5"/>
+    <path d="M14.3 13.3l5.4 3.2"/>
+  </symbol>
+  <symbol id="ic-ihka" viewBox="0 0 24 24">
+    <path d="M12 3v18"/>
+    <path d="M4.2 7.5l15.6 9"/>
+    <path d="M19.8 7.5l-15.6 9"/>
+    <path d="M9.6 5.2 12 7.6l2.4-2.4"/>
+    <path d="M9.6 18.8 12 16.4l2.4 2.4"/>
+  </symbol>
+  <symbol id="ic-ike" viewBox="0 0 24 24">
+    <path d="M3.3 17.4a8.7 8.7 0 1 1 17.4 0"/>
+    <path d="M12 17.4 16.6 10.6"/>
+    <circle cx="12" cy="17.4" r="1.4"/>
+    <path d="M12 8.7V7"/>
+    <path d="M5.9 11.2 4.5 10.2"/>
+    <path d="M18.1 11.2l1.4-1"/>
+  </symbol>
+  <symbol id="ic-srs" viewBox="0 0 24 24">
+    <circle cx="6.9" cy="6.3" r="2.4"/>
+    <path d="M3.4 19.6v-6.1a3 3 0 0 1 3-3h1.7"/>
+    <path d="M3.4 19.6h5"/>
+    <circle cx="15.6" cy="13.9" r="5.2"/>
+  </symbol>
+  <symbol id="ic-lcm" viewBox="0 0 24 24">
+    <path d="M3.6 5.4h4.1a6.6 6.6 0 0 1 0 13.2H3.6z"/>
+    <path d="M14.2 8.4h5.3"/>
+    <path d="M14.2 12h6.4"/>
+    <path d="M14.2 15.6h5.3"/>
+  </symbol>
+</svg>
+
 <header>
-  <div>
-    <h1>BMW E46 diagnosztika</h1>
-    <div class="sub">316i · N42 · DS2 és KWP2000</div>
-  </div>
-  <div class="vin" id="vin"></div>
+  <h1>BMW E46 diagnosztika</h1>
+  <div class="sub" id="subtitle">DS2 és KWP2000 — csatlakoztasd a kábelt az olvasáshoz</div>
+  <dl class="vitals" id="vitals"></dl>
 </header>
 
 <div class="warnbox" id="unsupported" hidden>
@@ -141,7 +315,7 @@
 <details>
   <summary>Nyers forgalom</summary>
   <pre id="trace"></pre>
-  <div class="bar" style="margin-top:10px">
+  <div class="bar" style="margin-top:11px">
     <button class="ghost" id="share">Napló megosztása</button>
     <button class="ghost" id="copy">Vágólapra</button>
     <span class="status" id="savedmsg"></span>
@@ -152,7 +326,7 @@
   A hibakódok mellett mindig ott a nyers bájtsor. A kiolvasás mind a kilenc modulon igazolva van a
   gyári szoftver saját kimenetéhez, ugyanezen az autón — de a <b>szöveges leírás</b> csak azokhoz a
   kódokhoz van meg, amiket ez az autó eddig valóban produkált. Ismeretlen kód mellett nincs leírás:
-  inkább semmi, mint egy hihetően hangzó találgatás. A nyers adat ezért marad a képernyőn.
+  inkább semmi, mint egy hihetően hangzó találgatás.
 </p>
 <p class="note">
   A törlés csak a <i>tárolt</i> listát üríti. Ha egy hiba éppen fennáll, a vezérlő elfogadja a
@@ -161,8 +335,10 @@
 </p>
 
 <dialog id="detail">
-  <div class="dlg-head"><span id="d-icon" style="font-size:1.4rem"></span>
-    <div><b id="d-name"></b><div class="sub" id="d-label"></div></div></div>
+  <div class="dlg-head">
+    <svg class="ic"><use id="d-icon" href=""/></svg>
+    <div><b id="d-name"></b><div class="sub" id="d-label"></div></div>
+  </div>
   <div class="dlg-body" id="d-body"></div>
   <div class="dlg-foot">
     <button class="ghost" id="d-clear" hidden>Hibák törlése</button>

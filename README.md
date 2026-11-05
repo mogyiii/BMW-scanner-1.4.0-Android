@@ -1,112 +1,163 @@
-# BMW DS2 Probe (Android)
+# BMW E46 diagnostics, from a phone
 
-An Android app that talks to a **BMW Scanner 1.4.0** cable (USB `0333:0137`) directly over raw USB,
-so the cable can be used without its original Windows software.
+Reads a BMW E46's control modules through a **BMW Scanner 1.4.0** cable (USB `0333:0137`), without
+the cable's original Windows software. Fault codes, module identification, odometer and VIN, and
+clearing fault memories.
 
-Current state: **v0.1 — protocol bring-up.** The app opens the cable's FTDI chip, lets you push
-arbitrary bytes at the K-line, and scans the DS2 bus for modules that answer. It does not yet decode
-fault codes, because the command set has not been confirmed against a real car yet. See
-`docs/findings.md` for why that is the honest starting point, and `docs/testing-on-the-car.md` for
-the procedure that gets us to v0.2.
+**It works, and it is checked.** All nine modules this car has, across both protocols the car
+speaks, with every reading matched byte for byte against the vendor software's own output on the
+same car. The verification is not a claim in prose — `web/js/protocol.test.mjs` replays recorded
+traffic through the decoders and asserts the vendor's published answers.
+
+→ **[Open the web version](https://mogyiii.github.io/BMW-scanner-1.4.0-Android/)** ·
+[see it with recorded data, no cable needed](https://mogyiii.github.io/BMW-scanner-1.4.0-Android/?demo=1)
+
+## What it reads
+
+| addr | module | | protocol |
+|---|---|---|---|
+| `0x00` | ZKE | body electronics, doors and locking | DS2 |
+| `0x12` | DME | engine controller | KWP2000 |
+| `0x29` | ABS | ABS / DSC | KWP2000 |
+| `0x44` | EWS | immobiliser | DS2 |
+| `0x57` | LEW | steering angle sensor | DS2 |
+| `0x5B` | IHKA | climate control | DS2 |
+| `0x80` | IKE | instrument cluster | DS2 |
+| `0xA4` | SRS | airbag | DS2 |
+| `0xD0` | LCM | lighting control | DS2 |
+
+That is the whole list because it is the whole car: the vendor's own scan of this E46 found these
+nine and nothing else. Per module it reads the BMW part number and hardware revision, the live
+fault memory, the **shadow** fault memory where the module keeps one, and the assembly-release
+bytes; the cluster also gives up the odometer and its stored VIN, and the engine controller and ABS
+give the VIN over KWP.
+
+## Two ways to run it
+
+**The browser version is the one to use.** `web/` is a static page driving the cable over WebUSB —
+the same code on an Android phone and on a laptop, nothing to install, no Android build, no adb. It
+is served from GitHub Pages and caches itself on first load, so it starts with no signal in a car
+park. See [`web/README.md`](web/README.md).
+
+It will not work on iOS: Safari has no WebUSB and Apple does not allow arbitrary USB access from
+native apps either, so an iPhone cannot drive this cable by any route.
+
+**The Android app** in `app/` came first and still works. It is a diagnostics harness rather than a
+product — intent-driven actions, a log pane, no polished UI — and the browser version has overtaken
+it. Build with `./gradlew assembleDebug`; the notes on `targetSdk` below are worth reading before
+the test phone's Android version moves.
+
+## Scope
+
+**In:** reading, and clearing fault memories.
+
+**Out:** writing anything else. Module coding — comfort closing and the like — was raised, looked at
+and dropped: the risk is not symmetric with reading, and the vendor software has backup and restore
+buttons that this app does not. Odometer writing was excluded on day one and there is no code here
+that could do it. `VendorProtocol.KNOWN_WRITES` marks the write commands found so far so that nobody
+sends one by accident.
+
+The oil service reset is out for the same reason and, as it turns out, not by choice: it is DS2
+service `0C`, an actuator call, and the instrument cluster on this car refuses it anyway — the
+vendor software gets the same refusal.
 
 ## Why not just use the original software
 
 Short version: the cable is fine, the software is not usable here.
 
-- The cable is an FTDI part with a re-flashed EEPROM (`0333:0137` instead of FTDI's `0403:xxxx`).
-  That alone explains why no other OBD software recognises it.
+- The cable is an FTDI part with a re-flashed EEPROM (`0333:0137` instead of FTDI's `0403:xxxx`),
+  which alone explains why no other OBD software recognises it.
 - `BMWScan140.exe` is wrapped in an executable protector — all sections encrypted, import table
-  reduced to two functions, entry point in writable memory. That is what the antivirus engines are
-  reacting to, and it also makes static reverse engineering of the binary pointless.
-- Its driver (`FTD2XX.SYS`, 2005) will not install on a current Windows anyway.
+  reduced to two functions, entry point in writable memory. That is what antivirus engines react to,
+  and it also makes static reverse engineering of the binary pointless.
+- Its driver (`FTD2XX.SYS`, 2005) will not install on a current Windows.
 
-So the cable is approached from the USB and DS2 side instead, and the executable is left alone.
+So the cable is approached from the USB side instead. The protocol was recovered by running the
+genuine software behind a logging shim (`tools/ftd2xx-proxy`) and reading its traffic.
 
-## Features in this build
+## How the protocol was established
 
-- **Full run** — the one button the field test needs. Finds the cable, dumps descriptors and EEPROM,
-  runs the whole configuration sweep, saves the log, and asks nothing it can work out for itself.
-  The cable lives in the car, so the first meeting with the phone is also the real test; the app is
-  built for that single shot. Keeps the screen awake while it works.
-- Enumerates USB devices, highlights the BMW Scanner, requests OTG permission
-- Full USB descriptor dump — including whether the chip is single- or dual-channel
-- FTDI configuration EEPROM dump
-- Configurable baud / parity / channel, 1 ms latency timer
-- Per-packet FTDI line-status reporting, so a wrong parity or baud shows up as
-  `PARITY-ERROR` / `FRAMING-ERROR` instead of silent garbage
-- Optional K-line echo cancellation (the single-wire bus normally feeds transmitted bytes back)
-- **Send raw** — bytes go out exactly as typed
-- **Send as DS2** — first byte is the ECU address, the rest is the payload; length and XOR checksum
-  are filled in automatically
-- **Auto-sweep** — walks all 16 combinations of channel × baud × parity × echo, probes candidate
-  ECU addresses in each, and reports which configuration actually works. Takes about a minute and
-  replaces a pile of manual toggling in the car.
-- **Scan bus** — identification request to all 256 addresses, reporting whoever answers
-- **Stop** — aborts a running sweep or scan
-- Log save / share
+Every number in this repository is measured. The method, in one line: a single-wire K-line lets the
+cable hear itself, so each reply begins with our own request in the module's native framing — which
+turns the vendor's opaque 16-bit command numbers into the standard service they stand for, with no
+guessing. `tools/command_atlas.py` does that over a capture and prints the result.
 
-## Building
+```
+DTR pulse
+  <- 27-byte announcement, XOR 0, identity "V144Bn9", first byte is the scrambling key
+  -> 0xA77A   challenge response
+  -> 0xB318   open the connection to one address
+  -> 0x83F0   K-line timing
+  --  that reply is read at 19200, then the line moves to 9600 8E1 and stays there
+  -> 0x46F1   identify        DS2 00
+  -> 0xC731   fault memory    DS2 04, paged
+```
 
-Everything needed is already on this machine; no Android Studio required.
+Outgoing bytes are XORed with a key that starts at the announcement's first byte and advances `0x4B`
+per byte, never reset within a session. The connection is rebuilt for every address. Reads stop on
+**800 ms of silence** rather than on a clock — replies arrive in several blocks, and a fixed window
+credits each answer to the wrong question. That one number cost a fortnight.
+
+## Tools
+
+| | |
+|---|---|
+| `tools/command_atlas.py` | what each command means, per module, read out of the echo |
+| `tools/decode_proxy.py` | a capture replayed as the conversation it represents |
+| `tools/ftd2xx-proxy/` | a logging pass-through that sits under the genuine software |
+| `tools/ds2-probe-win/` | our exact frames, sent through the genuine driver, to isolate our bugs |
+
+## Documentation
+
+| | |
+|---|---|
+| [`docs/STATE.md`](docs/STATE.md) | one page: where the project stands, with the control set |
+| [`docs/findings.md`](docs/findings.md) | the full record, newest first, including the wrong turns |
+| [`docs/testing-on-the-car.md`](docs/testing-on-the-car.md) | the field procedure |
+
+`findings.md` keeps its mistakes on the page on purpose. Several conclusions in this project were
+confidently wrong for weeks — the ABS was chased at an address that turned out to be an ASCII letter
+read out of the wrong column — and a record that quietly deletes those teaches nothing.
+
+## Building the Android app
 
 ```sh
 ./gradlew assembleDebug
 ```
 
-Output: `app/build/outputs/apk/debug/app-debug.apk`
-
-Toolchain in use: Gradle 8.11.1 (fetched by the wrapper), AGP 8.10.1, Kotlin 2.1.0, JDK 18,
-compileSdk 36, targetSdk 36, minSdk 21. The Gradle plugin downloads SDK platform 36 and
-build-tools 35 on first run, so no Android Studio or `sdkmanager` is required.
-
-`local.properties` points at `C:\Users\Mate\AppData\Local\Android\Sdk` and is not checked in.
-
-## Installing
-
-```sh
-"$LOCALAPPDATA/Android/Sdk/platform-tools/adb" install -r app/build/outputs/apk/debug/app-debug.apk
-```
+Output: `app/build/outputs/apk/debug/app-debug.apk`. Gradle 8.11.1 (via the wrapper), AGP 8.10.1,
+Kotlin 2.1.0, JDK 18, compileSdk/targetSdk 36, minSdk 21. The plugin fetches the SDK platform on
+first run, so no Android Studio is required. `local.properties` is not checked in.
 
 ### Keep targetSdk current — it is not cosmetic
 
-The test phone is a Redmi Note 15 Pro+ on Android 16 (API 36). While this project targeted API 33,
-**every** install route failed:
+On the test phone (Android 16, API 36) **every** install route failed while the project targeted
+API 33: `adb install`, `pm install -i com.android.vending`, `-t` and `--bypass-low-target-sdk-block`
+all returned `INSTALL_FAILED_VERIFICATION_FAILURE`, and tapping the APK gave *"built for an older
+version of Android"* with no override. Raising `compileSdk`/`targetSdk` to 36 fixed both at once.
+It was the low targetSdk, not a sideloading restriction.
 
-- `adb install`, `pm install -i com.android.vending`, `-t`, and
-  `--bypass-low-target-sdk-block` all returned
-  `INSTALL_FAILED_VERIFICATION_FAILURE: Install not allowed`
-- tapping the APK on the phone gave *"built for an older version of Android and does not include
-  the latest privacy protections"*, with no override
-
-Raising `compileSdk`/`targetSdk` to 36 fixed both at once — `adb install -r` then reported
-`Success`. The verification failure was the low targetSdk, not a HyperOS sideloading restriction,
-and no developer-option toggle was needed.
-
-So when the Android version on the test phone moves, move `targetSdk` with it. Two knock-on
-requirements that come with targetSdk 34+ and are already handled in the code:
-
-- runtime-registered receivers must declare export state — see `ContextCompat.registerReceiver`
-  with `RECEIVER_NOT_EXPORTED` in `MainActivity`
-- the app draws edge to edge, so system-bar insets are applied as root padding in
-  `applyWindowInsets`
+Two knock-on requirements of targetSdk 34+, already handled: runtime-registered receivers declare
+their export state (`RECEIVER_NOT_EXPORTED`), and the app draws edge to edge with system-bar insets
+applied as root padding.
 
 ## Layout
 
 ```
-app/src/main/java/hu/bmwscanner/
-  usb/FtdiDevice.kt   raw FTDI vendor-request driver over android.hardware.usb
-  ds2/Ds2.kt          DS2 framing, checksums, transport, bus scan
-  MainActivity.kt     probe UI
-docs/
-  findings.md             what the cable and the original software actually are, with evidence
-  testing-on-the-car.md   the field procedure for the first session
+web/                     the browser version - this is the one to use
+  js/ftdi.js             FT232R over WebUSB
+  js/protocol.js         framing, scrambling, commands, decoding
+  js/session.js          the measured order of the conversation
+  js/app.js              tiles and dialogs; knows nothing about USB
+  js/demo.js             recorded replies, for ?demo=1
+  js/protocol.test.mjs   the decoders against the vendor's own answers
+app/                     the Android harness
+  .../usb/FtdiDevice.kt  raw FTDI vendor-request driver
+  .../ds2/               framing and the vendor command set
+docs/                    state, findings, field procedure
+tools/                   capture, proxy and analysis
+log/                     captures from the car, text only
 ```
 
-No third-party USB library is used. `usb-serial-for-android` was considered and rejected: the
-non-standard vendor id, the possible second channel, and the need for the raw line-status byte all
-want explicit control over the FTDI control transfers.
-
-## Scope
-
-Diagnostics: module identification, fault codes, live values, service-interval reset.
-Odometer writing is out of scope and will not be implemented.
+No third-party USB library is used anywhere. The non-standard vendor id and the need for the raw
+line-status byte both want explicit control over the FTDI control transfers.

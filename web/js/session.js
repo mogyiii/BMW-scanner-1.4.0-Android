@@ -100,7 +100,18 @@ async function readDs2Module(ftdi, mod, onTrace) {
   const faults = await readFaultStore(session, mod, P.CMD.FAULTS, '0xC731');
   const shadow = await readFaultStore(session, mod, P.CMD.SHADOW, '0x9E56');
 
-  return { ...mod, present: true, ident: ident.answer, adfg, faults, shadow };
+  // The instrument cluster is the only module that knows the mileage, and the header should show
+  // what the car says rather than what someone typed into the page.
+  let mileage = null;
+  let vin = '';
+  if (mod.addr === 0x80) {
+    const km = P.splitReply(await session.send(P.buildFrame(P.CMD.MILEAGE, mod.addr), '0x8DE3'));
+    if (km) mileage = P.decodeMileage(km.answer);
+    const v = P.splitReply(await session.send(P.buildFrame(P.CMD.IKE_VIN, mod.addr), '0xC6E1'));
+    if (v) vin = P.decodeIkeVin(v.answer);
+  }
+
+  return { ...mod, present: true, ident: ident.answer, adfg, faults, shadow, mileage, vin };
 }
 
 /**

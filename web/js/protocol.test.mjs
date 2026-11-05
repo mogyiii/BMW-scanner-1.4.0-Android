@@ -98,6 +98,32 @@ const shown = (store, addr) => store.entries.map(
   check('IKE: one fault', shown(P.decodeFaults(a), 0x80), ['be/48 *']);
 }
 
+/* -- identification: part number and hardware revision, against the vendor's BMWTNR/HW columns -- */
+for (const [name, kwp, raw, part, hw] of [
+  ['ZKE',  0, '00 10 A0 86 91 43 67 11 02 50 10 10 02 19 20 FB', '6.914.367', '11'],
+  ['EWS',  0, '44 10 A0 86 90 56 66 03 81 81 07 02 02 04 08 DA', '6.905.666', '03'],
+  ['LEW',  0, '57 10 A0 06 75 99 09 04 01 30 60 12 02 02 EE AD', '6.759.909', '04'],
+  ['IHKA', 0, '5B 10 A0 86 91 68 82 25 15 32 0D 16 02 55 07 5F', '6.916.882', '25'],
+  ['IKE',  0, '80 12 A0 F6 91 12 86 12 06 53 12 14 02 26 23 06 87 06', '6.911.286', '12'],
+  ['SRS',  0, 'A4 10 A0 86 91 27 55 10 32 09 00 16 02 08 32 74', '6.912.755', '10'],
+  ['LCM',  0, 'D0 10 A0 06 91 98 25 15 31 30 00 09 02 09 30 6C', '6.919.825', '15'],
+  ['DME',  1, '5A 80 00 00 07 51 95 92 10 0C 00 0F 30 4C', '7.519.592', '10'],
+  ['ABS',  1, '5A 80 00 00 06 75 90 45 04 04 00 06 00 06', '6.759.045', '04'],
+]) {
+  const got = P.decodeIdent({ ident: bytes(raw), kwp: !!kwp });
+  check(`${name}: BMWTNR and HW`, got && [got.part, got.hw], [part, hw]);
+}
+
+/* -- the cluster's own data: odometer and stored VIN ------------------------------------------ */
+{
+  const a = P.splitReply(bytes('80 05 02 01 86   80 08 A0 01 32 17 40 4C')).answer;
+  check('IKE: odometer', P.decodeMileage(a), 321740);
+}
+{
+  const a = P.splitReply(bytes('80 05 02 02 85   80 0A A0 02 4B 50 04 22 00 15')).answer;
+  check('IKE: stored VIN', P.decodeIkeVin(a), 'KP04220');
+}
+
 /* -- a mangled frame must be refused, not half-read ------------------------------------------ */
 {
   const raw = bytes('B8 29 F1 04 18 02 FF FF 00');   // checksum deliberately wrong
