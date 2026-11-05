@@ -3313,7 +3313,12 @@ class MainActivity : AppCompatActivity() {
 
             // The addresses the vendor's own scan found on this car, rather than all 57. Sixty
             // seconds instead of seven minutes, and the control set covers exactly these.
-            val present = intArrayOf(0x00, 0x12, 0x44, 0x56, 0x57, 0x5B, 0x80, 0xA4, 0xD0)
+            //
+            // 0x29 is the ABS, and it is not 0x56. This list said 0x56 for weeks and never got an
+            // answer from it, because 0x56 was never an address: it is the letter 'V', the sign-on
+            // command's parameter, which I read out of a command tally as though it were a module.
+            // The full capture sends KWP `18 02 FF FF` to exactly two addresses, 0x12 and 0x29.
+            val present = intArrayOf(0x00, 0x12, 0x29, 0x44, 0x57, 0x5B, 0x80, 0xA4, 0xD0)
 
             var verbose = 3
             for (addr in present) {
@@ -3623,7 +3628,12 @@ class MainActivity : AppCompatActivity() {
 
             // The addresses the vendor's own scan found on this car, rather than all 57. Sixty
             // seconds instead of seven minutes, and the control set covers exactly these.
-            val present = intArrayOf(0x00, 0x12, 0x44, 0x56, 0x57, 0x5B, 0x80, 0xA4, 0xD0)
+            //
+            // 0x29 is the ABS, and it is not 0x56. This list said 0x56 for weeks and never got an
+            // answer from it, because 0x56 was never an address: it is the letter 'V', the sign-on
+            // command's parameter, which I read out of a command tally as though it were a module.
+            // The full capture sends KWP `18 02 FF FF` to exactly two addresses, 0x12 and 0x29.
+            val present = intArrayOf(0x00, 0x12, 0x29, 0x44, 0x57, 0x5B, 0x80, 0xA4, 0xD0)
 
             var verbose = 3
             for (addr in present) {
@@ -3840,13 +3850,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Reads the two modules that are not DS2 modules: the engine controller and the ABS.
+     *
+     * 0x12 and 0x29 both return nothing but an echo to 0x46F1, for us and for the vendor alike, and
+     * both answer the same three KWP commands. The ABS was listed at 0x56 here for weeks and never
+     * answered, because 0x56 is not an address at all - it is the letter 'V', the sign-on command's
+     * parameter, mistaken for a module in a command tally. The full capture sends `18 02 FF FF` to
+     * exactly two addresses, and these are they.
+     */
     private fun readDme(device: UsbDevice) {
-        log("=== ENGINE CONTROLLER (KWP2000) ===")
-        log("0x12 does not answer 0x46F1 - it is not a DS2 module. These are the vendor's own")
-        log("KWP commands for it. Expect DTC 27C3/64 and the VIN KP04220.")
+        log("=== ENGINE CONTROLLER AND ABS (KWP2000) ===")
+        log("Neither answers 0x46F1 - they are not DS2 modules. These are the vendor's own KWP")
+        log("commands. Expect 27C3/64 and VIN KP04220 from 0x12, and four codes from 0x29:")
+        log("5E1F/A0, 5E16/20, 5E24/A0, 5E43/A0.")
         log("")
 
-        val addr = 0x12
+        for (addr in intArrayOf(0x12, 0x29)) {
+            if (stopRequested) { log("stopped"); break }
+            log("--- 0x%02X ---".format(addr))
+            readKwpModule(device, addr)
+        }
+        log("=== end ===")
+    }
+
+    private fun readKwpModule(device: UsbDevice, addr: Int) {
         val busPayload = byteArrayOf(0xE5.toByte(), 0x50, 0x47, 0x66, 0xC8.toByte(), 0x14)
 
         var dev: FtdiDevice? = null
@@ -3914,7 +3942,6 @@ class MainActivity : AppCompatActivity() {
         } finally {
             runCatching { dev?.close() }
         }
-        log("=== end ===")
     }
 
     private fun vendorInit(device: UsbDevice) {

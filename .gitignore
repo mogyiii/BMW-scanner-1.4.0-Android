@@ -9,3 +9,14 @@ build/
 .DS_Store
 captures/
 build/unpacked/
+
+# Module memory images from the vendor software's dump buttons.
+#
+# Deliberately not published, even though this repo's text logs are. These are the raw EEPROM and
+# flash contents of named modules on a named car - the cluster image carries the stored odometer and
+# the immobiliser-related modules carry their own secrets - and the `_wr` files are write images,
+# i.e. exactly the artefact used to alter a cluster. Odometer writing is out of scope for this
+# project; publishing the material for it is not a thing to do by accident. The decoded text logs
+# next to them carry everything the protocol work actually needs.
+log/**/*.bin
+log/**/*.epb

@@ -31,10 +31,14 @@ export const CMD = {
   TIMING:  0x83f0,   // parameter = address, payload E5 50 47 66 <Delay2> <Delay>
   QUERY:   0x46f1,   // DS2 00  - identify
   FAULTS:  0xc731,   // DS2 04  - fault memory, payload is the page
-  // The engine controller is not a DS2 module; these map to KWP2000 services.
+  SHADOW:  0x9e56,   // DS2 14  - shadow fault memory, paged exactly like 04
+  ADFG:    0x71a0,   // DS2 0E  - the three assembly-release bytes
+  CLEAR:   0x1bcf,   // DS2 05  - clear fault memory
+  // The engine controller and the ABS are not DS2 modules; these map to KWP2000 services.
   KWP_IDENT: 0x06f3, // KWP 1A 80
   KWP_VIN:   0x0de7, // KWP 1A 90
   KWP_DTC:   0xc358, // KWP 18 02 FF FF
+  KWP_CLEAR: 0x41ac, // KWP 14 FF FF
 };
 
 /**
@@ -122,6 +126,58 @@ export function splitReply(raw) {
 export const isPositive = (frame) => frame && frame.length > 2 && frame[2] === 0xa0;
 
 /**
+ * Splits a KWP2000 reply the same way, into our echoed request and the module's answer.
+ *
+ * The framing is `[B8][target][source][len][data…][checksum]`, where `len` counts only the data and
+ * **the checksum is an XOR, not the additive sum ISO 14230 specifies**. Checked on the full capture:
+ * `B8^29^F1^02^1A^86 = FE`, which is the byte on the wire. Until this was measured the KWP replies
+ * were located by searching for a `0x58` byte and hoping, which worked on the engine controller by
+ * luck and would have mis-split anything carrying a `0x58` in its data.
+ */
+export function splitKwpReply(raw) {
+  const frames = [];
+  let i = 0;
+  while (i + 5 <= raw.length) {
+    if (raw[i] !== 0xb8) break;
+    const len = raw[i + 3];
+    const total = len + 5;
+    if (i + total > raw.length) break;
+    const frame = raw.slice(i, i + total);
+    let x = 0;
+    for (const b of frame) x ^= b;
+    if (x !== 0) break;
+    frames.push({ target: frame[1], source: frame[2], data: frame.slice(4, -1) });
+    i += total;
+  }
+  // Ours comes home first; the module's answer is addressed to the tester, 0xF1.
+  const answer = frames.find((f) => f.target === 0xf1);
+  return { echo: frames[0] || null, answer: answer || null, frames };
+}
+
+/**
+ * Decodes a KWP `58` response: a count, then three bytes per code.
+ *
+ * Verified against the vendor's own decoded report for this car - the ABS answers
+ * `58 04 5E 1F A0 5E 16 20 5E 24 A0 5E 43 A0`, which it prints as four faults
+ * `5E1F/A0`, `5E16/20`, `5E24/A0`, `5E43/A0`.
+ */
+export function decodeKwpFaults(data) {
+  if (!data || data.length < 2 || data[0] !== 0x58) return { count: 0, entries: [] };
+  const count = data[1];
+  const entries = [];
+  for (let i = 2; i + 2 < data.length + 1 && entries.length < count; i += 3) {
+    if (i + 3 > data.length) break;
+    entries.push({
+      code: (data[i] << 8) | data[i + 1],
+      param: data[i + 2],
+      raw: data.slice(i, i + 3),
+      wide: true,
+    });
+  }
+  return { count, entries };
+}
+
+/**
  * Splits a fault-memory frame into its entries.
  *
  * The entry size is **not fixed** - it varies by module, so dividing by a constant mangles half of
@@ -160,20 +216,59 @@ export function decodeFaults(frame) {
 /**
  * The modules this car has, as the vendor's own scan found them.
  *
- * `kwp` marks the ones that ignore DS2. The engine controller answers `0x46F1` with nothing but the
- * echoed request - the vendor's capture shows it getting exactly the same - and speaks KWP2000
- * instead.
+ * `kwp` marks the ones that ignore DS2 - the engine controller and the ABS, which the vendor's
+ * report flags with an asterisk for the same reason. The engine controller answers `0x46F1` with
+ * nothing but the echoed request and speaks KWP2000 instead.
+ *
+ * The ABS is at **0x29**, not 0x56. This project listed it at 0x56 for weeks and never got a reply,
+ * because 0x56 was never an address at all: it is the letter `V`, the sign-on command's parameter,
+ * read out of a command tally as though it were a module. The full capture shows `18 02 FF FF`
+ * going to exactly two addresses, 0x12 and 0x29.
  */
 export const MODULES = [
   { addr: 0x00, name: 'ZKE',   label: 'Karosszéria',     icon: '🚪' },
   { addr: 0x12, name: 'DME',   label: 'Motorvezérlő',    icon: '⚙️', kwp: true },
+  { addr: 0x29, name: 'ABS',   label: 'ABS / DSC',       icon: '🛞', kwp: true },
   { addr: 0x44, name: 'EWS',   label: 'Indításgátló',    icon: '🔑' },
-  { addr: 0x56, name: 'ABS',   label: 'ABS / DSC',       icon: '🛞' },
-  { addr: 0x57, name: 'LWS',   label: 'Kormányszög',     icon: '🎚️' },
+  { addr: 0x57, name: 'LEW',   label: 'Kormányszög',     icon: '🎚️' },
   { addr: 0x5b, name: 'IHKA',  label: 'Klíma',           icon: '❄️' },
   { addr: 0x80, name: 'IKE',   label: 'Műszerfal',       icon: '📟' },
   { addr: 0xa4, name: 'SRS',   label: 'Légzsák',         icon: '⚠️' },
   { addr: 0xd0, name: 'LCM',   label: 'Világítás',       icon: '💡' },
 ];
+
+/**
+ * Fault descriptions, per module, for the codes this car actually produced.
+ *
+ * Every line is the vendor software's own text for the same code on the same car, taken from its
+ * report - so these are not translations of a guess, they are a translation of a known-correct
+ * answer. **The table is deliberately small.** The vendor keeps a description for some sixty modules
+ * and a thousand codes; copying all of it is a separate job, and inventing the rest would turn a
+ * verified reading into a plausible-looking fiction. An unknown code therefore gets no description
+ * at all, and the raw bytes stay on screen either way.
+ */
+export const FAULT_TEXT = {
+  0x12: { 0x27c3: 'Olajszint-érzékelő hibás' },
+  0x29: {
+    0x5e1f: 'PT-CAN alvázszám hibás / vezérlő nincs inicializálva',
+    0x5e16: 'CAN időtúllépés — műszerfal',
+    0x5e24: 'Nyomásérzékelő 1/2 nem plauzibilis',
+    0x5e43: 'Kormányszög-érzékelő belső hiba',
+  },
+  0x57: {
+    0x0b: 'Hibás LWS-azonosító',
+    0x09: 'Nincs CAN üzenet (ASC)',
+    0x04: '90 fokos eltérés túl nagy (beállítási művelet)',
+  },
+  0x5b: { 0x1c: 'AUC érzékelő', 0x1e: 'AUC fűtés' },
+  0x80: { 0xbe: 'Adateltérés a központi világításmodulhoz (LCM)' },
+  0xa4: { 0x06: 'Oldallégzsák, jobb első ajtó — túl kis ellenállás' },
+};
+
+/** The description for a code on a module, or an empty string when we do not have one. */
+export function faultText(addr, code) {
+  const perModule = FAULT_TEXT[addr];
+  return (perModule && perModule[code]) || '';
+}
 
 export const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');

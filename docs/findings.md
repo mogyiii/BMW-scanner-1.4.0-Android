@@ -1,5 +1,43 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ✅ The whole command set, read out of the echo — 2026-11-05
+>
+> The owner borrowed a laptop and clicked through every read menu of the vendor software with
+> `tools/ftd2xx-proxy` attached, leaving both the raw traffic and the vendor's own decoded report for
+> the same car in the same session: `log/teljesscan/`, 4.1 MB, **1525 frames, 57 distinct commands**.
+>
+> `tools/command_atlas.py` reads each command's meaning **out of the K-line echo** rather than
+> guessing it. The echo is the Rosetta stone: a single-wire bus lets the cable hear itself, so every
+> reply opens with our own request in the module's native framing, which translates the vendor's
+> opaque 16-bit command numbers into the standard service they stand for. Three findings close three
+> open questions:
+>
+> | | |
+> |---|---|
+> | **The ABS is `0x29`, on KWP2000** | `18 02 FF FF` goes to exactly two addresses in the whole capture, `0x12` and `0x29`. `0x29` answers `58 04 5E1F A0 · 5E16 20 · 5E24 A0 · 5E43 A0` — the four faults the vendor prints for the ABS, and the module this project could not read |
+> | **Shadow memory is `0x9E56`, DS2 `14`** | Paged exactly like `0xC731`. This is the vendor report's second error column, and the airbag module has `06/20` in it — a fault a live-memory-only scan calls a clean module |
+> | **Clearing is `0x1BCF` (DS2 `05`) and `0x41AC` (KWP `14 FF FF`)** | Both outcomes are in the capture to check against: accepted on four DS2 modules and the engine controller, refused by the ABS with `7F 14 22` |
+>
+> **`0x56` was never an address.** The ABS was listed there for weeks on the strength of a command
+> tally in which `0x56` appeared — as the *parameter* of the sign-on command, where it is the ASCII
+> letter `V`. A number read out of the wrong column and then chased as a module that does not exist.
+> Its real address was in the same capture the whole time.
+>
+> **The KWP checksum is an XOR, not the additive sum ISO 14230 specifies.** `B8^29^F1^02^1A^86 = FE`,
+> which is the byte on the wire, and it holds across every KWP frame in the capture. Until this was
+> measured, KWP replies were located by searching for a `0x58` byte and hoping — which happened to
+> work on the engine controller and would have mis-split anything carrying `0x58` in its data.
+>
+> **Two things the capture settles against memory.** The owner recalled the clear taking three codes
+> out of the ABS; it did not — the ABS refused the command outright, and the three that went were the
+> steering angle sensor's. And the oil service reset that errored (`0x3AED`, DS2 `0C 12 01`) was not
+> a software fault: the instrument cluster itself answered `A2` instead of `A0` and refused it. It is
+> service `0C`, an actuator call, so a write by any reading, and it stays out of scope.
+>
+> `web/js/protocol.test.mjs` now runs the decoders over bytes taken verbatim from this capture and
+> checks them against the text the vendor printed for those same bytes: **23 cases, all nine modules,
+> all passing.** That pairing is the point — a decoder agreeing with its author proves nothing.
+
 > # ✅ The cable works. The fault is ours.
 >
 > **2026-11-03.** With a borrowed laptop, the genuine vendor software and the genuine FTDI driver,

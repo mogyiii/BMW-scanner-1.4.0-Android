@@ -8,7 +8,7 @@
 
 import { Ftdi } from './ftdi.js';
 import * as P from './protocol.js';
-import { scan, idleLevel } from './session.js';
+import { scan, idleLevel, clearFaults } from './session.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { ftdi: null, stop: false, results: new Map() };
@@ -20,13 +20,18 @@ function tileFor(mod) {
   el.className = 'tile';
   if (mod.busy) el.classList.add('busy');
   else if (!mod.present) el.classList.add('off');
-  else if (mod.faults && mod.faults.count > 0) el.classList.add('warn');
+  else if ((mod.faults && mod.faults.count > 0) || (mod.shadow && mod.shadow.count > 0)) {
+    el.classList.add('warn');
+  }
   else el.classList.add('ok');
 
+  const shadowCount = mod.shadow ? mod.shadow.count : 0;
   const state_ = mod.busy ? 'olvasás…'
     : !mod.present ? (mod.reason || '—')
-    : mod.faults.count === 0 ? 'hibátlan'
-    : mod.faults.count === 1 ? '1 hiba' : `${mod.faults.count} hiba`;
+    : mod.faults.count === 0 && shadowCount === 0 ? 'hibátlan'
+    : mod.faults.count === 0 ? `${shadowCount} árnyékhiba`
+    : shadowCount === 0 ? `${mod.faults.count} hiba`
+    : `${mod.faults.count} + ${shadowCount} hiba`;
 
   el.innerHTML = `
     <div class="icon">${mod.icon}</div>
@@ -49,10 +54,41 @@ function draw() {
   }
 }
 
+const codeOf = (e) => (e.wide
+  ? e.code.toString(16).toUpperCase().padStart(4, '0')
+  : e.code.toString(16).toUpperCase().padStart(2, '0'));
+const paramOf = (e) => (e.param === null ? '??' : e.param.toString(16).toUpperCase().padStart(2, '0'));
+
+/** Renders one fault store into `body`, heading and all. */
+function renderStore(body, mod, store, heading) {
+  const h = document.createElement('p');
+  h.className = 'store';
+  h.textContent = heading;
+  body.appendChild(h);
+
+  if (!store) { h.textContent = heading + ' — nincs ilyen tároló'; return; }
+  if (store.count === 0) { h.textContent = heading + ' — nincs tárolt hibakód'; return; }
+
+  for (const e of store.entries) {
+    const div = document.createElement('div');
+    div.className = 'fault';
+    const text = P.faultText(mod.addr, e.code);
+    div.innerHTML = `<code>${codeOf(e)} / ${paramOf(e)}</code>
+      ${text ? `<div class="desc">${text}</div>` : ''}
+      <div class="raw">${P.hex(e.raw)}</div>`;
+    body.appendChild(div);
+  }
+  if (store.entries.length === 0) {
+    const p = document.createElement('p');
+    p.textContent = `${store.count} hiba, de a bejegyzések nem voltak olvashatók.`;
+    body.appendChild(p);
+  }
+}
+
 function showDetail(mod) {
   $('d-icon').textContent = mod.icon;
   $('d-name').textContent = `${mod.name} · 0x${mod.addr.toString(16).toUpperCase().padStart(2, '0')}`;
-  $('d-label').textContent = mod.label;
+  $('d-label').textContent = mod.label + (mod.kwp ? ' · KWP2000' : ' · DS2');
 
   const body = $('d-body');
   body.textContent = '';
@@ -63,41 +99,77 @@ function showDetail(mod) {
     body.appendChild(p);
   }
 
-  if (!mod.faults || mod.faults.count === 0) {
-    const p = document.createElement('p');
-    p.textContent = 'Nincs tárolt hibakód.';
-    body.appendChild(p);
-  } else {
-    for (const e of mod.faults.entries) {
-      const div = document.createElement('div');
-      div.className = 'fault';
-      const code = e.wide
-        ? e.code.toString(16).toUpperCase().padStart(4, '0')
-        : e.code.toString(16).toUpperCase().padStart(2, '0');
-      const param = e.param === null ? '??' : e.param.toString(16).toUpperCase().padStart(2, '0');
-      div.innerHTML = `<code>${code} / ${param}</code>
-        <div class="raw">${P.hex(e.raw)}</div>`;
-      body.appendChild(div);
-    }
-    if (mod.faults.entries.length === 0) {
-      const p = document.createElement('p');
-      p.textContent = `${mod.faults.count} hiba, de a bejegyzések nem voltak olvashatók.`;
-      body.appendChild(p);
-    }
-  }
+  renderStore(body, mod, mod.faults, 'Hibamemória');
+  // Only three modules on this car keep a shadow store; the rest refuse the command, and saying so
+  // is better than silence - a missing section reads as "we did not look".
+  renderStore(body, mod, mod.shadow, 'Árnyékmemória');
 
+  if (mod.adfg) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = 'ADFG: ' + P.hex(mod.adfg).replace(/ /g, '');
+    body.appendChild(p);
+  }
   if (mod.ident) {
     const p = document.createElement('p');
-    p.className = 'raw';
-    p.style.color = 'var(--dim)';
-    p.style.fontSize = '.75rem';
-    p.style.fontFamily = 'ui-monospace, Menlo, Consolas, monospace';
-    p.style.wordBreak = 'break-all';
+    p.className = 'meta';
     p.textContent = 'azonosító: ' + P.hex(mod.ident);
     body.appendChild(p);
   }
 
+  const clear = $('d-clear');
+  const hasAny = (mod.faults && mod.faults.count > 0) || (mod.shadow && mod.shadow.count > 0);
+  clear.hidden = !hasAny;
+  clear.disabled = false;
+  clear.textContent = 'Hibák törlése';
+  clear.onclick = () => doClear(mod);
+  $('d-clearmsg').textContent = '';
+
   $('detail').showModal();
+}
+
+/**
+ * Clears a module and then reads it back.
+ *
+ * The read-back is the point. A positive acknowledgement means the module accepted the command, not
+ * that the car is now fault-free: on this car the engine controller accepts the clear and reports
+ * the same oil-sensor fault immediately afterwards, because the fault is present rather than merely
+ * remembered. Reporting "cleared" off the acknowledgement alone would be a lie the user only
+ * discovers on the next scan.
+ */
+async function doClear(mod) {
+  const btn = $('d-clear');
+  const msg = $('d-clearmsg');
+  btn.disabled = true;
+  btn.textContent = 'Törlés…';
+  msg.textContent = '';
+  try {
+    const result = await clearFaults(state.ftdi, mod, trace);
+    if (!result.ok) {
+      msg.textContent = `Nem sikerült: ${result.reason}.`;
+      btn.disabled = false;
+      btn.textContent = 'Hibák törlése';
+      return;
+    }
+    msg.textContent = 'Törölve. Visszaolvasás…';
+    const fresh = await scan(state.ftdi, { onTrace: trace, only: [mod.addr] });
+    if (fresh[0]) {
+      state.results.set(mod.addr, fresh[0]);
+      draw();
+      const left = (fresh[0].faults ? fresh[0].faults.count : 0)
+        + (fresh[0].shadow ? fresh[0].shadow.count : 0);
+      $('detail').close();
+      showDetail(fresh[0]);
+      $('d-clearmsg').textContent = left === 0
+        ? 'Törölve, a memória üres.'
+        : `A vezérlő elfogadta a törlést, de ${left} hiba azonnal visszajött — ezek élő hibák, `
+          + 'nem csak tárolt bejegyzések.';
+    }
+  } catch (e) {
+    msg.textContent = `Megszakadt: ${e.message}`;
+    btn.disabled = false;
+    btn.textContent = 'Hibák törlése';
+  }
 }
 
 /* ------------------------------------------------------------------ trace */
@@ -128,15 +200,17 @@ function buildLog() {
     if (!r) continue;
     const head = `0x${mod.addr.toString(16).toUpperCase().padStart(2, '0')}  ${mod.name}`;
     if (!r.present) { lines.push(`${head}  -  ${r.reason || 'nem válaszolt'}`); continue; }
-    lines.push(`${head}  jelen van`);
+    lines.push(`${head}  jelen van  (${r.kwp ? 'KWP2000' : 'DS2'})`);
     if (r.vin) lines.push(`      VIN ${r.vin}`);
+    if (r.adfg) lines.push(`      ADFG ${P.hex(r.adfg).replace(/ /g, '')}`);
     if (r.ident) lines.push(`      azonosító ${P.hex(r.ident)}`);
-    lines.push(`      hibák: ${r.faults ? r.faults.count : 0}`);
-    for (const e of (r.faults ? r.faults.entries : [])) {
-      const code = e.wide ? e.code.toString(16).toUpperCase().padStart(4, '0')
-                          : e.code.toString(16).toUpperCase().padStart(2, '0');
-      const par = e.param === null ? '??' : e.param.toString(16).toUpperCase().padStart(2, '0');
-      lines.push(`        ${code} / ${par}    ${P.hex(e.raw)}`);
+    for (const [name, store] of [['hibamemória', r.faults], ['árnyékmemória', r.shadow]]) {
+      if (!store) { lines.push(`      ${name}: nincs ilyen tároló`); continue; }
+      lines.push(`      ${name}: ${store.count}`);
+      for (const e of store.entries) {
+        const text = P.faultText(r.addr, e.code);
+        lines.push(`        ${codeOf(e)} / ${paramOf(e)}    ${P.hex(e.raw).padEnd(24)}${text}`);
+      }
     }
   }
   lines.push('');

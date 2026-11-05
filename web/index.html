@@ -81,8 +81,20 @@
   .dlg-body { padding: 14px 16px; }
   .fault { border-left: 3px solid var(--warn); padding: 6px 0 6px 10px; margin-bottom: 10px; }
   .fault code { font-size: 1rem; font-weight: 700; }
+  .fault .desc { font-size: .9rem; }
   .fault .raw { color: var(--dim); font-size: .75rem; font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all; }
-  .dlg-foot { padding: 12px 16px; border-top: 1px solid var(--line); text-align: right; }
+  .store { font-weight: 650; margin: 14px 0 8px; font-size: .9rem; }
+  .store:first-child { margin-top: 0; }
+  .meta {
+    color: var(--dim); font-size: .75rem; word-break: break-all; margin: 4px 0 0;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+  }
+  .dlg-foot {
+    padding: 12px 16px; border-top: 1px solid var(--line);
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .dlg-foot .status { flex: 1 1 100%; order: 3; }
+  .dlg-foot #d-close { margin-left: auto; }
 
   details { margin-top: 18px; }
   summary { cursor: pointer; color: var(--dim); font-size: .85rem; }
@@ -137,16 +149,26 @@
 </details>
 
 <p class="note">
-  A hibakódok mellett mindig ott a nyers bájtsor. A kód és a paraméter kiolvasása három modulon
-  van igazolva a gyári szoftver kimenetéhez — ezért látszik a nyers adat is, hogy egy téves
-  értelmezés ne tűnjön el mögötte.
+  A hibakódok mellett mindig ott a nyers bájtsor. A kiolvasás mind a kilenc modulon igazolva van a
+  gyári szoftver saját kimenetéhez, ugyanezen az autón — de a <b>szöveges leírás</b> csak azokhoz a
+  kódokhoz van meg, amiket ez az autó eddig valóban produkált. Ismeretlen kód mellett nincs leírás:
+  inkább semmi, mint egy hihetően hangzó találgatás. A nyers adat ezért marad a képernyőn.
+</p>
+<p class="note">
+  A törlés csak a <i>tárolt</i> listát üríti. Ha egy hiba éppen fennáll, a vezérlő elfogadja a
+  törlést, majd a következő olvasásnál ugyanazt a kódot jelenti — az alkalmazás ezért mindig
+  visszaolvas, és megmondja, mi jött vissza.
 </p>
 
 <dialog id="detail">
   <div class="dlg-head"><span id="d-icon" style="font-size:1.4rem"></span>
     <div><b id="d-name"></b><div class="sub" id="d-label"></div></div></div>
   <div class="dlg-body" id="d-body"></div>
-  <div class="dlg-foot"><button class="ghost" id="d-close">Bezár</button></div>
+  <div class="dlg-foot">
+    <button class="ghost" id="d-clear" hidden>Hibák törlése</button>
+    <button class="ghost" id="d-close">Bezár</button>
+    <span class="status" id="d-clearmsg"></span>
+  </div>
 </dialog>
 
 <script type="module" src="js/app.js"></script>

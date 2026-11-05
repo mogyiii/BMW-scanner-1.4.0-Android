@@ -125,11 +125,53 @@ object VendorProtocol {
          */
         const val FAULTS = 0xC731
 
+        /**
+         * **Reads one page of a module's *shadow* fault memory**, paged exactly like [FAULTS].
+         *
+         * DS2 service `14 <index>`. This is the second error column in the vendor's report, and
+         * three modules on this car have the store: the airbag module at `0xA4` answers page 0 with
+         * `A4 05 A0 01` and page 1 with `A4 07 A0 01 06 20`, which the vendor prints as
+         * `06/20 - Side airbag, front right door, resistance too low`. The body module and the
+         * lighting module answer the same shape with a count of zero; everything else refuses it.
+         *
+         * Reading [FAULTS] alone therefore calls the airbag module clean when it is not.
+         */
+        const val SHADOW = 0x9E56
+
+        /**
+         * DS2 `0E`: the three assembly-release bytes the vendor prints in its ADFG column.
+         *
+         * Checked on four modules at once, which is why it is here rather than left as a guess:
+         * `0x00` returns `55 42 20`, `0x44` `FF FF FF`, `0x80` `84 00 00`, `0xD0` `55 55 00`, and
+         * the vendor's column reads 554220, FFFFFF, 840000, 555500 down the same four rows.
+         */
+        const val ADFG = 0x71A0
+
+        /**
+         * **Clears a module's fault memory.** DS2 service `05`, no payload.
+         *
+         * In scope: clearing codes is what the owner asked for. Observed going to `0x57`, `0x5B`,
+         * `0x80` and `0xA4`, answering `A0`. A positive answer means *accepted*, not *now clean* -
+         * the climate module accepted it and reported both its faults again immediately, because
+         * they are live rather than merely stored. It does not touch [SHADOW] either: the airbag
+         * module's shadow entry survived the clear.
+         */
+        const val CLEAR = 0x1BCF
+
         /** DS2 `02 01`: the odometer. Answered `80 08 A0 01 32 17 40 4C` - 321740 km. */
         const val ODOMETER = 0x8DE3
 
         /** DS2 `02 02`: the VIN. Answered `80 0A A0 02 4B 50 04 22 00 15` - "KP0422...". */
         const val VIN = 0xC6E1
+
+        /**
+         * **Clears faults on a KWP2000 module.** KWP `14 FF FF`.
+         *
+         * Both outcomes are in the capture, which is the useful part: the engine controller answered
+         * `54 FF FF` and accepted it, the ABS answered `7F 14 22` and refused - response code `0x22`
+         * is "conditions not correct", and the ABS still held all four of its faults afterwards.
+         */
+        const val KWP_CLEAR = 0x41AC
     }
 
     /**

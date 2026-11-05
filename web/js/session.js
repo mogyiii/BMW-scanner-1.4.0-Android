@@ -55,7 +55,31 @@ async function connect(ftdi, addr, onTrace) {
   return { send };
 }
 
-/** Reads one DS2 module: identity, then its fault memory. */
+/**
+ * Reads a paged DS2 fault memory.
+ *
+ * Page 0 carries the count and page 1 every entry, so two reads are enough. Later pages do exist -
+ * the climate module's page 2 returns its second fault on its own - but they are a different view of
+ * what page 1 already gave in full, which is why this does not walk them. `0xC731` is the live fault
+ * memory and `0x9E56` the shadow memory: the same structure, the same paging, a different store.
+ */
+async function readFaultStore(session, mod, command, label) {
+  const counts = P.splitReply(await session.send(P.buildFrame(command, mod.addr, [0]), label));
+  if (!counts || !P.isPositive(counts.answer)) return null;
+  if (counts.answer[3] === 0) return { count: 0, entries: [] };
+  const page = P.splitReply(await session.send(P.buildFrame(command, mod.addr, [1]), label));
+  if (page && P.isPositive(page.answer)) return P.decodeFaults(page.answer);
+  return { count: counts.answer[3], entries: [] };
+}
+
+/**
+ * Reads one DS2 module: identity, the assembly-release bytes, then both fault stores.
+ *
+ * The shadow memory is read because the vendor's report has a second error column for it and this
+ * car has something in there - the SRS shows `no errors / 1 error`, a side-airbag fault that a
+ * live-memory-only reading declares a clean module. Three modules answer `0x9E56`; the rest refuse
+ * it, and a refusal is simply recorded as having no shadow store.
+ */
 async function readDs2Module(ftdi, mod, onTrace) {
   const session = await connect(ftdi, mod.addr, onTrace);
   if (!session) return { ...mod, present: false, reason: 'nincs kapcsolat' };
@@ -65,62 +89,90 @@ async function readDs2Module(ftdi, mod, onTrace) {
     return { ...mod, present: false, reason: 'nem válaszolt' };
   }
 
-  // Page 0 carries the count and page 1 the entries; every page after that repeats page 1.
-  const counts = P.splitReply(await session.send(P.buildFrame(P.CMD.FAULTS, mod.addr, [0]), '0xC731'));
-  let faults = { count: 0, entries: [] };
-  if (counts && P.isPositive(counts.answer) && counts.answer[3] > 0) {
-    const page = P.splitReply(await session.send(P.buildFrame(P.CMD.FAULTS, mod.addr, [1]), '0xC731'));
-    if (page && P.isPositive(page.answer)) faults = P.decodeFaults(page.answer);
-    else faults = { count: counts.answer[3], entries: [] };
-  }
-  return { ...mod, present: true, ident: ident.answer, faults };
+  const adfgReply = P.splitReply(await session.send(P.buildFrame(P.CMD.ADFG, mod.addr), '0x71A0'));
+  const adfg = adfgReply && P.isPositive(adfgReply.answer)
+    ? adfgReply.answer.slice(3, -1) : null;
+
+  const faults = await readFaultStore(session, mod, P.CMD.FAULTS, '0xC731') || { count: 0, entries: [] };
+  const shadow = await readFaultStore(session, mod, P.CMD.SHADOW, '0x9E56');
+
+  return { ...mod, present: true, ident: ident.answer, adfg, faults, shadow };
 }
 
 /**
- * Reads the engine controller, which ignores DS2.
+ * Reads a module that ignores DS2 - the engine controller and the ABS.
  *
- * Its replies are KWP2000: `[format][target][source][service][data][additive checksum]`, with the
- * request echoed first as always. A positive answer to `18 02 FF FF` opens `58 <count>` and then
- * three bytes per code.
+ * The order is the capture's: the DS2 identify that gets no answer, then identification, VIN and the
+ * fault memory over KWP. The dead `0x46F1` is sent because the vendor sends it and this project has
+ * been bitten more than once by trimming a step that looked pointless. The vendor also sometimes
+ * opens a diagnostic session first (`0x8378`, KWP `10 87`), but its very first pass at the ABS omits
+ * that and still reads all four faults, so that one is genuinely optional and stays out.
  */
 async function readKwpModule(ftdi, mod, onTrace) {
   const session = await connect(ftdi, mod.addr, onTrace);
   if (!session) return { ...mod, present: false, reason: 'nincs kapcsolat' };
 
-  await session.send(P.buildFrame(P.CMD.QUERY, mod.addr), '0x46F1');  // for the record; DS2 gets nothing
-  const ident = await session.send(P.buildFrame(P.CMD.KWP_IDENT, mod.addr), '0x06F3');
-  if (ident.length < 8) return { ...mod, present: false, reason: 'nem válaszolt' };
+  await session.send(P.buildFrame(P.CMD.QUERY, mod.addr), '0x46F1');
+  const identReply = await session.send(P.buildFrame(P.CMD.KWP_IDENT, mod.addr), '0x06F3');
+  const identFrames = P.splitKwpReply(identReply);
+  if (!identFrames.answer) return { ...mod, present: false, reason: 'nem válaszolt' };
 
-  const vinReply = await session.send(P.buildFrame(P.CMD.KWP_VIN, mod.addr), '0x0DE7');
+  const vinReply = P.splitKwpReply(await session.send(P.buildFrame(P.CMD.KWP_VIN, mod.addr), '0x0DE7'));
   let vin = '';
-  let run = '';
-  for (const b of vinReply) {
-    if (b >= 0x30 && b <= 0x5a) run += String.fromCharCode(b);
-    else { if (run.length >= 5) vin = run; run = ''; }
-  }
-  if (!vin && run.length >= 5) vin = run;
-
-  const dtcReply = await session.send(P.buildFrame(P.CMD.KWP_DTC, mod.addr), '0xC358');
-  const at = dtcReply.indexOf(0x58);
-  const entries = [];
-  if (at >= 0 && at + 1 < dtcReply.length) {
-    const count = dtcReply[at + 1];
-    for (let i = at + 2; i + 2 < dtcReply.length && entries.length < count; i += 3) {
-      entries.push({
-        code: (dtcReply[i] << 8) | dtcReply[i + 1],
-        param: dtcReply[i + 2],
-        raw: dtcReply.slice(i, i + 3),
-        wide: true,
-      });
+  if (vinReply.answer && vinReply.answer.data[0] === 0x5a) {
+    for (const b of vinReply.answer.data.slice(2)) {
+      if (b >= 0x30 && b <= 0x5a) vin += String.fromCharCode(b);
     }
   }
-  return { ...mod, present: true, ident, vin, faults: { count: entries.length, entries } };
+
+  const dtc = P.splitKwpReply(await session.send(P.buildFrame(P.CMD.KWP_DTC, mod.addr), '0xC358'));
+  const faults = dtc.answer ? P.decodeKwpFaults(dtc.answer.data) : { count: 0, entries: [] };
+
+  return { ...mod, present: true, ident: identFrames.answer.data, vin, faults, shadow: null };
 }
 
-/** Walks every module, reporting each as it finishes so the tiles can fill in as it goes. */
-export async function scan(ftdi, { onModule, onTrace, shouldStop } = {}) {
+/**
+ * Clears one module's fault memory.
+ *
+ * In scope and nothing beyond it: `05` on DS2 and `14 FF FF` on KWP erase the stored list and
+ * nothing else. The capture shows both outcomes plainly, and the caller is told which it got rather
+ * than being left to assume success - the ABS refused the command outright with `7F 14 22`
+ * ("conditions not correct"), and the engine controller accepted it and then reported the same
+ * fault again on the next read, because that fault is live rather than merely stored.
+ */
+export async function clearFaults(ftdi, mod, onTrace) {
+  const session = await connect(ftdi, mod.addr, onTrace);
+  if (!session) return { ok: false, reason: 'nincs kapcsolat' };
+
+  if (mod.kwp) {
+    const reply = P.splitKwpReply(
+      await session.send(P.buildFrame(P.CMD.KWP_CLEAR, mod.addr), '0x41AC'));
+    if (!reply.answer) return { ok: false, reason: 'nem válaszolt' };
+    const d = reply.answer.data;
+    if (d[0] === 0x54) return { ok: true };
+    if (d[0] === 0x7f) {
+      return { ok: false, reason: d[2] === 0x22
+        ? 'a vezérlő elutasította — a körülmények nem megfelelők (gyújtás 2-es állásban, motor leállítva)'
+        : `a vezérlő elutasította (0x${d[2].toString(16).toUpperCase()})` };
+    }
+    return { ok: false, reason: 'értelmezhetetlen válasz' };
+  }
+
+  const reply = P.splitReply(await session.send(P.buildFrame(P.CMD.CLEAR, mod.addr), '0x1BCF'));
+  if (!reply || !reply.answer) return { ok: false, reason: 'nem válaszolt' };
+  if (P.isPositive(reply.answer)) return { ok: true };
+  return { ok: false, reason: `a vezérlő elutasította (0x${reply.answer[2].toString(16).toUpperCase()})` };
+}
+
+/**
+ * Walks every module, reporting each as it finishes so the tiles can fill in as it goes.
+ *
+ * `only` narrows it to a list of addresses, which is how a single module gets re-read after a clear.
+ */
+export async function scan(ftdi, { onModule, onTrace, shouldStop, only } = {}) {
   const results = [];
   for (const mod of P.MODULES) {
+    if (only && !only.includes(mod.addr)) continue;
     if (shouldStop && shouldStop()) break;
     if (onModule) onModule({ ...mod, busy: true });
     let result;
