@@ -193,6 +193,9 @@ fault.
 
 ## What is left
 
+The candidates are written up properly in [`MILESTONE-2.md`](MILESTONE-2.md) — what is established
+for each, what is actually missing, and how we would know we got it right. In brief:
+
 - **The ABS and the shadow memory have not been read by this app yet.** Everything else has: the
   browser version ran at the car (see the banner), but the run predates both of today's additions.
   The control set in the table is what to check them against — four codes from `0x29` and `06/20`

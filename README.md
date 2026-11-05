@@ -130,6 +130,7 @@ credits each answer to the wrong question. That one number cost a fortnight.
 | | |
 |---|---|
 | [`docs/STATE.md`](docs/STATE.md) | one page: where the project stands, with the control set |
+| [`docs/MILESTONE-2.md`](docs/MILESTONE-2.md) | what to build next, and how we would know it worked |
 | [`docs/findings.md`](docs/findings.md) | the full record, newest first, including the wrong turns |
 | [`docs/testing-on-the-car.md`](docs/testing-on-the-car.md) | the field procedure |
 
