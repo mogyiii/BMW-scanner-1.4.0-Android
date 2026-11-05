@@ -56,10 +56,65 @@ it is already written down in `docs/STATE.md`.
 
 ---
 
-## 2. Steering angle, live
+## 2. Engine live values — and the one capture that would settle several things at once
 
-**Why this one and not the others.** It is the only live value in the capture with a *known varying
-input*: the wheel was turned while recording. Everything else sat still.
+**Correction.** An earlier draft of this document ruled engine live values out. That was wrong, and
+the way it was wrong is worth keeping: two probe commands are genuinely refused — `0x41AA` answers
+`7F A2 11` and `0x209C` answers `7F 22 11`, service not supported — and the capture contains no
+engine poll loop. From absence plus two refusals I concluded unavailability. The owner watched the
+vendor software display 600–700 rpm. It works; the route it works by is simply not in the recording
+we have, which covers only the menus that were clicked while the proxy was attached.
+
+**What the capture does establish.** Exactly one thing in it changes between repeated reads, which
+is what live data is:
+
+```
+command  addr  reads  distinct
+0xA651   57    33     17        steering angle
+0xC731   5B     6      3        climate fault memory (an occurrence counter inside the entry)
+```
+
+Nothing else. There is no engine poll loop in these 1525 frames.
+
+**The constraint worth knowing before planning around it.** The owner's instinct — that an ordinary
+ELM327 reads engine data over documented OBD-II PIDs, so this cable should too — is right about the
+car and blocked by the cable. Each vendor command carries a **fixed service prefix** and only the
+arguments come from us:
+
+```
+0x4769 + payload 00 10 20   ->   DS2  06 08 00 | 00 10 20
+0xD390 + payload 00 00 00 00 40  ->  KWP  23 | 00 00 00 00 40
+0xC731 + payload 01         ->   DS2  04 | 01
+```
+
+So a request is not something we compose; it is a command the cable already knows, with our bytes
+appended. There is no table in the executable mapping command numbers to services — the known ones
+are scattered through it as incidental byte matches and never cluster — so the mapping lives in the
+cable's own firmware. **We cannot invent a mode-01 OBD-II request.** We can only use a command that
+exists, and the only way to learn one is to watch the vendor software use it.
+
+Brute-forcing command numbers is not an option: `0xC751` sits in the same number space and is on the
+do-not-send list, and an unknown number could be anything.
+
+**So: one targeted capture, and it pays for two items at once.** The vendor software, the proxy
+attached, and nothing clicked except the live-data screens:
+
+1. Engine running, open the engine live-data screen, leave it for thirty seconds. That reveals the
+   command, and the idle rpm on screen gives the value to decode against.
+2. Then the steering-angle live screen, turning the wheel **lock to lock** this time, pausing at
+   full left, centre and full right.
+
+The second one matters because the vendor's screen shows the angle in degrees while the proxy
+records the bytes — so the calibration comes out of the same recording, with no notes to lose.
+
+**Cost.** Fifteen minutes with the laptop and the engine running.
+
+---
+
+## 3. Steering angle, live
+
+**Why this one and not the others.** It is the only live value in the capture with a varying input:
+the wheel was moved while recording. Everything else sat still.
 
 **What is established.** `0xA651` → DS2 `0B 01` on `0x57`, 33 readings, 17 distinct. The reply body
 is five bytes:
@@ -76,20 +131,28 @@ to `0x17F`, so **the second byte is the first one's complement** — the redunda
 steering sensor is required to have. `EF+70` sums to `0x15F`, short by exactly `0x20`, so one bit of
 that byte is a flag and not part of the number.
 
-**What is missing.** Which angle. One byte of range cannot hold ±720° at any useful resolution, so
-either the scale is coarse or there is a second field we have not identified — and the capture
-cannot settle it, because nobody wrote down where the wheel was.
+**What is missing, and a useful constraint on it.** The owner moved the wheel about **one or two
+centimetres at the rim** — enough to prove data was coming back, not enough to calibrate. The first
+byte covered `E3`…`FE` over that, a span of 27 counts.
 
-**Cost.** Five minutes at the car, then an hour of arithmetic.
+Two centimetres on a rim of roughly 38 cm is in the region of 6°, so the resolution is of the order
+of a fifth of a degree per count. That is a rough estimate from a remembered hand movement and
+should be treated as one — but it is enough for the conclusion that matters: **one byte at that
+resolution covers about ±28°, and the wheel turns far further than that.** There is a coarse field
+somewhere we have not identified. The `95` that never moved and the `D2`/`CF` that jittered are the
+candidates, and a two-centimetre sample cannot tell them apart.
 
-**How we would know it is right.** A controlled read: wheel centred, full left, full right, and
-centred again. Three known positions against three byte values determines the scale and the sign, and
-the return to centre catches drift. The vendor software displays the angle in degrees, so running it
-side by side would settle it outright.
+**Cost.** Folded into the capture in §2; alone, five minutes at the car and an hour of arithmetic.
+
+**How we would know it is right.** Lock to lock, pausing at full left, centre and full right. Three
+widely separated positions settle the scale, the sign and whether a coarse field exists, and the
+return to centre catches drift. Doing it with the vendor software running means its own display
+gives the degrees while the proxy records the bytes — the calibration then comes out of one file,
+with nothing to write down and lose.
 
 ---
 
-## 3. Service interval
+## 4. Service interval
 
 **Why.** The owner asked about the oil service early on, and it is a thing people actually want to
 see. Reading it is a read; resetting it is not, and stays out (see below).
@@ -115,7 +178,7 @@ enough to pin the mapping, and if it does not line up we have learnt that cheapl
 
 ---
 
-## 4. Confirm the two things built but never run
+## 5. Confirm the two things built but never run
 
 The unknown-module sweep and the shadow-memory unlock both went in without ever meeting a cable.
 
@@ -130,7 +193,7 @@ verifies code already shipped.
 
 ---
 
-## 5. Lighting module, live
+## 6. Lighting module, live
 
 `0x79DE` → DS2 `15 <page>` on `0xD0`, four pages of sixteen bytes with data and a tail of empty
 pages. Content unknown; the bytes look like packed per-circuit status.
@@ -148,7 +211,6 @@ Recorded so nobody spends an afternoon rediscovering them.
 
 | | |
 |---|---|
-| **Engine live values** | Not available by the routes the vendor tried. `0x41AA` (KWP `A2`) answers `7F A2 11` and `0x209C` (KWP `22 20 00`) answers `7F 22 11` — service not supported. The ME9.2 in this car simply does not serve them. The 314 `0xD390` calls in the capture are a flash dump at sequential addresses, not live variables. |
 | **Airbag live values** | `0x99C7` → DS2 `0B` returns `FF FF FF FF FF FD FF FF FF FF`, identical on all 23 reads. There is nothing in there. |
 | **Oil service reset** | DS2 `0C 12 01` — service `0C` is an actuator call, so a write. Out of scope by the owner's standing decision, and refused by the cluster anyway: it answers `A2`. The vendor software gets the same refusal. |
 | **Module coding** | Raised, looked at, dropped. The risk is not symmetric with reading and the vendor software has backup and restore buttons this app does not. |
@@ -156,14 +218,35 @@ Recorded so nobody spends an afternoon rediscovering them.
 
 ---
 
+## On capturing more
+
+The owner offered to dump every module's memory rather than the two or three that were done.
+**Not needed, and worth saying why rather than just declining:** those `.bin` and `.epb` files are
+module EEPROM and flash images, and nothing on this list reads from them. The fault text is in the
+executable, the live values are on the wire, and the service interval is a DS2 read. They are also
+the one class of artefact kept out of the repository, because a cluster image carries the stored
+odometer and the `_wr` files are write images for the one thing this project rules out. More of
+them would be effort spent producing something we cannot use and would not publish.
+
+**What is worth capturing is traffic, not memory** — and specifically the two live-data screens in
+§2. Fifteen minutes of that is worth more than every module dump combined, because it is the only
+way to learn a command the cable knows and we do not.
+
+A note on method, since it has cost this project before: capture *one thing at a time*. The 4.1 MB
+recording is excellent and it answered a great deal, but it was everything at once, so "the engine
+live screen was open" and "the proxy was attached" turned out not to overlap and nobody could tell
+until the file was analysed days later.
+
+---
+
 ## Suggested order
 
-1. **The ten-minute trip** (§4). It verifies shipped code and costs nothing.
-2. **Steering angle** (§2) on the same trip — three wheel positions, written down.
+1. **The ten-minute trip** (§5). It verifies shipped code and costs nothing.
+2. **The live-data capture** (§2), which also delivers §3. Needs the laptop and the engine running.
 3. **Fault descriptions** (§1). The largest piece, and the one that changes what the app is worth to
    somebody who is not us. No car needed, so it can happen between trips.
-4. **Service interval** (§3), verified against the dashboard or not shipped.
-5. **Lighting** (§5), if there is appetite.
+4. **Service interval** (§4), verified against the dashboard or not shipped.
+5. **Lighting** (§6), if there is appetite.
 
 ---
 
@@ -172,7 +255,6 @@ Recorded so nobody spends an afternoon rediscovering them.
 - Scan. The nine should read as before; the airbag tile should say the shadow memory is locked.
 - Press the airbag tile, read the explanation, and unlock it if you are willing. Expect `06/20`.
 - Press **Missing?**. Expect nothing found, and let it finish.
-- Turn the wheel full left, scan, then full right, scan, then centre, scan — and **write down which
-  is which**. Without that note the three readings are worth nothing, which is the mistake the first
-  capture already made.
+- Leave the steering angle for the laptop trip in §2 — our app does not decode it yet, so turning
+  the wheel for this app's benefit gains nothing the vendor software would not give better.
 - Share the log.
