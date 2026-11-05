@@ -8,7 +8,7 @@
 
 import { Ftdi } from './ftdi.js';
 import * as P from './protocol.js';
-import { scan, idleLevel, clearFaults } from './session.js';
+import { scan, idleLevel, clearFaults, unlockShadow, findUnknown } from './session.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { ftdi: null, stop: false, results: new Map() };
@@ -26,15 +26,17 @@ function tileFor(mod) {
   else if (mod.present && !mod.faults) el.classList.add('warn');
   else el.classList.add('ok');
 
-  // A store that did not answer is `null`; a store that answered zero is `{count: 0}`. The tile has
-  // to keep those apart, because showing "hibátlan" for a read that failed is the one wrong answer
-  // here - it is the mistake the first on-car run of this app actually made.
-  const shadowCount = mod.shadow ? mod.shadow.count : 0;
+  // Three states, not two. A store that did not answer is `null`; one that answered zero is
+  // `{count: 0}`; one that refused until it is unlocked is `{locked: true}`. Collapsing any of
+  // these into "no faults" is the one wrong answer a fault reader can give, and the first on-car
+  // run of this app gave it.
+  const shadowCount = mod.shadow && !mod.shadow.locked ? mod.shadow.count : 0;
+  const locked = !!(mod.shadow && mod.shadow.locked);
   const count = mod.faults ? mod.faults.count : null;
   const state_ = mod.busy ? 'olvasás…'
     : !mod.present ? (mod.reason || '—')
     : count === null ? 'nem olvasható'
-    : count === 0 && shadowCount === 0 ? 'hibátlan'
+    : count === 0 && shadowCount === 0 ? (locked ? 'árnyék zárolt' : 'hibátlan')
     : count === 0 ? `${shadowCount} árnyékhiba`
     : shadowCount === 0 ? `${count} hiba`
     : `${count} + ${shadowCount} hiba`;
@@ -113,6 +115,7 @@ function renderStore(body, mod, store, heading, missing) {
   body.appendChild(h);
 
   if (!store) { h.textContent = `${heading} — ${missing}`; return; }
+  if (store.locked) { h.textContent = `${heading} — zárolt`; return; }
   if (store.count === 0) { h.textContent = heading + ' — nincs tárolt hibakód'; return; }
 
   for (const e of store.entries) {
@@ -157,6 +160,27 @@ function showDetail(mod) {
   // out altogether, because a DS2 shadow memory is not a thing they have rather than one they lack.
   if (!mod.kwp) renderStore(body, mod, mod.shadow, 'Árnyékmemória', 'nincs ilyen tároló');
 
+  // The unlock is offered, explained and never taken automatically. The explanation is the point:
+  // the owner is being asked to authorise a command this project put on its own do-not-send list,
+  // and they can only answer that if they are told what is known and what is not.
+  if (mod.shadow && mod.shadow.locked) {
+    const box = document.createElement('div');
+    box.className = 'unlock';
+    box.innerHTML = `
+      <p>A vezérlő elutasítja az árnyékmemória olvasását, amíg fel nem oldod. A gyári szoftver
+      ilyenkor két parancsot küld: egy <code>90 FF FF</code>-et, majd egy <code>95</code>-öt,
+      ami <b>a modul saját azonosító bájtjait</b> adja vissza — nem új adatot.</p>
+      <p>Ez feloldásnak néz ki, nem írásnak: a válasz üres nyugta, és a modul azonosítója
+      utána is ugyanaz. <b>Bizonyítva nincs</b>, ezért az app magától soha nem küldi el.</p>
+      <button class="ghost" id="d-unlock">Feloldás és olvasás</button>
+      <span class="status" id="d-unlockmsg"></span>`;
+    body.appendChild(box);
+    // Shown even with no cable attached, so the explanation can be read before deciding; the
+    // button is simply inert until there is something to send it to.
+    $('d-unlock').disabled = !state.ftdi;
+    $('d-unlock').onclick = () => doUnlock(mod);
+  }
+
   if (mod.adfg) {
     const p = document.createElement('p');
     p.className = 'meta';
@@ -190,6 +214,30 @@ function showDetail(mod) {
  * remembered. Reporting "cleared" off the acknowledgement alone would be a lie the user only
  * discovers on the next scan.
  */
+/** Sends the unlock the owner just authorised, and shows whatever came back. */
+async function doUnlock(mod) {
+  const btn = $('d-unlock');
+  const msg = $('d-unlockmsg');
+  btn.disabled = true;
+  msg.textContent = 'Feloldás…';
+  try {
+    const result = await unlockShadow(state.ftdi, mod, trace);
+    if (!result.ok) {
+      msg.textContent = `Nem sikerült: ${result.reason}.`;
+      btn.disabled = false;
+      return;
+    }
+    const updated = { ...mod, shadow: result.shadow };
+    state.results.set(mod.addr, updated);
+    draw();
+    $('detail').close();
+    showDetail(updated);
+  } catch (e) {
+    msg.textContent = `Megszakadt: ${e.message}`;
+    btn.disabled = false;
+  }
+}
+
 async function doClear(mod) {
   const btn = $('d-clear');
   const msg = $('d-clearmsg');
@@ -272,10 +320,13 @@ function buildLog() {
       ['árnyékmemória', r.shadow, 'nincs ilyen tároló'],
     ]) {
       if (!store) { lines.push(`      ${name}: ${missing}`); continue; }
+      if (store.locked) { lines.push(`      ${name}: ZÁROLT`); continue; }
       lines.push(`      ${name}: ${store.count}`);
       for (const e of store.entries) {
         const text = P.faultText(r.addr, e.code);
-        lines.push(`        ${codeOf(e)} / ${paramOf(e)}    ${P.hex(e.raw).padEnd(24)}${text}`);
+        // Padded to the widest entry this car produces - fourteen bytes - because a short pad ran
+        // the description straight into the last byte of a ten-byte entry in the first real log.
+        lines.push(`        ${codeOf(e)} / ${paramOf(e)}    ${P.hex(e.raw).padEnd(44)}  ${text}`);
       }
     }
   }
@@ -317,6 +368,7 @@ async function connect() {
     state.ftdi = await Ftdi.request();
     await state.ftdi.configure({ baudRate: 19200, parity: 0, latencyMs: 1 });
     $('scan').disabled = false;
+    $('hunt').disabled = false;
     $('connect').textContent = 'Kábel csatlakoztatva';
     $('connect').disabled = true;
     setStatus('Kész az olvasásra.');
@@ -331,6 +383,7 @@ async function run() {
   $('trace').textContent = '';
   $('subtitle').textContent = 'Olvasás folyamatban…';
   $('scan').disabled = true;
+  $('hunt').disabled = true;
   $('stop').hidden = false;
   draw();
 
@@ -362,8 +415,109 @@ async function run() {
     setStatus(`Megszakadt: ${e.message}`);
   } finally {
     $('scan').disabled = false;
+    $('hunt').disabled = false;
     $('stop').hidden = true;
   }
+}
+
+/* ---------------------------------------------------- modules we do not know */
+
+const REPO = 'mogyiii/BMW-scanner-1.4.0-Android';
+
+/**
+ * Sweeps the addresses this software has no module for, and offers up whatever answers.
+ *
+ * The point is other people's cars. This E46 has nine modules; another has a gearbox controller, a
+ * navigation unit, a telephone. Their identity bytes are the whole of what is needed to add them,
+ * so a find is turned straight into a prefilled issue rather than into a feature request the
+ * finder has to write themselves.
+ */
+async function hunt() {
+  const panel = $('unknown');
+  const out = $('unknown-body');
+  panel.hidden = false;
+  out.textContent = '';
+  $('hunt').disabled = true;
+  $('stop').hidden = false;
+  state.stop = false;
+
+  const line = document.createElement('p');
+  line.className = 'status';
+  out.appendChild(line);
+
+  try {
+    const found = await findUnknown(state.ftdi, {
+      onTrace: trace,
+      shouldStop: () => state.stop,
+      onProgress: ({ done, total, addr, found: n }) => {
+        line.textContent = addr === undefined
+          ? `${total} cím végignézve, ${n} ismeretlen modul.`
+          : `0x${addr.toString(16).toUpperCase().padStart(2, '0')} — ${done}/${total}`
+            + (n ? `, eddig ${n} találat` : '');
+      },
+    });
+    state.unknown = found;
+
+    if (!found.length) {
+      const p = document.createElement('p');
+      p.textContent = 'Nincs olyan modul, amit az alkalmazás ne ismerne. Ez a kilenc van az autóban.';
+      out.appendChild(p);
+      return;
+    }
+
+    for (const f of found) {
+      const div = document.createElement('div');
+      div.className = 'fault';
+      const a = `0x${f.addr.toString(16).toUpperCase().padStart(2, '0')}`;
+      div.innerHTML = `<code>${a}</code>
+        ${f.id ? `<div class="desc">BMWTNR ${f.id.part} · HW ${f.id.hw}</div>` : ''}
+        <div class="raw">${P.hex(f.ident)}</div>`;
+      out.appendChild(div);
+    }
+
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.marginTop = '12px';
+    bar.innerHTML = '<button class="ghost" id="report">Beküldöm (GitHub)</button>'
+      + '<button class="ghost" id="report-copy">Vágólapra</button>'
+      + '<span class="status" id="reportmsg"></span>';
+    out.appendChild(bar);
+    $('report').onclick = () => window.open(issueUrl(found), '_blank', 'noopener');
+    $('report-copy').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(issueBody(found));
+        $('reportmsg').textContent = 'Vágólapra másolva.';
+      } catch (e) { $('reportmsg').textContent = 'A vágólap nem elérhető.'; }
+    };
+  } catch (e) {
+    line.textContent = `Megszakadt: ${e.message}`;
+  } finally {
+    $('hunt').disabled = false;
+    $('stop').hidden = true;
+  }
+}
+
+function issueBody(found) {
+  const lines = ['Az alkalmazás olyan modult talált, amit nem ismer.', ''];
+  lines.push('| cím | BMWTNR | HW | azonosító |');
+  lines.push('|---|---|---|---|');
+  for (const f of found) {
+    const a = `0x${f.addr.toString(16).toUpperCase().padStart(2, '0')}`;
+    lines.push(`| \`${a}\` | ${f.id ? f.id.part : '—'} | ${f.id ? f.id.hw : '—'} | \`${P.hex(f.ident)}\` |`);
+  }
+  lines.push('', '**Autó:** (típus, évjárat, motor — ha megosztanád)', '');
+  lines.push('<details><summary>Nyers forgalom</summary>', '', '```', buildLog(), '```', '</details>');
+  return lines.join(String.fromCharCode(10));
+}
+
+function issueUrl(found) {
+  const title = `Ismeretlen modul: ${found.map(
+    (f) => '0x' + f.addr.toString(16).toUpperCase().padStart(2, '0')).join(', ')}`;
+  // A long trace can overflow what a browser will put in a URL, so the body is capped and the
+  // "Vágólapra" button stays as the route for the whole thing.
+  const body = issueBody(found).slice(0, 5000);
+  return `https://github.com/${REPO}/issues/new`
+    + `?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 
 /* ------------------------------------------------------------------ start */
@@ -399,6 +553,7 @@ if (new URLSearchParams(location.search).has('demo')) {
     state.ftdi = f;
     await f.configure({ baudRate: 19200, parity: 0, latencyMs: 1 });
     $('scan').disabled = false;
+    $('hunt').disabled = false;
     $('connect').textContent = 'Kábel csatlakoztatva';
     $('connect').disabled = true;
     setStatus('Kész az olvasásra.');
@@ -407,6 +562,7 @@ if (new URLSearchParams(location.search).has('demo')) {
 
 $('connect').addEventListener('click', connect);
 $('scan').addEventListener('click', run);
+$('hunt').addEventListener('click', hunt);
 $('stop').addEventListener('click', () => { state.stop = true; setStatus('Leállítás a modul végén…'); });
 $('d-close').addEventListener('click', () => $('detail').close());
 $('share').addEventListener('click', shareLog);

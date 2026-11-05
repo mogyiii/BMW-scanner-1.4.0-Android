@@ -1,5 +1,35 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ✅ The ABS reads, and the shadow memory has a lock — 2026-11-05
+>
+> `log/teljesscan/Diagnosztikai napló (1).txt`, the app's own trace at the car. **The ABS at `0x29`
+> answers**, with all four codes and their descriptions, exactly as the capture predicted. The
+> steering angle sensor and the cluster now read zero, which is the clear from earlier in the day
+> holding. The owner also established a useful test: the cluster's fault can be cleared and brought
+> back by cycling the ignition, so the clear path can be exercised repeatedly without waiting for a
+> fault to reappear on its own.
+>
+> **The airbag module refused the shadow read with `A2`** where the vendor's software gets `A0 01`.
+> The difference is two commands the vendor sends immediately before it, every time: DS2 `90 FF FF`
+> (`0x44DB`), then DS2 `95` (`0xC751`) carrying four bytes **taken from the module's own identity
+> reply** — `A4 10 A0 86 91 27 55 10 32 09 00 16 02 08 32 74` ends `16 02 08 32`, and that is the
+> argument. Both answer with a bare acknowledgement and no data.
+>
+> `0xC751` is the command this project put on its do-not-send list, when all that was known about it
+> was that it carried service `0x95` with an argument. What is known now is narrower and points the
+> other way: the argument is not new data but the module's own bytes handed back, the reply carries
+> nothing, and **the airbag module's identity read today is byte-identical to the vendor's reading
+> of it after the vendor had sent this twelve times.** It behaves like an unlock, not a write.
+>
+> That is not proof, so the app does not decide. The shadow store reports a third state —
+> `{locked: true}`, distinct from both "empty" and "did not answer" — and the unlock sits behind a
+> button with the evidence written next to it. The owner authorises it or does not.
+>
+> Two smaller things the same log caught. The odometer was missing because the version at the car
+> predated it, not because it failed. And a ten-byte fault entry ran straight into its own
+> description in the log (`03 89AUC érzékelő`) because the column pad was set for three-byte
+> entries.
+
 > # ✅ The browser version read the car — 2026-11-05
 >
 > `log/teljesscan/Diagnosztikai napló.txt` is the app's own shared trace, taken from an Android phone

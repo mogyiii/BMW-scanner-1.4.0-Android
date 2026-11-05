@@ -244,6 +244,45 @@ export const MODULES = [
 ];
 
 /**
+ * Every address the vendor's software probes, in its order.
+ *
+ * Fifty-seven of them, and this car answers on nine. The rest are modules other E46s have and this
+ * one does not — a gearbox controller, a navigation unit, a telephone, and so on. They are listed
+ * so the app can go looking: a module that answers from an address not in `MODULES` is a module
+ * somebody else's car has and this software does not yet know how to present.
+ */
+export const PROBE_ADDRESSES = [
+  0x00, 0x08, 0x12, 0x13, 0x16, 0x22, 0x24, 0x28, 0x30, 0x32, 0x3b, 0x40,
+  0x44, 0x47, 0x48, 0x4a, 0x50, 0x51, 0x56, 0x57, 0x5a, 0x5b, 0x60, 0x65,
+  0x66, 0x68, 0x6a, 0x6b, 0x70, 0x72, 0x74, 0x7f, 0x80, 0x81, 0x86, 0x98,
+  0x9a, 0x9b, 0x9c, 0x9e, 0xa0, 0xa4, 0xa6, 0xa7, 0xac, 0xb0, 0xbb, 0xc0,
+  0xc2, 0xc8, 0xce, 0xd0, 0xda, 0xe8, 0xed, 0xf0, 0xf5,
+];
+
+/**
+ * The two commands the airbag module wants before it will serve its shadow memory.
+ *
+ * Measured, after the app read `A2` — a refusal — where the vendor's software read `A0 01`. The
+ * difference is these two, sent immediately before: DS2 `90 FF FF`, then DS2 `95` carrying four
+ * bytes **taken from the module's own identity reply** (`…00 16 02 08 32 74` → `16 02 08 32`).
+ * Both answer with a bare acknowledgement and no data.
+ *
+ * `0xC751` is in the Android app's `KNOWN_WRITES` list, put there when all that was known about it
+ * was that it carried service `0x95` with an argument. What is known now is narrower: the argument
+ * is not new data but the module's own bytes handed back, the reply carries nothing, and the
+ * airbag module's identity read today is byte-identical to the vendor's reading of it after the
+ * vendor had sent this twelve times. It behaves like an unlock. That is not the same as proof, so
+ * the app never sends it as part of a scan — only when the owner asks for it by name.
+ */
+export const SHADOW_UNLOCK = { PRIME: 0x44db, GRANT: 0xc751 };
+
+/** The four identity bytes `0xC751` has to carry: the last four before the checksum. */
+export function shadowUnlockArgument(ident) {
+  if (!ident || ident.length < 6) return null;
+  return ident.slice(-5, -1);
+}
+
+/**
  * Fault descriptions, per module, for the codes this car actually produced.
  *
  * Every line is the vendor software's own text for the same code on the same car, taken from its

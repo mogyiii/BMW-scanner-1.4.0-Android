@@ -1,0 +1,121 @@
+BMW E46 diagnosztika - 2026-11-05T14:17:41.570Z
+user agent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Mobile Safari/537.36
+
+0x00  ZKE  jelen van  (DS2)
+      ADFG 554220
+      azonosító 00 10 A0 86 91 43 67 11 02 50 10 10 02 19 20 FB
+      hibamemória: 0
+      árnyékmemória: 0
+0x12  DME  jelen van  (KWP2000)
+      VIN KP04220
+      azonosító 5A 80 00 00 07 51 95 92 10 0C 00 0F 30 4C 20 02 04 09 08 00 11 16 06 FF FF 02 03 0D 00 00 00
+      hibamemória: 1
+        27C3 / 64    27 C3 64                Olajszint-érzékelő hibás
+      árnyékmemória: nincs ilyen tároló
+0x29  ABS  jelen van  (KWP2000)
+      VIN AY31060KP04220
+      azonosító 5A 80 00 00 06 75 90 45 04 04 00 06 00 06 20 02 04 08 24 00 00 00 00 00 5D 00 00 00 00 00 00
+      hibamemória: 4
+        5E1F / A0    5E 1F A0                PT-CAN alvázszám hibás / vezérlő nincs inicializálva
+        5E16 / 20    5E 16 20                CAN időtúllépés — műszerfal
+        5E24 / A0    5E 24 A0                Nyomásérzékelő 1/2 nem plauzibilis
+        5E43 / A0    5E 43 A0                Kormányszög-érzékelő belső hiba
+      árnyékmemória: nincs ilyen tároló
+0x44  EWS  jelen van  (DS2)
+      ADFG FFFFFF
+      azonosító 44 10 A0 86 90 56 66 03 81 81 07 02 02 04 08 DA
+      hibamemória: 0
+      árnyékmemória: nincs ilyen tároló
+0x57  LEW  jelen van  (DS2)
+      ADFG 554220
+      azonosító 57 10 A0 06 75 99 09 04 01 30 60 12 02 02 EE AD
+      hibamemória: 0
+      árnyékmemória: nincs ilyen tároló
+0x5B  IHKA  jelen van  (DS2)
+      ADFG 004220
+      azonosító 5B 10 A0 86 91 68 82 25 15 32 0D 16 02 55 07 5F
+      hibamemória: 2
+        1C / 44    1C 44 0C 54 52 9F 08 11 03 89AUC érzékelő
+        1E / 42    1E 42 0A 54 52 9F 08 11 03 89AUC fűtés
+      árnyékmemória: nincs ilyen tároló
+0x80  IKE  jelen van  (DS2)
+      ADFG 840000
+      azonosító 80 12 A0 F6 91 12 86 12 06 53 12 14 02 26 23 06 87 06
+      hibamemória: 0
+      árnyékmemória: nincs ilyen tároló
+0xA4  SRS  jelen van  (DS2)
+      ADFG 000000
+      azonosító A4 10 A0 86 91 27 55 10 32 09 00 16 02 08 32 74
+      hibamemória: 0
+      árnyékmemória: nincs ilyen tároló
+0xD0  LCM  jelen van  (DS2)
+      ADFG 555500
+      azonosító D0 10 A0 06 91 98 25 15 31 30 00 09 02 09 30 6C
+      hibamemória: 0
+      árnyékmemória: nincs ilyen tároló
+
+--- nyers forgalom ---
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   00 04 00 04 00 10 A0 86 91 43 67 11 02 50 10 10 02 19 20 FB
+0x71A0   00 04 0E 0A 00 07 A0 55 42 20 90
+0xC731   00 05 04 00 01 00 07 A0 00 00 00 A7
+0x9E56   00 05 14 00 11 00 05 A0 00 A5
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   12 04 00 16
+0x06F3   B8 12 F1 02 1A 80 C3 B8 F1 12 1F 5A 80 00 00 07 51 95 92 10 0C 00 0F 30 4C 20 02 04 09 08 00 11 16 06 FF FF 02 03 0D 00 00 00 8A
+0x0DE7   B8 12 F1 02 1A 90 D3 B8 F1 12 09 5A 90 4B 50 30 34 32 32 30 B7
+0xC358   B8 12 F1 04 18 02 FF FF 45 B8 F1 12 05 58 01 27 C3 64 87
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   29 04 00 2D
+0x06F3   B8 29 F1 02 1A 80 F8 B8 F1 29 1F 5A 80 00 00 06 75 90 45 04 04 00 06 00 06 20 02 04 08 24 00 00 00 00 00 5D 00 00 00 00 00 00 54
+0x0DE7   B8 29 F1 02 1A 90 E8 B8 F1 29 10 5A 90 41 59 33 31 30 36 30 4B 50 30 34 32 32 30 B9
+0xC358   B8 29 F1 04 18 02 FF FF 7E B8 F1 29 0E 58 04 5E 1F A0 5E 16 20 5E 24 A0 5E 43 A0 DC
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   44 04 00 40 44 10 A0 86 90 56 66 03 81 81 07 02 02 04 08 DA
+0x71A0   44 04 0E 4E 44 07 A0 FF FF FF 1C
+0xC731   44 05 04 00 45 44 05 A0 00 E1
+0x9E56   44 05 14 00 55
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   57 04 00 53 57 10 A0 06 75 99 09 04 01 30 60 12 02 02 EE AD
+0x71A0   57 04 0E 5D 57 07 A0 55 42 20 C7
+0xC731   57 05 04 00 56 57 05 A0 00 F2
+0x9E56   57 05 14 00 46 57 04 FF AC
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   5B 04 00 5F 5B 10 A0 86 91 68 82 25 15 32 0D 16 02 55 07 5F
+0x71A0   5B 04 0E 51 5B 07 A0 00 42 20 9E
+0xC731   5B 05 04 00 5A 5B 05 A0 02 FC
+0xC731   5B 05 04 01 5B 5B 19 A0 02 1C 44 0C 54 52 9F 08 11 03 89 1E 42 0A 54 52 9F 08 11 03 89 E2
+0x9E56   5B 05 14 00 4A 5B 04 FF A0
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   80 04 00 84 80 12 A0 F6 91 12 86 12 06 53 12 14 02 26 23 06 87 06
+0x71A0   80 04 0E 8A 80 07 A0 84 00 00 A3
+0xC731   80 05 04 00 81 80 05 A0 00 25
+0x9E56   80 05 14 00 91 80 04 FF 7B
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   A4 04 00 A0 A4 10 A0 86 91 27 55 10 32 09 00 16 02 08 32 74
+0x71A0   A4 04 0E AE A4 07 A0 00 00 00 03
+0xC731   A4 05 04 00 A5 A4 05 A0 00 01
+0x9E56   A4 05 14 00 B5 A4 04 A2 02
+0xA77A   77 07 77 07 77 07 70
+0xB318   77 07 77 07 77 07 70 77 07 77 07 77 07 70
+0x83F0   7E 98 00 7E 98 00 7E 98 00 00 FE
+0x46F1   D0 04 00 D4 D0 10 A0 06 91 98 25 15 31 30 00 09 02 09 30 6C
+0x71A0   D0 04 0E DA D0 07 A0 55 55 00 77
+0xC731   D0 05 04 00 D1 D0 05 A0 00 75
+0x9E56   D0 05 14 00 C1

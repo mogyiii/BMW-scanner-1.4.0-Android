@@ -29,9 +29,16 @@
     --rule:  #d8e2ee;
     --paper: #fff;
 
-    --amber: #b35c00;
-    --amber-bright: #ffc24d;
+    --ok:    #3f7a56;
+    --amber: #9a5400;
+    --amber-bright: #e8a33c;
+    --amber-edge: #eedcbd;
     --red:   #a81e12;
+
+    /* The tile tint and its edge, kept as one knob so the whole grid can be warmed or cooled. */
+    --tile-tint: #e4eef9;
+    --tile-warm: #faeedb;
+    --tile-edge: #dbe6f2;
 
     --r: 14px;
   }
@@ -86,10 +93,11 @@
 
   button {
     font: inherit; font-weight: 600; letter-spacing: -.005em;
-    border: 0; border-radius: 11px; padding: 11px 17px; cursor: pointer;
-    color: #fff; background: linear-gradient(180deg, var(--blue-600), var(--blue-700));
-    box-shadow: 0 1px 1px rgba(10, 45, 94, .2), inset 0 1px 0 rgba(255, 255, 255, .22);
+    border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer;
+    color: #fff; background: var(--blue-700);
   }
+  button:hover { background: var(--blue-800); }
+  button.ghost:hover { background: var(--blue-050); }
   button:active { transform: translateY(1px); }
   button:disabled { opacity: .45; cursor: default; transform: none; }
   button.ghost {
@@ -103,54 +111,68 @@
 
   /* ---------------------------------------------------------------- tiles */
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); gap: 11px; }
+  /*
+   * Pale rather than saturated, and matte rather than glossy.
+   *
+   * The first version filled each tile with strong blue under a radial white highlight, which is
+   * the Web 2.0 button idiom and dates the page on sight. The blue is still here and still a
+   * gradient, but it is a tint the dark text sits on top of; the colour that carries meaning is
+   * the small amber accent on a module with faults, not the field behind it.
+   */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 
   .tile {
     position: relative; overflow: hidden;
-    border: 0; border-radius: var(--r); padding: 13px;
-    min-height: 122px; text-align: left; font: inherit; font-weight: 400;
+    border: 1px solid var(--tile-edge); border-radius: 16px; padding: 15px;
+    min-height: 128px; text-align: left; font: inherit; font-weight: 400;
     display: flex; flex-direction: column; gap: 2px;
-    color: #fff; background: linear-gradient(152deg, var(--blue-500) 0%, var(--blue-800) 100%);
-    box-shadow: 0 1px 2px rgba(10, 45, 94, .16), 0 8px 18px -8px rgba(10, 45, 94, .34);
-    cursor: default; transition: transform .14s ease, box-shadow .14s ease;
+    color: var(--blue-900);
+    background: linear-gradient(158deg, #fbfdff 0%, var(--tile-tint) 100%);
+    box-shadow: 0 1px 2px rgba(16, 48, 88, .05);
+    cursor: default; transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
   }
-  /* A soft highlight across the top left, so the gradient reads as a surface and not as a fill. */
-  .tile::before {
-    content: ""; position: absolute; inset: 0;
-    background: radial-gradient(130% 90% at 0% 0%, rgba(255,255,255,.26), rgba(255,255,255,0) 58%);
-    pointer-events: none;
-  }
-  .tile > * { position: relative; }
-
   .tile.clickable { cursor: pointer; }
-  .tile.clickable:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(10,45,94,.18), 0 14px 26px -10px rgba(10,45,94,.44); }
+  .tile.clickable:hover {
+    transform: translateY(-1px); border-color: var(--blue-300);
+    box-shadow: 0 2px 10px -2px rgba(16, 48, 88, .14);
+  }
 
-  .tile .ic { width: 27px; height: 27px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .95; }
-  .tile .name { font-weight: 700; font-size: 1.02rem; letter-spacing: -.015em; margin-top: 5px; }
-  .tile .label { color: rgba(255,255,255,.76); font-size: .78rem; line-height: 1.35; }
-  .tile .state { margin-top: auto; padding-top: 7px; font-size: .83rem; font-weight: 650; color: rgba(255,255,255,.9); }
+  .tile .ic {
+    width: 26px; height: 26px; color: var(--blue-600);
+    stroke: currentColor; fill: none; stroke-width: 1.55;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .tile .name { font-weight: 700; font-size: 1.02rem; letter-spacing: -.015em; margin-top: 9px; }
+  .tile .label { color: var(--dim); font-size: .78rem; line-height: 1.35; }
+  .tile .state {
+    margin-top: auto; padding-top: 9px; font-size: .74rem; font-weight: 700;
+    letter-spacing: .035em; text-transform: uppercase; color: var(--ok);
+  }
 
-  /* Faults keep the blue tile and announce themselves in amber, which is legible on it. */
-  .tile.warn { background: linear-gradient(152deg, var(--blue-600) 0%, var(--blue-900) 100%); }
-  .tile.warn .state { color: var(--amber-bright); }
+  /*
+   * A module with faults keeps the blue tile.
+   *
+   * An earlier version turned it amber, and with five of nine modules holding faults the grid came
+   * out more amber than blue - the alarm colour became the background. The fault now shows as a
+   * bar down the edge, an amber pictogram and an amber count, which is enough to find across a
+   * grid without the page shouting.
+   */
+  .tile.warn .ic { color: var(--amber); }
+  .tile.warn .state { color: var(--amber); }
   .tile.warn::after {
-    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
-    background: linear-gradient(90deg, var(--amber-bright), #ff9d2e);
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--amber-bright);
   }
 
-  /* Absent modules drop out of the blue entirely; they are not a result, they are an absence. */
-  .tile.off {
-    background: var(--paper); color: var(--faint);
-    border: 1px dashed var(--rule); box-shadow: none;
-  }
-  .tile.off::before { display: none; }
+  /* Absent modules are not a result, they are an absence. */
+  .tile.off { background: none; border-style: dashed; box-shadow: none; }
+  .tile.off .ic { color: var(--faint); }
   .tile.off .name { color: var(--dim); }
-  .tile.off .label, .tile.off .state { color: var(--faint); }
-  .tile.off .ic { opacity: .5; }
+  .tile.off .label, .tile.off .state { color: var(--faint); text-transform: none; letter-spacing: 0; font-weight: 500; }
 
-  .tile.busy .state { color: rgba(255,255,255,.72); }
+  .tile.busy .state { color: var(--faint); }
   .tile.busy { animation: breathe 1.5s ease-in-out infinite; }
-  @keyframes breathe { 50% { opacity: .68; } }
+  @keyframes breathe { 50% { opacity: .62; } }
 
   /* ---------------------------------------------------------------- dialog */
 
@@ -159,15 +181,37 @@
     max-width: 580px; width: calc(100% - 26px); padding: 0;
     box-shadow: 0 24px 60px -14px rgba(10, 45, 94, .5);
   }
-  dialog::backdrop { background: rgba(10, 45, 94, .42); backdrop-filter: blur(2px); }
+  dialog::backdrop { background: rgba(16, 48, 88, .34); backdrop-filter: blur(2px); }
   .dlg-head {
-    padding: 15px 17px; display: flex; gap: 12px; align-items: center;
-    color: #fff; background: linear-gradient(152deg, var(--blue-500), var(--blue-800));
+    padding: 16px 18px; display: flex; gap: 13px; align-items: center;
+    color: var(--blue-900); border-bottom: 1px solid var(--rule);
+    background: linear-gradient(158deg, #fbfdff, var(--tile-tint));
   }
-  .dlg-head .ic { width: 30px; height: 30px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .dlg-head .ic {
+    width: 29px; height: 29px; flex: none; color: var(--blue-600);
+    stroke: currentColor; fill: none; stroke-width: 1.55;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
   .dlg-head b { font-size: 1.04rem; letter-spacing: -.01em; }
-  .dlg-head .sub { color: rgba(255,255,255,.78); }
-  .dlg-body { padding: 15px 17px; }
+  .dlg-body { padding: 16px 18px; }
+
+  /* Panels: the unknown-module results, and the unlock explainer. */
+  .panel {
+    margin-top: 18px; padding: 15px 17px; border-radius: 16px;
+    background: var(--paper); border: 1px solid var(--rule);
+  }
+  .panel h2 { font-size: .95rem; margin: 0 0 10px; letter-spacing: -.01em; color: var(--blue-900); }
+  .panel-body { padding: 2px 0 6px; }
+  .unlock {
+    margin-top: 16px; padding: 13px 15px; border-radius: 12px;
+    background: var(--blue-050); border: 1px solid var(--blue-200); font-size: .85rem;
+  }
+  .unlock p { margin: 0 0 9px; }
+  .unlock code {
+    font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+    font-size: .92em; background: #fff; padding: 1px 4px; border-radius: 4px;
+    border: 1px solid var(--blue-200);
+  }
 
   .store {
     font-weight: 700; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase;
@@ -311,6 +355,30 @@
 <div class="grid" id="grid"></div>
 
 <p class="note" id="ignhint" hidden></p>
+
+<section class="panel" id="unknown" hidden>
+  <h2>Ismeretlen modulok</h2>
+  <div id="unknown-body"></div>
+</section>
+
+<details>
+  <summary>Más autó, más modulok</summary>
+  <div class="panel-body">
+    <p class="note" style="margin-top:0">
+      A fenti kilenc modul az, ami ebben az E46-ban van. Egy másik autóban lehet sebességváltó-,
+      navigációs vagy telefonvezérlő is — azokat ez a szoftver még nem ismeri, és meg sem próbálja
+      értelmezni. Ez a gomb végigkérdezi azt a 48 további címet, amit a gyári szoftver is szokott,
+      és megmutatja, melyik válaszolt.
+    </p>
+    <p class="note">
+      Ha találsz ilyet, egy gombbal beküldheted — a modul azonosító bájtjai pont azok, amik
+      hiányoznak ahhoz, hogy bekerüljön. Lassú, mert minden címhez új kapcsolat kell.
+    </p>
+    <div class="bar" style="margin-bottom:0">
+      <button class="ghost" id="hunt" disabled>Ismeretlen modulok keresése</button>
+    </div>
+  </div>
+</details>
 
 <details>
   <summary>Nyers forgalom</summary>

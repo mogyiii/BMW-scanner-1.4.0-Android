@@ -65,7 +65,13 @@ async function connect(ftdi, addr, onTrace) {
  */
 async function readFaultStore(session, mod, command, label) {
   const counts = P.splitReply(await session.send(P.buildFrame(command, mod.addr, [0]), label));
-  if (!counts || !P.isPositive(counts.answer)) return null;
+  if (!counts || !counts.answer) return null;
+  if (!P.isPositive(counts.answer)) {
+    // `A2` is a refusal with a reason rather than a module that has no such store. The airbag
+    // module gives it for the shadow memory until it is unlocked, and reporting that as "no shadow
+    // store" would quietly hide a fault the vendor's software can see.
+    return counts.answer[2] === 0xa2 ? { locked: true } : null;
+  }
   if (counts.answer[3] === 0) return { count: 0, entries: [] };
   const page = P.splitReply(await session.send(P.buildFrame(command, mod.addr, [1]), label));
   if (page && P.isPositive(page.answer)) return P.decodeFaults(page.answer);
@@ -178,6 +184,69 @@ export async function clearFaults(ftdi, mod, onTrace) {
   if (!reply || !reply.answer) return { ok: false, reason: 'nem válaszolt' };
   if (P.isPositive(reply.answer)) return { ok: true };
   return { ok: false, reason: `a vezérlő elutasította (0x${reply.answer[2].toString(16).toUpperCase()})` };
+}
+
+/**
+ * Unlocks a module's shadow memory and reads it, on the owner's explicit instruction.
+ *
+ * Never called by a scan. The two commands it sends are described in `protocol.js`; the short
+ * version is that one of them is on the project's do-not-send list, because when it went on that
+ * list nobody knew what it did, and what is known now is suggestive rather than conclusive. So it
+ * is behind a button, it is named in the trace, and nothing else in the app reaches it.
+ */
+export async function unlockShadow(ftdi, mod, onTrace) {
+  const session = await connect(ftdi, mod.addr, onTrace);
+  if (!session) return { ok: false, reason: 'nincs kapcsolat' };
+
+  const ident = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, mod.addr), '0x46F1'));
+  if (!ident || !P.isPositive(ident.answer)) return { ok: false, reason: 'nem válaszolt' };
+
+  const arg = P.shadowUnlockArgument(ident.answer);
+  if (!arg) return { ok: false, reason: 'az azonosító túl rövid a feloldáshoz' };
+
+  await session.send(P.buildFrame(P.SHADOW_UNLOCK.PRIME, mod.addr, [0xff, 0xff]), '0x44DB');
+  const grant = P.splitReply(
+    await session.send(P.buildFrame(P.SHADOW_UNLOCK.GRANT, mod.addr, arg), '0xC751'));
+  if (!grant || !P.isPositive(grant.answer)) {
+    return { ok: false, reason: 'a vezérlő nem fogadta el a feloldást' };
+  }
+
+  const shadow = await readFaultStore(session, mod, P.CMD.SHADOW, '0x9E56');
+  if (!shadow || shadow.locked) return { ok: false, reason: 'a feloldás után is zárolt' };
+  return { ok: true, shadow };
+}
+
+/**
+ * Looks for modules at addresses this software does not know about.
+ *
+ * The vendor probes fifty-seven addresses and this car answers on nine; another E46 will answer on
+ * a different set. Anything that identifies itself from an address not in `MODULES` is a module
+ * somebody else's car has, and its identity bytes are exactly what would be needed to add it. So
+ * the sweep collects them and hands them over verbatim rather than trying to guess what they are.
+ *
+ * It is a separate action because it is slow: every address needs its own connection.
+ */
+export async function findUnknown(ftdi, { onProgress, onTrace, shouldStop } = {}) {
+  const known = new Set(P.MODULES.map((m) => m.addr));
+  const todo = P.PROBE_ADDRESSES.filter((a) => !known.has(a));
+  const found = [];
+
+  for (let i = 0; i < todo.length; i++) {
+    if (shouldStop && shouldStop()) break;
+    const addr = todo[i];
+    if (onProgress) onProgress({ done: i, total: todo.length, addr, found: found.length });
+    try {
+      const session = await connect(ftdi, addr, onTrace);
+      if (!session) continue;
+      const label = `0x46F1 @${addr.toString(16).toUpperCase().padStart(2, '0')}`;
+      const ident = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, addr), label));
+      if (ident && P.isPositive(ident.answer)) {
+        found.push({ addr, ident: ident.answer, id: P.decodeIdent({ ident: ident.answer }) });
+      }
+    } catch (e) { /* one dead address must not end the sweep */ }
+  }
+  if (onProgress) onProgress({ done: todo.length, total: todo.length, found: found.length });
+  return found;
 }
 
 /**

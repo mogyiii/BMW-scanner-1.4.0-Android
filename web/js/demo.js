@@ -51,7 +51,10 @@ const RECORDED = {
   },
   0xa4: {
     ident: 'A4 10 A0 86 91 27 55 10 32 09 00 16 02 08 32 74',
-    faults: 'A4 05 A0 00 01', shadow: 'A4 07 A0 01 06 20 24', adfg: 'A4 07 A0 00 00 00 03',
+    // Two different true answers. The vendor's software reads `A0 01 06 20` here, because it
+    // sends the unlock first; this app reads `A2`, a refusal, because it does not. The
+    // refusal is what the replay shows, since it is what the app itself produces.
+    faults: 'A4 05 A0 00 01', shadow: 'A4 04 A2 02', adfg: 'A4 07 A0 00 00 00 03',
   },
   0xd0: {
     ident: 'D0 10 A0 06 91 98 25 15 31 30 00 09 02 09 30 6C',
@@ -61,6 +64,20 @@ const RECORDED = {
     faults: 'D0 05 A0 00 75', shadow: null, adfg: 'D0 07 A0 55 55 00 77',
   },
 };
+
+/**
+ * Turns one recorded fault-store reply into the same shape `session.js` produces.
+ *
+ * Including the refusal: the airbag module answers `A2` to the shadow read until it is unlocked,
+ * and the replay has to show that as locked rather than as empty, or it would be a replay of a
+ * different, friendlier car.
+ */
+function store(hex) {
+  if (!hex) return null;
+  const frame = b(hex);
+  if (!P.isPositive(frame)) return frame[2] === 0xa2 ? { locked: true } : null;
+  return P.decodeFaults(frame);
+}
 
 /** Runs the recorded replies through the real decoders, module by module. */
 export function replay() {
@@ -75,8 +92,8 @@ export function replay() {
       result.shadow = null;
       result.vin = rec.vin;
     } else {
-      result.faults = rec.faults ? P.decodeFaults(b(rec.faults)) : null;
-      result.shadow = rec.shadow ? P.decodeFaults(b(rec.shadow)) : null;
+      result.faults = store(rec.faults);
+      result.shadow = store(rec.shadow);
       result.adfg = b(rec.adfg).slice(3, -1);
       if (rec.mileage) result.mileage = P.decodeMileage(b(rec.mileage));
       if (rec.ikeVin) result.vin = P.decodeIkeVin(b(rec.ikeVin));
