@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f4c95">
 <meta name="color-scheme" content="light">
-<title>BMW E46 diagnosztika</title>
+<title>BMW diagnostics</title>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
   /*
@@ -63,11 +63,18 @@
   /* ---------------------------------------------------------------- header */
 
   header { margin-bottom: 16px; }
+  .titlebar { display: flex; align-items: center; gap: 12px; }
   h1 {
     font-size: 1.22rem; font-weight: 700; letter-spacing: -.02em; margin: 0;
-    color: var(--blue-900);
+    color: var(--blue-900); flex: 1;
   }
   .sub { color: var(--dim); font-size: .84rem; }
+
+  #lang {
+    font: inherit; font-size: .82rem; font-weight: 600; color: var(--blue-700);
+    background: var(--paper); border: 1px solid var(--blue-200); border-radius: 9px;
+    padding: 5px 8px; cursor: pointer;
+  }
 
   /*
    * The vitals come off the car, not out of the markup. The cluster is asked for its odometer and
@@ -96,8 +103,12 @@
     border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer;
     color: #fff; background: var(--blue-700);
   }
-  button:hover { background: var(--blue-800); }
-  button.ghost:hover { background: var(--blue-050); }
+  /*
+   * `:not(.tile)` is load-bearing. A tile is a <button>, so without it the generic hover painted
+   * every tile dark blue under its dark text and made the whole card unreadable on a desktop.
+   */
+  button:not(.tile):hover { background: var(--blue-800); }
+  button.ghost:not(.tile):hover { background: var(--blue-050); }
   button:active { transform: translateY(1px); }
   button:disabled { opacity: .45; cursor: default; transform: none; }
   button.ghost {
@@ -173,6 +184,24 @@
   .tile.busy .state { color: var(--faint); }
   .tile.busy { animation: breathe 1.5s ease-in-out infinite; }
   @keyframes breathe { 50% { opacity: .62; } }
+
+  /*
+   * The hunt for modules this software does not know sits in the grid as an empty slot.
+   *
+   * It was a button inside a collapsed `<details>` and nobody would have found it. As the last
+   * tile - dashed, like an absent module, because that is what it is looking for - it reads as
+   * part of the same list and invites the press.
+   */
+  .tile.hunt {
+    background: none; border-style: dashed; border-color: var(--blue-200); box-shadow: none;
+    color: var(--blue-700); cursor: pointer;
+  }
+  .tile.hunt .ic { color: var(--blue-500); }
+  .tile.hunt .label { color: var(--dim); }
+  .tile.hunt .state { color: var(--faint); text-transform: none; letter-spacing: 0; font-weight: 500; }
+  .tile.hunt:hover { border-color: var(--blue-500); background: var(--blue-050); }
+  .tile.hunt:disabled { opacity: .45; cursor: default; }
+  .tile.hunt:disabled:hover { border-color: var(--blue-200); background: none; }
 
   /* ---------------------------------------------------------------- dialog */
 
@@ -325,6 +354,12 @@
     <path d="M3.4 19.6h5"/>
     <circle cx="15.6" cy="13.9" r="5.2"/>
   </symbol>
+  <symbol id="ic-hunt" viewBox="0 0 24 24">
+    <circle cx="10.3" cy="10.3" r="6.6"/>
+    <path d="M15.2 15.2 20.6 20.6"/>
+    <path d="M10.3 7.5v5.6"/>
+    <path d="M7.5 10.3h5.6"/>
+  </symbol>
   <symbol id="ic-lcm" viewBox="0 0 24 24">
     <path d="M3.6 5.4h4.1a6.6 6.6 0 0 1 0 13.2H3.6z"/>
     <path d="M14.2 8.4h5.3"/>
@@ -334,22 +369,21 @@
 </svg>
 
 <header>
-  <h1>BMW E46 diagnosztika</h1>
-  <div class="sub" id="subtitle">DS2 és KWP2000 — csatlakoztasd a kábelt az olvasáshoz</div>
+  <div class="titlebar">
+    <h1 data-i18n="app.title"></h1>
+    <select id="lang" aria-label="Language"></select>
+  </div>
+  <div class="sub" id="subtitle" data-i18n="app.subtitle"></div>
   <dl class="vitals" id="vitals"></dl>
 </header>
 
-<div class="warnbox" id="unsupported" hidden>
-  Ez a böngésző nem tud USB-eszközhöz nyúlni. Androidon vagy asztali gépen <b>Chrome</b> vagy
-  <b>Edge</b> kell hozzá. iOS-en a Safari nem támogatja, és natív alkalmazásból sem érhető el —
-  iPhone-on ez sajnos nem fog működni.
-</div>
+<div class="warnbox" id="unsupported" data-i18n="note.unsupported" data-i18n-html hidden></div>
 
 <div class="bar">
-  <button id="connect">Kábel csatlakoztatása</button>
-  <button id="scan" class="ghost" disabled>Olvasás</button>
-  <button id="stop" class="ghost" hidden>Leállítás</button>
-  <span class="status" id="status">Nincs csatlakoztatva.</span>
+  <button id="connect" data-i18n="btn.connect"></button>
+  <button id="scan" class="ghost" data-i18n="btn.scan" disabled></button>
+  <button id="stop" class="ghost" data-i18n="btn.stop" hidden></button>
+  <span class="status" id="status" data-i18n="status.idle"></span>
 </div>
 
 <div class="grid" id="grid"></div>
@@ -357,50 +391,23 @@
 <p class="note" id="ignhint" hidden></p>
 
 <section class="panel" id="unknown" hidden>
-  <h2>Ismeretlen modulok</h2>
+  <h2 data-i18n="hunt.title"></h2>
+  <p class="note" style="margin-top:0" data-i18n="hunt.intro2"></p>
   <div id="unknown-body"></div>
 </section>
 
 <details>
-  <summary>Más autó, más modulok</summary>
-  <div class="panel-body">
-    <p class="note" style="margin-top:0">
-      A fenti kilenc modul az, ami ebben az E46-ban van. Egy másik autóban lehet sebességváltó-,
-      navigációs vagy telefonvezérlő is — azokat ez a szoftver még nem ismeri, és meg sem próbálja
-      értelmezni. Ez a gomb végigkérdezi azt a 48 további címet, amit a gyári szoftver is szokott,
-      és megmutatja, melyik válaszolt.
-    </p>
-    <p class="note">
-      Ha találsz ilyet, egy gombbal beküldheted — a modul azonosító bájtjai pont azok, amik
-      hiányoznak ahhoz, hogy bekerüljön. Lassú, mert minden címhez új kapcsolat kell.
-    </p>
-    <div class="bar" style="margin-bottom:0">
-      <button class="ghost" id="hunt" disabled>Ismeretlen modulok keresése</button>
-    </div>
-  </div>
-</details>
-
-<details>
-  <summary>Nyers forgalom</summary>
+  <summary data-i18n="raw.summary"></summary>
   <pre id="trace"></pre>
   <div class="bar" style="margin-top:11px">
-    <button class="ghost" id="share">Napló megosztása</button>
-    <button class="ghost" id="copy">Vágólapra</button>
+    <button class="ghost" id="share" data-i18n="btn.share"></button>
+    <button class="ghost" id="copy" data-i18n="btn.copy"></button>
     <span class="status" id="savedmsg"></span>
   </div>
 </details>
 
-<p class="note">
-  A hibakódok mellett mindig ott a nyers bájtsor. A kiolvasás mind a kilenc modulon igazolva van a
-  gyári szoftver saját kimenetéhez, ugyanezen az autón — de a <b>szöveges leírás</b> csak azokhoz a
-  kódokhoz van meg, amiket ez az autó eddig valóban produkált. Ismeretlen kód mellett nincs leírás:
-  inkább semmi, mint egy hihetően hangzó találgatás.
-</p>
-<p class="note">
-  A törlés csak a <i>tárolt</i> listát üríti. Ha egy hiba éppen fennáll, a vezérlő elfogadja a
-  törlést, majd a következő olvasásnál ugyanazt a kódot jelenti — az alkalmazás ezért mindig
-  visszaolvas, és megmondja, mi jött vissza.
-</p>
+<p class="note" data-i18n="note.evidence" data-i18n-html></p>
+<p class="note" data-i18n="note.clear" data-i18n-html></p>
 
 <dialog id="detail">
   <div class="dlg-head">
@@ -409,8 +416,8 @@
   </div>
   <div class="dlg-body" id="d-body"></div>
   <div class="dlg-foot">
-    <button class="ghost" id="d-clear" hidden>Hibák törlése</button>
-    <button class="ghost" id="d-close">Bezár</button>
+    <button class="ghost" id="d-clear" data-i18n="btn.clear" hidden></button>
+    <button class="ghost" id="d-close" data-i18n="btn.close"></button>
     <span class="status" id="d-clearmsg"></span>
   </div>
 </dialog>

@@ -230,17 +230,20 @@ export function decodeFaults(frame) {
  * `icon` is the id of an SVG `<symbol>` in `index.html`, not a character. Emoji were used at first
  * and look like filler; a symbol id means a pictogram can be replaced by editing one `<symbol>`
  * without touching any code.
+ *
+ * The human-readable label is not here. It is a translated string keyed on `icon` in `i18n.js`,
+ * because the module abbreviations are the same in every language and their descriptions are not.
  */
 export const MODULES = [
-  { addr: 0x00, name: 'ZKE',   label: 'Karosszéria',     icon: 'zke' },
-  { addr: 0x12, name: 'DME',   label: 'Motorvezérlő',    icon: 'dme',  kwp: true },
-  { addr: 0x29, name: 'ABS',   label: 'ABS / DSC',       icon: 'abs',  kwp: true },
-  { addr: 0x44, name: 'EWS',   label: 'Indításgátló',    icon: 'ews' },
-  { addr: 0x57, name: 'LEW',   label: 'Kormányszög',     icon: 'lew' },
-  { addr: 0x5b, name: 'IHKA',  label: 'Klíma',           icon: 'ihka' },
-  { addr: 0x80, name: 'IKE',   label: 'Műszerfal',       icon: 'ike' },
-  { addr: 0xa4, name: 'SRS',   label: 'Légzsák',         icon: 'srs' },
-  { addr: 0xd0, name: 'LCM',   label: 'Világítás',       icon: 'lcm' },
+  { addr: 0x00, name: 'ZKE',   icon: 'zke' },
+  { addr: 0x12, name: 'DME',   icon: 'dme',  kwp: true },
+  { addr: 0x29, name: 'ABS',   icon: 'abs',  kwp: true },
+  { addr: 0x44, name: 'EWS',   icon: 'ews' },
+  { addr: 0x57, name: 'LEW',   icon: 'lew' },
+  { addr: 0x5b, name: 'IHKA',  icon: 'ihka' },
+  { addr: 0x80, name: 'IKE',   icon: 'ike' },
+  { addr: 0xa4, name: 'SRS',   icon: 'srs' },
+  { addr: 0xd0, name: 'LCM',   icon: 'lcm' },
 ];
 
 /**
@@ -293,27 +296,42 @@ export function shadowUnlockArgument(ident) {
  * at all, and the raw bytes stay on screen either way.
  */
 export const FAULT_TEXT = {
-  0x12: { 0x27c3: 'Olajszint-érzékelő hibás' },
+  0x12: {
+    0x27c3: { en: 'Failure oil status sensor', hu: 'Olajszint-érzékelő hibás' },
+  },
   0x29: {
-    0x5e1f: 'PT-CAN alvázszám hibás / vezérlő nincs inicializálva',
-    0x5e16: 'CAN időtúllépés — műszerfal',
-    0x5e24: 'Nyomásérzékelő 1/2 nem plauzibilis',
-    0x5e43: 'Kormányszög-érzékelő belső hiba',
+    0x5e1f: { en: 'PT-CAN chassis number wrong / ECU not initialized',
+              hu: 'PT-CAN alvázszám hibás / vezérlő nincs inicializálva' },
+    0x5e16: { en: 'CAN timeout, instrument cluster', hu: 'CAN időtúllépés — műszerfal' },
+    0x5e24: { en: 'Pressure sensor 1/2 not plausible', hu: 'Nyomásérzékelő 1/2 nem plauzibilis' },
+    0x5e43: { en: 'Steering angle sensor, internal', hu: 'Kormányszög-érzékelő belső hiba' },
   },
   0x57: {
-    0x0b: 'Hibás LWS-azonosító',
-    0x09: 'Nincs CAN üzenet (ASC)',
-    0x04: '90 fokos eltérés túl nagy (beállítási művelet)',
+    0x0b: { en: 'Wrong LWS-ID', hu: 'Hibás LWS-azonosító' },
+    0x09: { en: 'No CAN message (ASC)', hu: 'Nincs CAN üzenet (ASC)' },
+    0x04: { en: '90 degrees difference of wiper too large (adjustment operation)',
+            hu: '90 fokos eltérés túl nagy (beállítási művelet)' },
   },
-  0x5b: { 0x1c: 'AUC érzékelő', 0x1e: 'AUC fűtés' },
-  0x80: { 0xbe: 'Adateltérés a központi világításmodulhoz (LCM)' },
-  0xa4: { 0x06: 'Oldallégzsák, jobb első ajtó — túl kis ellenállás' },
+  0x5b: {
+    0x1c: { en: 'AUC sensor', hu: 'AUC érzékelő' },
+    0x1e: { en: 'AUC heating', hu: 'AUC fűtés' },
+  },
+  0x80: {
+    0xbe: { en: 'Data-filing difference to central light module (LCM)',
+            hu: 'Adateltérés a központi világításmodulhoz (LCM)' },
+  },
+  0xa4: {
+    0x06: { en: 'Side airbag, front right door, resistance too low',
+            hu: 'Oldallégzsák, jobb első ajtó — túl kis ellenállás' },
+  },
 };
 
 /** The description for a code on a module, or an empty string when we do not have one. */
-export function faultText(addr, code) {
+export function faultText(addr, code, lang = 'en') {
   const perModule = FAULT_TEXT[addr];
-  return (perModule && perModule[code]) || '';
+  const entry = perModule && perModule[code];
+  if (!entry) return '';
+  return entry[lang] || entry.en || '';
 }
 
 /**

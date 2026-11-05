@@ -1,11 +1,11 @@
 {
-  "name": "BMW E46 diagnosztika",
-  "short_name": "E46 diag",
+  "name": "BMW diagnostics",
+  "short_name": "BMW diag",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0d1117",
-  "theme_color": "#0d1117",
+  "background_color": "#f7fafd",
+  "theme_color": "#0f4c95",
   "icons": [
     {
       "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%230b5cad'/%3E%3Ctext x='96' y='128' font-size='96' text-anchor='middle' fill='white' font-family='sans-serif'%3E%E2%9A%99%3C/text%3E%3C/svg%3E",

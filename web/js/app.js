@@ -9,9 +9,13 @@
 import { Ftdi } from './ftdi.js';
 import * as P from './protocol.js';
 import { scan, idleLevel, clearFaults, unlockShadow, findUnknown } from './session.js';
+import { t, tn, lang, setLang, applyStatic, LANGUAGES } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
-const state = { ftdi: null, stop: false, results: new Map() };
+const state = { ftdi: null, stop: false, busy: false, results: new Map() };
+
+/** Thousands separators follow the chosen language, not the browser's. */
+const fmt = (n) => n.toLocaleString(lang === 'hu' ? 'hu-HU' : 'en-GB');
 
 /* ------------------------------------------------------------------ tiles */
 
@@ -33,18 +37,18 @@ function tileFor(mod) {
   const shadowCount = mod.shadow && !mod.shadow.locked ? mod.shadow.count : 0;
   const locked = !!(mod.shadow && mod.shadow.locked);
   const count = mod.faults ? mod.faults.count : null;
-  const state_ = mod.busy ? 'olvasás…'
+  const state_ = mod.busy ? t('tile.busy')
     : !mod.present ? (mod.reason || '—')
-    : count === null ? 'nem olvasható'
-    : count === 0 && shadowCount === 0 ? (locked ? 'árnyék zárolt' : 'hibátlan')
-    : count === 0 ? `${shadowCount} árnyékhiba`
-    : shadowCount === 0 ? `${count} hiba`
-    : `${count} + ${shadowCount} hiba`;
+    : count === null ? t('tile.unreadable')
+    : count === 0 && shadowCount === 0 ? t(locked ? 'tile.shadowlocked' : 'tile.clean')
+    : count === 0 ? tn('tile.shadowfaults', shadowCount)
+    : shadowCount === 0 ? tn('tile.faults', count)
+    : t('tile.both', { n: count, m: shadowCount });
 
   el.innerHTML = `
     <svg class="ic" aria-hidden="true"><use href="#ic-${mod.icon}"/></svg>
     <div class="name">${mod.name}</div>
-    <div class="label">${mod.label}</div>
+    <div class="label">${t('mod.' + mod.icon)}</div>
     <div class="state">${state_}</div>`;
 
   if (mod.present) {
@@ -54,13 +58,40 @@ function tileFor(mod) {
   return el;
 }
 
+/**
+ * The last tile in the grid: go looking for modules this software has no tile for.
+ *
+ * It lived in a collapsed `<details>` under the grid and would have gone unnoticed. Dashed, like
+ * an absent module, because an absent module is exactly what it is hunting for.
+ */
+function huntTile() {
+  const el = document.createElement('button');
+  el.className = 'tile hunt';
+  el.disabled = !state.ftdi || state.busy;
+  el.innerHTML = `
+    <svg class="ic" aria-hidden="true"><use href="#ic-hunt"/></svg>
+    <div class="name">${t('tile.hunt.name')}</div>
+    <div class="label">${t('tile.hunt.label')}</div>
+    <div class="state">${t('tile.hunt.state')}</div>`;
+  el.addEventListener('click', hunt);
+  return el;
+}
+
 function draw() {
   const grid = $('grid');
   grid.textContent = '';
   for (const mod of P.MODULES) {
     grid.appendChild(tileFor(state.results.get(mod.addr) || { ...mod, present: false, reason: '' }));
   }
+  grid.appendChild(huntTile());
   drawVitals();
+}
+
+/** Redraws everything that carries words in it after the language changes. */
+function relabel() {
+  applyStatic();
+  draw();
+  if ($('detail').open) $('detail').close();
 }
 
 /**
@@ -85,14 +116,14 @@ function drawVitals() {
     wrap.innerHTML = `<dt>${term}</dt><dd>${value}</dd>`;
     dl.appendChild(wrap);
   };
-  add('alvázszám', vin);
-  add('kilométeróra', km ? `${km.toLocaleString('hu-HU')} km` : '');
-  add('vezérlőegység', results.length ? `${results.length} / ${P.MODULES.length}` : '');
+  add(t('vital.vin'), vin);
+  add(t('vital.km'), km ? `${fmt(km)} km` : '');
+  add(t('vital.modules'), results.length ? `${results.length} / ${P.MODULES.length}` : '');
 
   if (results.length) {
     const kwp = results.filter((r) => r.kwp).length;
     $('subtitle').textContent =
-      `${results.length - kwp} modul DS2-n, ${kwp} KWP2000-en — a kiolvasott adatokból`;
+      t('app.subtitle.done', { ds2: results.length - kwp, kwp });
   }
 }
 
@@ -115,13 +146,13 @@ function renderStore(body, mod, store, heading, missing) {
   body.appendChild(h);
 
   if (!store) { h.textContent = `${heading} — ${missing}`; return; }
-  if (store.locked) { h.textContent = `${heading} — zárolt`; return; }
-  if (store.count === 0) { h.textContent = heading + ' — nincs tárolt hibakód'; return; }
+  if (store.locked) { h.textContent = `${heading} — ${t('store.locked')}`; return; }
+  if (store.count === 0) { h.textContent = `${heading} — ${t('store.empty')}`; return; }
 
   for (const e of store.entries) {
     const div = document.createElement('div');
     div.className = 'fault';
-    const text = P.faultText(mod.addr, e.code);
+    const text = P.faultText(mod.addr, e.code, lang);
     div.innerHTML = `<code>${codeOf(e)} / ${paramOf(e)}</code>
       ${text ? `<div class="desc">${text}</div>` : ''}
       <div class="raw">${P.hex(e.raw)}</div>`;
@@ -129,7 +160,7 @@ function renderStore(body, mod, store, heading, missing) {
   }
   if (store.entries.length === 0) {
     const p = document.createElement('p');
-    p.textContent = `${store.count} hiba, de a bejegyzések nem voltak olvashatók.`;
+    p.textContent = t('store.unreadable', { n: store.count });
     body.appendChild(p);
   }
 }
@@ -137,7 +168,7 @@ function renderStore(body, mod, store, heading, missing) {
 function showDetail(mod) {
   $('d-icon').setAttribute('href', `#ic-${mod.icon}`);
   $('d-name').textContent = `${mod.name} · 0x${mod.addr.toString(16).toUpperCase().padStart(2, '0')}`;
-  $('d-label').textContent = mod.label + (mod.kwp ? ' · KWP2000' : ' · DS2');
+  $('d-label').textContent = t('mod.' + mod.icon) + (mod.kwp ? ' · KWP2000' : ' · DS2');
 
   const body = $('d-body');
   body.textContent = '';
@@ -145,8 +176,8 @@ function showDetail(mod) {
   const ident = P.decodeIdent(mod);
   const facts = [];
   if (ident) facts.push(`<b>${ident.part}</b> · HW ${ident.hw}`);
-  if (mod.vin) facts.push(`alvázszám <b>${mod.vin}</b>`);
-  if (mod.mileage) facts.push(`<b>${mod.mileage.toLocaleString('hu-HU')} km</b>`);
+  if (mod.vin) facts.push(`${t('vital.vin')} <b>${mod.vin}</b>`);
+  if (mod.mileage) facts.push(`<b>${fmt(mod.mileage)} km</b>`);
   if (facts.length) {
     const p = document.createElement('p');
     p.style.margin = '0 0 4px';
@@ -154,11 +185,11 @@ function showDetail(mod) {
     body.appendChild(p);
   }
 
-  renderStore(body, mod, mod.faults, 'Hibamemória', 'nem válaszolt, a tartalma ismeretlen');
+  renderStore(body, mod, mod.faults, t('store.live'), t('store.livemissing'));
   // Only three modules on this car keep a shadow store; the rest refuse the command, and saying so
   // is better than silence - a missing section reads as "we did not look". KWP modules are left
   // out altogether, because a DS2 shadow memory is not a thing they have rather than one they lack.
-  if (!mod.kwp) renderStore(body, mod, mod.shadow, 'Árnyékmemória', 'nincs ilyen tároló');
+  if (!mod.kwp) renderStore(body, mod, mod.shadow, t('store.shadow'), t('store.shadowmissing'));
 
   // The unlock is offered, explained and never taken automatically. The explanation is the point:
   // the owner is being asked to authorise a command this project put on its own do-not-send list,
@@ -167,12 +198,9 @@ function showDetail(mod) {
     const box = document.createElement('div');
     box.className = 'unlock';
     box.innerHTML = `
-      <p>A vezérlő elutasítja az árnyékmemória olvasását, amíg fel nem oldod. A gyári szoftver
-      ilyenkor két parancsot küld: egy <code>90 FF FF</code>-et, majd egy <code>95</code>-öt,
-      ami <b>a modul saját azonosító bájtjait</b> adja vissza — nem új adatot.</p>
-      <p>Ez feloldásnak néz ki, nem írásnak: a válasz üres nyugta, és a modul azonosítója
-      utána is ugyanaz. <b>Bizonyítva nincs</b>, ezért az app magától soha nem küldi el.</p>
-      <button class="ghost" id="d-unlock">Feloldás és olvasás</button>
+      <p>${t('unlock.why1')}</p>
+      <p>${t('unlock.why2')}</p>
+      <button class="ghost" id="d-unlock">${t('btn.unlock')}</button>
       <span class="status" id="d-unlockmsg"></span>`;
     body.appendChild(box);
     // Shown even with no cable attached, so the explanation can be read before deciding; the
@@ -190,7 +218,7 @@ function showDetail(mod) {
   if (mod.ident) {
     const p = document.createElement('p');
     p.className = 'meta';
-    p.textContent = 'azonosító: ' + P.hex(mod.ident);
+    p.textContent = 'ident: ' + P.hex(mod.ident);
     body.appendChild(p);
   }
 
@@ -198,7 +226,7 @@ function showDetail(mod) {
   const hasAny = (mod.faults && mod.faults.count > 0) || (mod.shadow && mod.shadow.count > 0);
   clear.hidden = !hasAny || !state.ftdi;   // no cable, nothing to clear - including in a replay
   clear.disabled = false;
-  clear.textContent = 'Hibák törlése';
+  clear.textContent = t('btn.clear');
   clear.onclick = () => doClear(mod);
   $('d-clearmsg').textContent = '';
 
@@ -219,11 +247,11 @@ async function doUnlock(mod) {
   const btn = $('d-unlock');
   const msg = $('d-unlockmsg');
   btn.disabled = true;
-  msg.textContent = 'Feloldás…';
+  msg.textContent = t('unlock.running');
   try {
     const result = await unlockShadow(state.ftdi, mod, trace);
     if (!result.ok) {
-      msg.textContent = `Nem sikerült: ${result.reason}.`;
+      msg.textContent = t('clear.refused', { reason: result.reason });
       btn.disabled = false;
       return;
     }
@@ -233,7 +261,7 @@ async function doUnlock(mod) {
     $('detail').close();
     showDetail(updated);
   } catch (e) {
-    msg.textContent = `Megszakadt: ${e.message}`;
+    msg.textContent = t('status.aborted', { msg: e.message });
     btn.disabled = false;
   }
 }
@@ -242,17 +270,17 @@ async function doClear(mod) {
   const btn = $('d-clear');
   const msg = $('d-clearmsg');
   btn.disabled = true;
-  btn.textContent = 'Törlés…';
+  btn.textContent = t('btn.clearing');
   msg.textContent = '';
   try {
     const result = await clearFaults(state.ftdi, mod, trace);
     if (!result.ok) {
-      msg.textContent = `Nem sikerült: ${result.reason}.`;
+      msg.textContent = t('clear.refused', { reason: result.reason });
       btn.disabled = false;
-      btn.textContent = 'Hibák törlése';
+      btn.textContent = t('btn.clear');
       return;
     }
-    msg.textContent = 'Törölve. Visszaolvasás…';
+    msg.textContent = t('clear.readback');
     const fresh = await scan(state.ftdi, { onTrace: trace, only: [mod.addr] });
     if (fresh[0]) {
       state.results.set(mod.addr, fresh[0]);
@@ -262,21 +290,17 @@ async function doClear(mod) {
       // If the read-back itself failed we know only that the clear was accepted, and saying "the
       // memory is empty" off the back of an unanswered read would be the worst sentence here.
       if (!fresh[0].faults) {
-        $('d-clearmsg').textContent =
-          'A vezérlő elfogadta a törlést, de a visszaolvasás nem válaszolt — hogy mi maradt benne, '
-          + 'arról ez a futás nem mond semmit. Olvasd újra.';
+        $('d-clearmsg').textContent = t('clear.blind');
         return;
       }
       const left = fresh[0].faults.count + (fresh[0].shadow ? fresh[0].shadow.count : 0);
       $('d-clearmsg').textContent = left === 0
-        ? 'Törölve, a memória üres.'
-        : `A vezérlő elfogadta a törlést, de ${left} hiba azonnal visszajött — ezek élő hibák, `
-          + 'nem csak tárolt bejegyzések.';
+        ? t('clear.empty') : tn('clear.live', left);
     }
   } catch (e) {
-    msg.textContent = `Megszakadt: ${e.message}`;
+    msg.textContent = t('status.aborted', { msg: e.message });
     btn.disabled = false;
-    btn.textContent = 'Hibák törlése';
+    btn.textContent = t('btn.clear');
   }
 }
 
@@ -300,30 +324,30 @@ function setStatus(text) { $('status').textContent = text; }
  */
 function buildLog() {
   const lines = [];
-  lines.push(`BMW E46 diagnosztika - ${new Date().toISOString()}`);
+  lines.push(`${t('log.title')} - ${new Date().toISOString()}`);
   lines.push(`user agent: ${navigator.userAgent}`);
   lines.push('');
   for (const mod of P.MODULES) {
     const r = state.results.get(mod.addr);
     if (!r) continue;
     const head = `0x${mod.addr.toString(16).toUpperCase().padStart(2, '0')}  ${mod.name}`;
-    if (!r.present) { lines.push(`${head}  -  ${r.reason || 'nem válaszolt'}`); continue; }
-    lines.push(`${head}  jelen van  (${r.kwp ? 'KWP2000' : 'DS2'})`);
+    if (!r.present) { lines.push(`${head}  -  ${r.reason || t('reason.silent')}`); continue; }
+    lines.push(`${head}  ${t('log.present')}  (${r.kwp ? 'KWP2000' : 'DS2'})`);
     const ident = P.decodeIdent(r);
     if (ident) lines.push(`      BMWTNR ${ident.part}   HW ${ident.hw}`);
     if (r.vin) lines.push(`      VIN ${r.vin}`);
-    if (r.mileage) lines.push(`      kilométeróra ${r.mileage} km`);
+    if (r.mileage) lines.push(`      ${t('log.km')} ${r.mileage} km`);
     if (r.adfg) lines.push(`      ADFG ${P.hex(r.adfg).replace(/ /g, '')}`);
-    if (r.ident) lines.push(`      azonosító ${P.hex(r.ident)}`);
+    if (r.ident) lines.push(`      ident ${P.hex(r.ident)}`);
     for (const [name, store, missing] of [
-      ['hibamemória', r.faults, 'NEM VÁLASZOLT'],
-      ['árnyékmemória', r.shadow, 'nincs ilyen tároló'],
+      [t('log.live'), r.faults, t('log.unanswered')],
+      [t('log.shadow'), r.shadow, t('log.nostore')],
     ]) {
       if (!store) { lines.push(`      ${name}: ${missing}`); continue; }
-      if (store.locked) { lines.push(`      ${name}: ZÁROLT`); continue; }
+      if (store.locked) { lines.push(`      ${name}: ${t('log.locked')}`); continue; }
       lines.push(`      ${name}: ${store.count}`);
       for (const e of store.entries) {
-        const text = P.faultText(r.addr, e.code);
+        const text = P.faultText(r.addr, e.code, lang);
         // Padded to the widest entry this car produces - fourteen bytes - because a short pad ran
         // the description straight into the last byte of a ten-byte entry in the first real log.
         lines.push(`        ${codeOf(e)} / ${paramOf(e)}    ${P.hex(e.raw).padEnd(44)}  ${text}`);
@@ -331,17 +355,17 @@ function buildLog() {
     }
   }
   lines.push('');
-  lines.push('--- nyers forgalom ---');
+  lines.push(t('log.raw'));
   lines.push($('trace').textContent.trimEnd());
   return lines.join(String.fromCharCode(10));
 }
 
 async function shareLog() {
   const text = buildLog();
-  const name = `e46-diag-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '')}.txt`;
+  const name = `bmw-diag-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '')}.txt`;
   const file = new File([text], name, { type: 'text/plain' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: 'Diagnosztikai napló' }); return; }
+    try { await navigator.share({ files: [file], title: t('log.title') }); return; }
     catch (e) { if (e.name === 'AbortError') return; }
   }
   // No share sheet - fall back to a download, which works everywhere.
@@ -349,15 +373,15 @@ async function shareLog() {
   const a = document.createElement('a');
   a.href = url; a.download = name; a.click();
   URL.revokeObjectURL(url);
-  $('savedmsg').textContent = 'Letöltve.';
+  $('savedmsg').textContent = t('status.saved');
 }
 
 async function copyLog() {
   try {
     await navigator.clipboard.writeText(buildLog());
-    $('savedmsg').textContent = 'Vágólapra másolva.';
+    $('savedmsg').textContent = t('status.copied');
   } catch (e) {
-    $('savedmsg').textContent = 'A vágólap nem elérhető - használd a megosztást.';
+    $('savedmsg').textContent = t('status.noclipboard');
   }
 }
 
@@ -368,12 +392,13 @@ async function connect() {
     state.ftdi = await Ftdi.request();
     await state.ftdi.configure({ baudRate: 19200, parity: 0, latencyMs: 1 });
     $('scan').disabled = false;
-    $('hunt').disabled = false;
-    $('connect').textContent = 'Kábel csatlakoztatva';
+    $('connect').textContent = t('btn.connected');
     $('connect').disabled = true;
-    setStatus('Kész az olvasásra.');
+    setStatus(t('status.ready'));
+    draw();
   } catch (e) {
-    setStatus(e.name === 'NotFoundError' ? 'Nem választottál eszközt.' : `Nem sikerült: ${e.message}`);
+    setStatus(e.name === 'NotFoundError'
+      ? t('status.nodevice') : t('status.failed', { msg: e.message }));
   }
 }
 
@@ -381,9 +406,9 @@ async function run() {
   state.stop = false;
   state.results.clear();
   $('trace').textContent = '';
-  $('subtitle').textContent = 'Olvasás folyamatban…';
+  $('subtitle').textContent = t('app.subtitle.scanning');
   $('scan').disabled = true;
-  $('hunt').disabled = true;
+  state.busy = true;
   $('stop').hidden = false;
   draw();
 
@@ -391,11 +416,9 @@ async function run() {
     const pct = await idleLevel(state.ftdi);
     $('ignhint').hidden = pct >= 90;
     if (pct < 90) {
-      $('ignhint').textContent =
-        `A K-line nyugalmi szintje csak ${pct}% — ez alvó vezérlőegységekre vall. ` +
-        `Fordítsd a gyújtást 2-es állásba (vagy indítsd be), különben nincs mi válaszoljon.`;
+      $('ignhint').textContent = t('note.ignition', { pct });
     }
-    setStatus('Olvasás…');
+    setStatus(t('status.reading'));
 
     const results = await scan(state.ftdi, {
       onModule: (m) => { state.results.set(m.addr, m); draw(); },
@@ -407,16 +430,16 @@ async function run() {
     const faulty = found.filter((r) => (r.faults && r.faults.count > 0)
       || (r.shadow && r.shadow.count > 0));
     const unreadable = found.filter((r) => !r.faults);
-    setStatus(state.stop
-      ? 'Leállítva.'
-      : `${found.length} vezérlőegység válaszolt, ${faulty.length} hibával.`
-        + (unreadable.length ? `  ${unreadable.length} hibamemória nem olvasható.` : ''));
+    setStatus(state.stop ? t('status.stopped')
+      : t('status.summary', { found: found.length, faulty: faulty.length })
+        + (unreadable.length ? t('status.summary.unreadable', { n: unreadable.length }) : ''));
   } catch (e) {
-    setStatus(`Megszakadt: ${e.message}`);
+    setStatus(t('status.aborted', { msg: e.message }));
   } finally {
     $('scan').disabled = false;
-    $('hunt').disabled = false;
+    state.busy = false;
     $('stop').hidden = true;
+    draw();
   }
 }
 
@@ -437,9 +460,10 @@ async function hunt() {
   const out = $('unknown-body');
   panel.hidden = false;
   out.textContent = '';
-  $('hunt').disabled = true;
   $('stop').hidden = false;
   state.stop = false;
+  state.busy = true;
+  draw();
 
   const line = document.createElement('p');
   line.className = 'status';
@@ -450,17 +474,17 @@ async function hunt() {
       onTrace: trace,
       shouldStop: () => state.stop,
       onProgress: ({ done, total, addr, found: n }) => {
+        const a = addr === undefined ? '' : addr.toString(16).toUpperCase().padStart(2, '0');
         line.textContent = addr === undefined
-          ? `${total} cím végignézve, ${n} ismeretlen modul.`
-          : `0x${addr.toString(16).toUpperCase().padStart(2, '0')} — ${done}/${total}`
-            + (n ? `, eddig ${n} találat` : '');
+          ? t('hunt.done', { total, n })
+          : t(n ? 'hunt.progress.found' : 'hunt.progress', { addr: a, done, total, n });
       },
     });
     state.unknown = found;
 
     if (!found.length) {
       const p = document.createElement('p');
-      p.textContent = 'Nincs olyan modul, amit az alkalmazás ne ismerne. Ez a kilenc van az autóban.';
+      p.textContent = t('hunt.none');
       out.appendChild(p);
       return;
     }
@@ -478,43 +502,44 @@ async function hunt() {
     const bar = document.createElement('div');
     bar.className = 'bar';
     bar.style.marginTop = '12px';
-    bar.innerHTML = '<button class="ghost" id="report">Beküldöm (GitHub)</button>'
-      + '<button class="ghost" id="report-copy">Vágólapra</button>'
+    bar.innerHTML = `<button class="ghost" id="report">${t('btn.report')}</button>`
+      + `<button class="ghost" id="report-copy">${t('btn.copy')}</button>`
       + '<span class="status" id="reportmsg"></span>';
     out.appendChild(bar);
     $('report').onclick = () => window.open(issueUrl(found), '_blank', 'noopener');
     $('report-copy').onclick = async () => {
       try {
         await navigator.clipboard.writeText(issueBody(found));
-        $('reportmsg').textContent = 'Vágólapra másolva.';
-      } catch (e) { $('reportmsg').textContent = 'A vágólap nem elérhető.'; }
+        $('reportmsg').textContent = t('status.copied');
+      } catch (e) { $('reportmsg').textContent = t('status.noclipboard'); }
     };
   } catch (e) {
-    line.textContent = `Megszakadt: ${e.message}`;
+    line.textContent = t('status.aborted', { msg: e.message });
   } finally {
-    $('hunt').disabled = false;
+    state.busy = false;
     $('stop').hidden = true;
+    draw();
   }
 }
 
 function issueBody(found) {
-  const lines = ['Az alkalmazás olyan modult talált, amit nem ismer.', ''];
-  lines.push('| cím | BMWTNR | HW | azonosító |');
+  const lines = ['This app found a module it does not know about.', ''];
+  lines.push('| address | BMWTNR | HW | identity |');
   lines.push('|---|---|---|---|');
   for (const f of found) {
     const a = `0x${f.addr.toString(16).toUpperCase().padStart(2, '0')}`;
     lines.push(`| \`${a}\` | ${f.id ? f.id.part : '—'} | ${f.id ? f.id.hw : '—'} | \`${P.hex(f.ident)}\` |`);
   }
-  lines.push('', '**Autó:** (típus, évjárat, motor — ha megosztanád)', '');
-  lines.push('<details><summary>Nyers forgalom</summary>', '', '```', buildLog(), '```', '</details>');
+  lines.push('', '**Car:** (model, year, engine — if you would share it)', '');
+  lines.push('<details><summary>Raw traffic</summary>', '', '```', buildLog(), '```', '</details>');
   return lines.join(String.fromCharCode(10));
 }
 
 function issueUrl(found) {
-  const title = `Ismeretlen modul: ${found.map(
+  const title = `Unknown module: ${found.map(
     (f) => '0x' + f.addr.toString(16).toUpperCase().padStart(2, '0')).join(', ')}`;
   // A long trace can overflow what a browser will put in a URL, so the body is capped and the
-  // "Vágólapra" button stays as the route for the whole thing.
+  // copy button stays as the route for the whole thing.
   const body = issueBody(found).slice(0, 5000);
   return `https://github.com/${REPO}/issues/new`
     + `?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
@@ -528,6 +553,17 @@ function issueUrl(found) {
  * Loaded on demand, so it costs nothing on the normal path. It says what it is on screen: a replay
  * cannot be allowed to look like a reading.
  */
+// The language picker, and the first fill of every translated string on the page.
+for (const [code, label] of LANGUAGES) {
+  const opt = document.createElement('option');
+  opt.value = code;
+  opt.textContent = label;
+  if (code === lang) opt.selected = true;
+  $('lang').appendChild(opt);
+}
+$('lang').addEventListener('change', (e) => { setLang(e.target.value); relabel(); });
+applyStatic();
+
 if (new URLSearchParams(location.search).has('demo')) {
   const demo = await import('./demo.js');
   for (const [label, hex] of demo.TRACE) {
@@ -538,11 +574,11 @@ if (new URLSearchParams(location.search).has('demo')) {
   $('connect').disabled = true;
   $('scan').disabled = true;
   $('unsupported').hidden = false;
-  $('unsupported').innerHTML =
-    '<b>Bemutató mód.</b> Ezek a 2026-11-05-i mérés rögzített válaszai, ugyanazokon a dekódolókon '
-    + 'átvezetve — <b>nincs kábel csatlakoztatva, és ez nem élő olvasás.</b> '
-    + '<a href="./" style="color:inherit">Vissza az éles módhoz</a>.';
-  setStatus('Rögzített mérés.');
+  // Re-keyed rather than written once, so switching language re-renders it like everything else.
+  $('unsupported').setAttribute('data-i18n', 'note.demo');
+  $('unsupported').setAttribute('data-i18n-html', '');
+  $('unsupported').innerHTML = t('note.demo');
+  setStatus(t('status.replay'));
 } else if (!('usb' in navigator)) {
   $('unsupported').hidden = false;
   $('connect').disabled = true;
@@ -553,17 +589,16 @@ if (new URLSearchParams(location.search).has('demo')) {
     state.ftdi = f;
     await f.configure({ baudRate: 19200, parity: 0, latencyMs: 1 });
     $('scan').disabled = false;
-    $('hunt').disabled = false;
-    $('connect').textContent = 'Kábel csatlakoztatva';
+    $('connect').textContent = t('btn.connected');
     $('connect').disabled = true;
-    setStatus('Kész az olvasásra.');
+    setStatus(t('status.ready'));
+    draw();
   }).catch(() => { /* nothing plugged in yet; the button still works */ });
 }
 
 $('connect').addEventListener('click', connect);
 $('scan').addEventListener('click', run);
-$('hunt').addEventListener('click', hunt);
-$('stop').addEventListener('click', () => { state.stop = true; setStatus('Leállítás a modul végén…'); });
+$('stop').addEventListener('click', () => { state.stop = true; setStatus(t('status.stopping')); });
 $('d-close').addEventListener('click', () => $('detail').close());
 $('share').addEventListener('click', shareLog);
 $('copy').addEventListener('click', copyLog);

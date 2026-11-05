@@ -1,18 +1,34 @@
-# BMW E46 diagnostics, from a phone
+# BMW diagnostics, from a phone
 
-Reads a BMW E46's control modules through a **BMW Scanner 1.4.0** cable (USB `0333:0137`), without
-the cable's original Windows software. Fault codes, module identification, odometer and VIN, and
-clearing fault memories.
+Reads a BMW's control modules through a **BMW Scanner 1.4.0** cable (USB `0333:0137`), without the
+cable's original Windows software. Fault codes, module identification, odometer and VIN, and
+clearing fault memories. In English and Hungarian.
 
-**It works, and it is checked.** All nine modules this car has, across both protocols the car
-speaks, with every reading matched byte for byte against the vendor software's own output on the
-same car. The verification is not a claim in prose — `web/js/protocol.test.mjs` replays recorded
-traffic through the decoders and asserts the vendor's published answers.
+**It works, and it is checked.** Every reading is matched byte for byte against the vendor
+software's own output on the same car — and not as a claim in prose: `web/js/protocol.test.mjs`
+replays recorded traffic through the decoders and asserts the vendor's published answers.
 
 → **[Open the web version](https://mogyiii.github.io/BMW-scanner-1.4.0-Android/)** ·
 [see it with recorded data, no cable needed](https://mogyiii.github.io/BMW-scanner-1.4.0-Android/?demo=1)
 
-## What it reads
+## Which cars
+
+The cable itself covers the DS2-era BMWs — the E36, E38, E39, E46, E53, Z3 and Z4 generations and
+their relatives — and the protocol work here is about the cable, not about one car, so it is not
+E46-specific.
+
+**What is verified is narrower, and the distinction matters.** Everything below was measured on one
+2002 E46 316i, because that is the car available to test on. The protocol, the framing, the
+timing, the commands and the decoders are general. The *module list* and the *fault descriptions*
+are that car's.
+
+Another BMW will very likely read fine and may also hold modules this app has no tile for — a
+gearbox, navigation or telephone controller. There is a button for exactly that: it sweeps the 48
+further addresses the vendor software probes, and turns anything that answers into a prefilled
+GitHub issue carrying the identity bytes, which are the whole of what is needed to add it. If you
+run this on a car that is not an E46, that button is the useful thing to press.
+
+## What it reads on the test car
 
 | addr | module | | protocol |
 |---|---|---|---|
@@ -27,10 +43,12 @@ traffic through the decoders and asserts the vendor's published answers.
 | `0xD0` | LCM | lighting control | DS2 |
 
 That is the whole list because it is the whole car: the vendor's own scan of this E46 found these
-nine and nothing else. Per module it reads the BMW part number and hardware revision, the live
-fault memory, the **shadow** fault memory where the module keeps one, and the assembly-release
-bytes; the cluster also gives up the odometer and its stored VIN, and the engine controller and ABS
-give the VIN over KWP.
+nine and nothing else. Another car's list will differ.
+
+Per module it reads the BMW part number and hardware revision, the live fault memory, the
+**shadow** fault memory where the module keeps one, and the assembly-release bytes; the cluster
+also gives up the odometer and its stored VIN, and the engine controller and ABS give the VIN over
+KWP.
 
 ## Two ways to run it
 
@@ -150,6 +168,7 @@ web/                     the browser version - this is the one to use
   js/session.js          the measured order of the conversation
   js/app.js              tiles and dialogs; knows nothing about USB
   js/demo.js             recorded replies, for ?demo=1
+  js/i18n.js             English and Hungarian
   js/protocol.test.mjs   the decoders against the vendor's own answers
 app/                     the Android harness
   .../usb/FtdiDevice.kt  raw FTDI vendor-request driver
