@@ -7,6 +7,12 @@
  * of them, which is the mistake that kept this project stuck - a decoder agreeing with its author
  * proves nothing.
  *
+ * The bytes are confirmed twice over. `log/teljesscan/Diagnosztikai napló.txt` is this app's own
+ * trace from an Android phone at the car on the same day, and the replies in it are byte-identical
+ * to the ones below - `57 14 A0 03 0B 00 AF …C9`, `5B 19 A0 02 1C 44 …ED`, `80 14 A0 01 BE 48 …EB`,
+ * `B8 F1 12 05 58 01 27 C3 64 87`. So these cases are not an artefact of reading one capture one
+ * way: the cable says the same thing to us as it does to the vendor's software.
+ *
  * Run:  node js/protocol.test.mjs
  */
 import * as P from './protocol.js';

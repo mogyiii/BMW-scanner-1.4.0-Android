@@ -1,5 +1,31 @@
 # Where this project stands — 2026-11-05
 
+> # 🎉 The browser version read the car — 2026-11-05
+>
+> `log/teljesscan/Diagnosztikai napló.txt` is its own shared trace, from an Android phone at the car:
+> Chrome 156, WebUSB, **eight modules read and every code matching the vendor's report**.
+>
+> ```
+> 0x12  DME   VIN KP04220      27C3/64
+> 0x57  LWS   0B/AF  09/97  04/17
+> 0x5B  IHKA  1C/44  1E/42
+> 0x80  IKE   BE/48
+> 0x00 ZKE · 0x44 EWS · 0xA4 SRS · 0xD0 LCM   no faults
+> 0x56  ABS   no answer
+> ```
+>
+> No Android build, no adb, no laptop — a web page. The three different DS2 entry sizes all decoded
+> correctly on the first attempt at the car.
+>
+> **It also found a real defect of its own.** The lighting module is listed with no faults while the
+> raw trace shows its fault read never happened at all: the code collapsed "the store did not answer"
+> and "the store answered zero" into the same count of zero, so a failed read displayed as a clean
+> module. The two are now kept apart everywhere — tile, detail, log and the read-back after a clear,
+> which previously could have said "the memory is empty" on the strength of a read that returned
+> nothing.
+>
+> And `0x56` answering nothing is the capture's verdict confirmed on the car: the ABS is at `0x29`.
+
 > # 🎉 All nine modules — 2026-11-05
 >
 > The owner borrowed a laptop and clicked through every read menu of the vendor software with the
@@ -167,9 +193,10 @@ fault.
 
 ## What is left
 
-- **None of the browser version has met a real cable yet.** Everything above is verified against
-  captured bytes, which is strong but is not the same as a reading taken at the car. That is the
-  next thing to do, and the control set in the table is what to check it against.
+- **The ABS and the shadow memory have not been read by this app yet.** Everything else has: the
+  browser version ran at the car (see the banner), but the run predates both of today's additions.
+  The control set in the table is what to check them against — four codes from `0x29` and `06/20`
+  in the airbag module's shadow store.
 - **Fault descriptions** exist only for the codes this car has produced — twelve of them, each one
   the vendor's own text. The rest of the table is in the binary as contiguous short-string arrays
   with a per-module base code (`0x57`'s starts at `0x04`, so index = code − 4, which yields

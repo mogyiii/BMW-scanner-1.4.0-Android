@@ -1,5 +1,31 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ✅ The browser version read the car — 2026-11-05
+>
+> `log/teljesscan/Diagnosztikai napló.txt` is the app's own shared trace, taken from an Android phone
+> at the car: Chrome 156, WebUSB, **eight modules read, every code matching the vendor's report**.
+> `27C3/64` and VIN `KP04220` from the engine controller over KWP2000; `0B/AF`, `09/97`, `04/17` from
+> the steering angle sensor; `1C/44`, `1E/42` from the climate module; `BE/48` from the cluster; four
+> modules clean. All three DS2 entry sizes — three, ten and fourteen bytes — decoded correctly on the
+> first attempt at the car.
+>
+> No Android build, no adb, no laptop. A web page.
+>
+> **The replies are byte-identical to the ones in the proxy capture**, which means the decoder tests
+> in `web/js/protocol.test.mjs` are confirmed from two independent directions: the vendor's decoded
+> text, and our own traffic on the car. The cable says the same thing to us as it does to them.
+>
+> **The run also exposed a defect of ours, and it is the instructive kind.** The lighting module is
+> listed with no faults while the raw trace shows its fault read never happened at all. The code
+> collapsed *"the store did not answer"* and *"the store answered zero"* into the same count of zero,
+> so a failed read was displayed as a clean module — the one wrong answer a fault reader must never
+> give, and the same shape of mistake as every diagnostic in this project that printed only its
+> expected outcome. The two cases are now kept apart in the tile, the detail view, the log and the
+> read-back after a clear, which could previously have reported "the memory is empty" on the strength
+> of a read that returned nothing.
+>
+> And `0x56` returning nothing is the capture's verdict confirmed on the car.
+
 > # ✅ The whole command set, read out of the echo — 2026-11-05
 >
 > The owner borrowed a laptop and clicked through every read menu of the vendor software with

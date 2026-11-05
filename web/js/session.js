@@ -93,7 +93,11 @@ async function readDs2Module(ftdi, mod, onTrace) {
   const adfg = adfgReply && P.isPositive(adfgReply.answer)
     ? adfgReply.answer.slice(3, -1) : null;
 
-  const faults = await readFaultStore(session, mod, P.CMD.FAULTS, '0xC731') || { count: 0, entries: [] };
+  // `null` means the store did not answer, which is **not** the same as answering zero. The first
+  // on-car run of this app reported the lighting module as having no faults when its fault read had
+  // in fact produced nothing at all - the old code collapsed both cases to a count of zero, so a
+  // failed read was displayed as a clean module. Both are passed through as they are from here on.
+  const faults = await readFaultStore(session, mod, P.CMD.FAULTS, '0xC731');
   const shadow = await readFaultStore(session, mod, P.CMD.SHADOW, '0x9E56');
 
   return { ...mod, present: true, ident: ident.answer, adfg, faults, shadow };
@@ -125,8 +129,9 @@ async function readKwpModule(ftdi, mod, onTrace) {
     }
   }
 
+  // As on the DS2 side: no answer is reported as no answer, never as zero faults.
   const dtc = P.splitKwpReply(await session.send(P.buildFrame(P.CMD.KWP_DTC, mod.addr), '0xC358'));
-  const faults = dtc.answer ? P.decodeKwpFaults(dtc.answer.data) : { count: 0, entries: [] };
+  const faults = dtc.answer ? P.decodeKwpFaults(dtc.answer.data) : null;
 
   return { ...mod, present: true, ident: identFrames.answer.data, vin, faults, shadow: null };
 }

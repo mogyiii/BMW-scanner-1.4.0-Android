@@ -23,15 +23,21 @@ function tileFor(mod) {
   else if ((mod.faults && mod.faults.count > 0) || (mod.shadow && mod.shadow.count > 0)) {
     el.classList.add('warn');
   }
+  else if (mod.present && !mod.faults) el.classList.add('warn');
   else el.classList.add('ok');
 
+  // A store that did not answer is `null`; a store that answered zero is `{count: 0}`. The tile has
+  // to keep those apart, because showing "hibátlan" for a read that failed is the one wrong answer
+  // here - it is the mistake the first on-car run of this app actually made.
   const shadowCount = mod.shadow ? mod.shadow.count : 0;
+  const count = mod.faults ? mod.faults.count : null;
   const state_ = mod.busy ? 'olvasás…'
     : !mod.present ? (mod.reason || '—')
-    : mod.faults.count === 0 && shadowCount === 0 ? 'hibátlan'
-    : mod.faults.count === 0 ? `${shadowCount} árnyékhiba`
-    : shadowCount === 0 ? `${mod.faults.count} hiba`
-    : `${mod.faults.count} + ${shadowCount} hiba`;
+    : count === null ? 'nem olvasható'
+    : count === 0 && shadowCount === 0 ? 'hibátlan'
+    : count === 0 ? `${shadowCount} árnyékhiba`
+    : shadowCount === 0 ? `${count} hiba`
+    : `${count} + ${shadowCount} hiba`;
 
   el.innerHTML = `
     <div class="icon">${mod.icon}</div>
@@ -59,14 +65,20 @@ const codeOf = (e) => (e.wide
   : e.code.toString(16).toUpperCase().padStart(2, '0'));
 const paramOf = (e) => (e.param === null ? '??' : e.param.toString(16).toUpperCase().padStart(2, '0'));
 
-/** Renders one fault store into `body`, heading and all. */
-function renderStore(body, mod, store, heading) {
+/**
+ * Renders one fault store into `body`, heading and all.
+ *
+ * `missing` is what to say when the store returned nothing. For the shadow memory that is ordinary
+ * — only three modules on this car have one — but for the live memory it is a failed read, and the
+ * two must not share a wording.
+ */
+function renderStore(body, mod, store, heading, missing) {
   const h = document.createElement('p');
   h.className = 'store';
   h.textContent = heading;
   body.appendChild(h);
 
-  if (!store) { h.textContent = heading + ' — nincs ilyen tároló'; return; }
+  if (!store) { h.textContent = `${heading} — ${missing}`; return; }
   if (store.count === 0) { h.textContent = heading + ' — nincs tárolt hibakód'; return; }
 
   for (const e of store.entries) {
@@ -99,10 +111,10 @@ function showDetail(mod) {
     body.appendChild(p);
   }
 
-  renderStore(body, mod, mod.faults, 'Hibamemória');
+  renderStore(body, mod, mod.faults, 'Hibamemória', 'nem válaszolt, a tartalma ismeretlen');
   // Only three modules on this car keep a shadow store; the rest refuse the command, and saying so
   // is better than silence - a missing section reads as "we did not look".
-  renderStore(body, mod, mod.shadow, 'Árnyékmemória');
+  renderStore(body, mod, mod.shadow, 'Árnyékmemória', 'nincs ilyen tároló');
 
   if (mod.adfg) {
     const p = document.createElement('p');
@@ -156,10 +168,17 @@ async function doClear(mod) {
     if (fresh[0]) {
       state.results.set(mod.addr, fresh[0]);
       draw();
-      const left = (fresh[0].faults ? fresh[0].faults.count : 0)
-        + (fresh[0].shadow ? fresh[0].shadow.count : 0);
       $('detail').close();
       showDetail(fresh[0]);
+      // If the read-back itself failed we know only that the clear was accepted, and saying "the
+      // memory is empty" off the back of an unanswered read would be the worst sentence here.
+      if (!fresh[0].faults) {
+        $('d-clearmsg').textContent =
+          'A vezérlő elfogadta a törlést, de a visszaolvasás nem válaszolt — hogy mi maradt benne, '
+          + 'arról ez a futás nem mond semmit. Olvasd újra.';
+        return;
+      }
+      const left = fresh[0].faults.count + (fresh[0].shadow ? fresh[0].shadow.count : 0);
       $('d-clearmsg').textContent = left === 0
         ? 'Törölve, a memória üres.'
         : `A vezérlő elfogadta a törlést, de ${left} hiba azonnal visszajött — ezek élő hibák, `
@@ -204,8 +223,11 @@ function buildLog() {
     if (r.vin) lines.push(`      VIN ${r.vin}`);
     if (r.adfg) lines.push(`      ADFG ${P.hex(r.adfg).replace(/ /g, '')}`);
     if (r.ident) lines.push(`      azonosító ${P.hex(r.ident)}`);
-    for (const [name, store] of [['hibamemória', r.faults], ['árnyékmemória', r.shadow]]) {
-      if (!store) { lines.push(`      ${name}: nincs ilyen tároló`); continue; }
+    for (const [name, store, missing] of [
+      ['hibamemória', r.faults, 'NEM VÁLASZOLT'],
+      ['árnyékmemória', r.shadow, 'nincs ilyen tároló'],
+    ]) {
+      if (!store) { lines.push(`      ${name}: ${missing}`); continue; }
       lines.push(`      ${name}: ${store.count}`);
       for (const e of store.entries) {
         const text = P.faultText(r.addr, e.code);
@@ -285,12 +307,15 @@ async function run() {
     });
 
     const found = results.filter((r) => r.present);
-    const faulty = found.filter((r) => r.faults && r.faults.count > 0);
+    const faulty = found.filter((r) => (r.faults && r.faults.count > 0)
+      || (r.shadow && r.shadow.count > 0));
+    const unreadable = found.filter((r) => !r.faults);
     const vin = results.find((r) => r.vin);
     if (vin) $('vin').textContent = vin.vin;
     setStatus(state.stop
       ? 'Leállítva.'
-      : `${found.length} vezérlőegység válaszolt, ${faulty.length} hibával.`);
+      : `${found.length} vezérlőegység válaszolt, ${faulty.length} hibával.`
+        + (unreadable.length ? `  ${unreadable.length} hibamemória nem olvasható.` : ''));
   } catch (e) {
     setStatus(`Megszakadt: ${e.message}`);
   } finally {
