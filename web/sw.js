@@ -5,7 +5,7 @@
  * which would mean needing a signal in a car park. Caching the handful of files on first load fixes
  * that: afterwards it starts with no network at all.
  */
-const CACHE = 'bmw-ds2-v4';
+const CACHE = 'bmw-ds2-v5';
 // `demo.js` is deliberately not precached: it is only ever loaded by `?demo=1`, and the car park
 // case this cache exists for does not involve a replay.
 const FILES = [
@@ -23,11 +23,19 @@ self.addEventListener('activate', (e) => {
     .then(() => self.clients.claim()));
 });
 
-/* Network first so a fix reaches the car; cache when there is nothing to reach. */
+/*
+ * Network first so a fix reaches the car; cache when there is nothing to reach.
+ *
+ * `cache: 'no-cache'` forces that network request to revalidate with the server instead of being
+ * satisfied from the browser's own HTTP cache. Without it "network first" is only first in name:
+ * GitHub Pages serves its assets with ten minutes of freshness, so a fix pushed before a trip could
+ * still be ten minutes of stale JavaScript when it arrives at the car. Revalidation costs a 304
+ * when nothing has changed, and the offline path below is unaffected.
+ */
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));

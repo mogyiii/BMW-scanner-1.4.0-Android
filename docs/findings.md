@@ -1,5 +1,40 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ✅ A tenth module, found by accident — 2026-11-05
+>
+> The owner asked, for fun, to add `0x33` to the unknown-module sweep — the OBD-II functional
+> address, so they could see what this cable does on a car that is not a BMW. Checking whether the
+> addition would mean anything turned up something else entirely.
+>
+> **The vendor keeps two probe lists, and we had merged only one.** Fifty-six addresses asked with
+> the DS2 identify, and eight asked with the KWP one. Six of the KWP addresses appear nowhere in the
+> first list — `13 18 1B 1E 29 34` — and four of those our sweep had never heard of.
+>
+> **`0x1B` is the Valvetronic controller, and it answers.**
+>
+> ```
+> 0x06F3 -> 1A 80  ->  5A 80 00 00 07 51 62 07 10 01 00 14 39 31 …
+>                      part number 7.516.207, hardware 10
+> 0x0DE7 -> 1A 90  ->  5A 90 30 30 30 30 30 30 30      VIN field "0000000"
+> ```
+>
+> The vendor's own report for the same session: `VTC1* -> 7.516.207  10  6.x.x … SKV20 - VVT Bank 1`,
+> VIN `0000000`. Exact, on every field.
+>
+> So this car has **ten** modules, not nine, and the tenth was sitting in a capture that had already
+> been analysed twice. It was missed because the sweep had been shipped **sending the DS2 identify
+> only** — on a project whose own engine controller and ABS are the two modules that do not answer
+> it. The sweep existed precisely to find modules we do not know about, and it was built so that it
+> could only ever find half of them.
+>
+> Both are fixed: the sweep tries both protocols at every address, and the four missing KWP
+> addresses are in the list. What the Valvetronic says to a fault-memory request is still unknown —
+> the vendor never asked it, and its report's error column for that row reads "no data".
+>
+> `0x33` went in too, marked as what it is: not a BMW address, there out of curiosity, and expected
+> to stay silent because a generic ISO 14230 module wants its own wake-up and `0x83F0` programs the
+> BMW timing instead.
+
 > # ✅ The ABS reads, and the shadow memory has a lock — 2026-11-05
 >
 > `log/teljesscan/Diagnosztikai napló (1).txt`, the app's own trace at the car. **The ABS at `0x29`

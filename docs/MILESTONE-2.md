@@ -178,9 +178,10 @@ enough to pin the mapping, and if it does not line up we have learnt that cheapl
 
 ---
 
-## 5. Confirm the two things built but never run
+## 5. Confirm the things built but never run
 
-The unknown-module sweep and the shadow-memory unlock both went in without ever meeting a cable.
+The unknown-module sweep, the shadow-memory unlock and the Valvetronic module all went in without
+ever meeting a cable.
 
 - **The sweep** should find nothing on this car. That *is* the result worth having: it confirms the
   nine are the whole list and that the sweep does not invent answers. If it reports a find here,
@@ -188,8 +189,21 @@ The unknown-module sweep and the shadow-memory unlock both went in without ever 
 - **The unlock** should make the airbag module's `06/20` appear, which the vendor software sees and
   this app currently cannot.
 
+- **The Valvetronic controller at `0x1B`** should identify as `7.516.207` / hardware `10`. Its
+  fault memory is the genuinely open question: the vendor software never asked it, and its report's
+  error column for that row reads "no data". Our app will ask. Whatever comes back — codes, a
+  refusal, or silence — is new, and the app now reports all three differently.
+
 **Cost.** One trip, ten minutes. This is the cheapest item on the list and the only one that
 verifies code already shipped.
+
+**Where `0x1B` came from.** It was found while adding one unrelated address to the sweep as a joke.
+Checking that the addition was worth anything meant comparing the vendor's two probe lists, which
+turned up six addresses it only ever asks over KWP — four of which our sweep did not know about,
+and one of which is a module on this very car that we had never read. The lesson is not about
+Valvetronic: it is that the sweep had been shipped **sending the DS2 identify only**, on a project
+whose own engine controller and ABS do not answer that. A tenth module was sitting in a capture we
+had already analysed twice.
 
 ---
 
@@ -254,6 +268,8 @@ until the file was analysed days later.
 
 - Scan. The nine should read as before; the airbag tile should say the shadow memory is locked.
 - Press the airbag tile, read the explanation, and unlock it if you are willing. Expect `06/20`.
+- Check the **VTC1** tile. It is new and has never met a cable; whatever its fault memory says is
+  a result nobody has.
 - Press **Missing?**. Expect nothing found, and let it finish.
 - Leave the steering angle for the laptop trip in §2 — our app does not decode it yet, so turning
   the wheel for this app's benefit gains nothing the vendor software would not give better.

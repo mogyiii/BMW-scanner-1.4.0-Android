@@ -34,6 +34,7 @@ run this on a car that is not an E46, that button is the useful thing to press.
 |---|---|---|---|
 | `0x00` | ZKE | body electronics, doors and locking | DS2 |
 | `0x12` | DME | engine controller | KWP2000 |
+| `0x1B` | VTC1 | Valvetronic | KWP2000 |
 | `0x29` | ABS | ABS / DSC | KWP2000 |
 | `0x44` | EWS | immobiliser | DS2 |
 | `0x57` | LEW | steering angle sensor | DS2 |
@@ -43,7 +44,13 @@ run this on a car that is not an E46, that button is the useful thing to press.
 | `0xD0` | LCM | lighting control | DS2 |
 
 That is the whole list because it is the whole car: the vendor's own scan of this E46 found these
-nine and nothing else. Another car's list will differ.
+ten and nothing else. Another car's list will differ.
+
+`0x1B` was missed for a fortnight. It is not in the vendor's fifty-six-address DS2 probe list, only
+in its eight-address KWP one, so every sweep walked past it. Its identity reads `7.516.207` /
+hardware `10`, which is the vendor's own `VTC1 · SKV20 - VVT Bank 1` row exactly. What it says to a
+fault-memory request is still unknown — the vendor never asked it, and its report's error column for
+that row reads "no data".
 
 Per module it reads the BMW part number and hardware revision, the live fault memory, the
 **shadow** fault memory where the module keeps one, and the assembly-release bytes; the cluster

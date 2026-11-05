@@ -222,6 +222,12 @@ export function decodeFaults(frame) {
  * report flags with an asterisk for the same reason. The engine controller answers `0x46F1` with
  * nothing but the echoed request and speaks KWP2000 instead.
  *
+ * `0x1B` is the Valvetronic controller, and this project did not read it for a fortnight. It is not
+ * in the vendor's DS2 probe list at all — only in its much shorter KWP one — so every sweep we ran
+ * walked straight past it. It answers `5A 80 00 00 07 51 62 07 10 …`, which is part number
+ * **7.516.207** and hardware `10`: the vendor's own `VTC1 · SKV20 - VVT Bank 1` row exactly. It was
+ * found by following up a request to add one unrelated address for curiosity's sake.
+ *
  * The ABS is at **0x29**, not 0x56. This project listed it at 0x56 for weeks and never got a reply,
  * because 0x56 was never an address at all: it is the letter `V`, the sign-on command's parameter,
  * read out of a command tally as though it were a module. The full capture shows `18 02 FF FF`
@@ -237,6 +243,7 @@ export function decodeFaults(frame) {
 export const MODULES = [
   { addr: 0x00, name: 'ZKE',   icon: 'zke' },
   { addr: 0x12, name: 'DME',   icon: 'dme',  kwp: true },
+  { addr: 0x1b, name: 'VTC1',  icon: 'vtc',  kwp: true },
   { addr: 0x29, name: 'ABS',   icon: 'abs',  kwp: true },
   { addr: 0x44, name: 'EWS',   icon: 'ews' },
   { addr: 0x57, name: 'LEW',   icon: 'lew' },
@@ -249,18 +256,35 @@ export const MODULES = [
 /**
  * Every address the vendor's software probes, in its order.
  *
- * Fifty-seven of them, and this car answers on nine. The rest are modules other E46s have and this
- * one does not — a gearbox controller, a navigation unit, a telephone, and so on. They are listed
- * so the app can go looking: a module that answers from an address not in `MODULES` is a module
- * somebody else's car has and this software does not yet know how to present.
+ * The vendor actually keeps two lists: fifty-six addresses it asks with the DS2 identify, and eight
+ * it asks with the KWP one. Six of the KWP addresses are in neither of the first list nor anywhere
+ * else — `13 18 1B 1E 29 34` — and until this was checked the sweep did not know about four of
+ * them. They are merged here, because our sweep tries both protocols at every address and so does
+ * not need the vendor's division.
+ *
+ * The rest are modules other cars have and this one does not — a gearbox controller, a navigation
+ * unit, a telephone, and so on. A module that answers from an address not in `MODULES` is one this
+ * software does not yet know how to present.
  */
 export const PROBE_ADDRESSES = [
-  0x00, 0x08, 0x12, 0x13, 0x16, 0x22, 0x24, 0x28, 0x30, 0x32, 0x3b, 0x40,
+  0x00, 0x08, 0x12, 0x13, 0x16, 0x18, 0x1b, 0x1e, 0x22, 0x24, 0x28, 0x30, 0x32,
+  0x33, 0x34, 0x3b, 0x40,
   0x44, 0x47, 0x48, 0x4a, 0x50, 0x51, 0x56, 0x57, 0x5a, 0x5b, 0x60, 0x65,
   0x66, 0x68, 0x6a, 0x6b, 0x70, 0x72, 0x74, 0x7f, 0x80, 0x81, 0x86, 0x98,
   0x9a, 0x9b, 0x9c, 0x9e, 0xa0, 0xa4, 0xa6, 0xa7, 0xac, 0xb0, 0xbb, 0xc0,
   0xc2, 0xc8, 0xce, 0xd0, 0xda, 0xe8, 0xed, 0xf0, 0xf5,
 ];
+
+/**
+ * `0x33` is not one of the vendor's, and is not a BMW address at all.
+ *
+ * It is the functional address every OBD-II car is required to answer on, added out of curiosity
+ * about what this cable does when it meets something that is not a BMW. The honest expectation is
+ * silence: a generic ISO 14230 module wants its own wake-up (a five-baud slow init, or the 25 ms
+ * fast init) and `0x83F0` programs the BMW timing instead. Asking costs one identify request, which
+ * is a read, so the experiment is free and the answer is worth having written down either way.
+ */
+export const CURIOSITY_ADDRESSES = new Set([0x33]);
 
 /**
  * The two commands the airbag module wants before it will serve its shadow memory.

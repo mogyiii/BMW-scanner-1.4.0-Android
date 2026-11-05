@@ -219,10 +219,15 @@ export async function unlockShadow(ftdi, mod, onTrace) {
 /**
  * Looks for modules at addresses this software does not know about.
  *
- * The vendor probes fifty-seven addresses and this car answers on nine; another E46 will answer on
+ * The vendor probes fifty-seven addresses and this car answers on nine; another car will answer on
  * a different set. Anything that identifies itself from an address not in `MODULES` is a module
  * somebody else's car has, and its identity bytes are exactly what would be needed to add it. So
  * the sweep collects them and hands them over verbatim rather than trying to guess what they are.
+ *
+ * **Both protocols are tried at every address**, and the first version did not. It sent the DS2
+ * identify only — which on this very car is the one thing the engine controller and the ABS do not
+ * answer. A KWP-only module sitting at an address we have no tile for would have been swept past in
+ * silence, which is the exact failure the sweep exists to prevent.
  *
  * It is a separate action because it is slow: every address needs its own connection.
  */
@@ -234,14 +239,25 @@ export async function findUnknown(ftdi, { onProgress, onTrace, shouldStop } = {}
   for (let i = 0; i < todo.length; i++) {
     if (shouldStop && shouldStop()) break;
     const addr = todo[i];
+    const hex = addr.toString(16).toUpperCase().padStart(2, '0');
     if (onProgress) onProgress({ done: i, total: todo.length, addr, found: found.length });
     try {
       const session = await connect(ftdi, addr, onTrace);
       if (!session) continue;
-      const label = `0x46F1 @${addr.toString(16).toUpperCase().padStart(2, '0')}`;
-      const ident = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, addr), label));
-      if (ident && P.isPositive(ident.answer)) {
-        found.push({ addr, ident: ident.answer, id: P.decodeIdent({ ident: ident.answer }) });
+
+      const ds2 = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, addr), `0x46F1 @${hex}`));
+      if (ds2 && P.isPositive(ds2.answer)) {
+        found.push({ addr, kwp: false, ident: ds2.answer, id: P.decodeIdent({ ident: ds2.answer }) });
+        continue;
+      }
+
+      const kwp = P.splitKwpReply(
+        await session.send(P.buildFrame(P.CMD.KWP_IDENT, addr), `0x06F3 @${hex}`));
+      if (kwp.answer && kwp.answer.data.length > 1) {
+        found.push({
+          addr, kwp: true, ident: kwp.answer.data,
+          id: P.decodeIdent({ ident: kwp.answer.data, kwp: true }),
+        });
       }
     } catch (e) { /* one dead address must not end the sweep */ }
   }

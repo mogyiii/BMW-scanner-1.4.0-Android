@@ -21,6 +21,7 @@ const STRINGS = {
     'mod.zke': 'Karosszéria-elektronika',
     'mod.dme': 'Motorvezérlő',
     'mod.abs': 'ABS / DSC',
+    'mod.vtc': 'Valvetronic',
     'mod.ews': 'Indításgátló',
     'mod.lew': 'Kormányszög-érzékelő',
     'mod.ihka': 'Klíma',
@@ -71,7 +72,7 @@ const STRINGS = {
     'tile.both': '{n} + {m} hiba',
     'tile.hunt.name': 'Hiányzó?',
     'tile.hunt.label': 'Más modul keresése',
-    'tile.hunt.state': 'további 48 cím',
+    'tile.hunt.state': 'további {n} cím',
 
     'reason.nolink': 'nincs kapcsolat',
     'reason.silent': 'nem válaszolt',
@@ -112,10 +113,11 @@ const STRINGS = {
     'hunt.title': 'Ismeretlen modulok',
     'hunt.intro': 'A fenti csempék azok a modulok, amiket ez a szoftver ismer, és amiket ez az autó '
       + 'tartalmaz. Egy másik BMW-ben lehet sebességváltó-, navigációs vagy telefonvezérlő is — '
-      + 'azokat az app még nem ismeri. Ez végigkérdezi azt a 48 további címet, amit a gyári '
-      + 'szoftver is szokott.',
+      + 'azokat az app még nem ismeri. Ez végigkérdezi a többi címet, amit a gyári szoftver is '
+      + 'szokott, mindkét protokollon.',
     'hunt.intro2': 'Ha találsz ilyet, egy gombbal beküldheted: a modul azonosító bájtjai pont azok, '
       + 'amik hiányoznak ahhoz, hogy bekerüljön. Lassú, mert minden címhez új kapcsolat kell.',
+    'hunt.curiosity': 'nem BMW-cím',
     'hunt.progress': '0x{addr} — {done}/{total}',
     'hunt.progress.found': '0x{addr} — {done}/{total}, eddig {n} találat',
     'hunt.done': '{total} cím végignézve, {n} ismeretlen modul.',
@@ -123,11 +125,10 @@ const STRINGS = {
       + 'címeken válaszol.',
 
     'raw.summary': 'Nyers forgalom',
-    'note.evidence': 'A hibakódok mellett mindig ott a nyers bájtsor. A kiolvasás mind a kilenc '
-      + 'modulon igazolva van a gyári szoftver saját kimenetéhez, egy 2002-es E46 316i-n — de a '
-      + '<b>szöveges leírás</b> csak azokhoz a kódokhoz van meg, amiket az az autó valóban '
-      + 'produkált. Ismeretlen kód mellett nincs leírás: inkább semmi, mint egy hihetően hangzó '
-      + 'találgatás.',
+    'note.evidence': 'A hibakódok mellett mindig ott a nyers bájtsor. A kiolvasás a gyári szoftver '
+      + 'saját kimenetéhez van igazolva, egy 2002-es E46 316i-n — de a <b>szöveges leírás</b> csak '
+      + 'azokhoz a kódokhoz van meg, amiket az az autó valóban produkált. Ismeretlen kód mellett '
+      + 'nincs leírás: inkább semmi, mint egy hihetően hangzó találgatás.',
     'note.clear': 'A törlés csak a <i>tárolt</i> listát üríti. Ha egy hiba éppen fennáll, a vezérlő '
       + 'elfogadja a törlést, majd a következő olvasásnál ugyanazt a kódot jelenti — az alkalmazás '
       + 'ezért mindig visszaolvas, és megmondja, mi jött vissza.',
@@ -160,6 +161,7 @@ const STRINGS = {
     'mod.zke': 'Body electronics',
     'mod.dme': 'Engine',
     'mod.abs': 'ABS / DSC',
+    'mod.vtc': 'Valvetronic',
     'mod.ews': 'Immobiliser',
     'mod.lew': 'Steering angle',
     'mod.ihka': 'Climate',
@@ -210,7 +212,7 @@ const STRINGS = {
     'tile.both': '{n} + {m} faults',
     'tile.hunt.name': 'Missing?',
     'tile.hunt.label': 'Look for other modules',
-    'tile.hunt.state': '48 more addresses',
+    'tile.hunt.state': '{n} more addresses',
 
     'reason.nolink': 'no link',
     'reason.silent': 'no answer',
@@ -252,10 +254,11 @@ const STRINGS = {
     'hunt.title': 'Unknown modules',
     'hunt.intro': 'The tiles above are the modules this software knows and this car has. Another '
       + 'BMW may also have a gearbox, navigation or telephone controller, which this app does not '
-      + 'know yet. This sweeps the 48 further addresses the vendor software also probes.',
+      + 'know yet. This sweeps the other addresses the vendor software probes, on both protocols.',
     'hunt.intro2': 'If you find one, you can report it with a button: a module’s identity '
       + 'bytes are exactly what is missing to add it. It is slow, because every address needs its '
       + 'own connection.',
+    'hunt.curiosity': 'not a BMW address',
     'hunt.progress': '0x{addr} — {done}/{total}',
     'hunt.progress.found': '0x{addr} — {done}/{total}, {n} found so far',
     'hunt.done': '{total} addresses swept, {n} unknown modules.',
@@ -263,10 +266,10 @@ const STRINGS = {
       + 'addresses above.',
 
     'raw.summary': 'Raw traffic',
-    'note.evidence': 'Every fault keeps its raw bytes on screen. The reading is verified on all '
-      + 'nine modules against the vendor software’s own output, on a 2002 E46 316i — but the '
-      + '<b>descriptions</b> exist only for the codes that car actually produced. An unknown code '
-      + 'gets no description: better nothing than a plausible-sounding guess.',
+    'note.evidence': 'Every fault keeps its raw bytes on screen. The reading is verified against '
+      + 'the vendor software’s own output, on a 2002 E46 316i — but the <b>descriptions</b> exist '
+      + 'only for the codes that car actually produced. An unknown code gets no description: '
+      + 'better nothing than a plausible-sounding guess.',
     'note.clear': 'Clearing empties the <i>stored</i> list only. If a fault is currently present, '
       + 'the module accepts the clear and then reports the same code on the next read — which is '
       + 'why this app always reads back and tells you what returned.',

@@ -25,6 +25,13 @@ const RECORDED = {
     ident: '5A 80 00 00 07 51 95 92 10 0C 00 0F 30 4C 20 02 04 09 08 00 11 16 06',
     kwpDtc: '58 01 27 C3 64', vin: 'KP04220',
   },
+  0x1b: {
+    ident: '5A 80 00 00 07 51 62 07 10 01 00 14 39 31 20 02 03 05 10 00 06 8F 06',
+    // The vendor never asked this module for fault codes -- its report's error column says
+    // "no data" -- so the replay has no answer to show and says so. What `18 02 FF FF` gets from a
+    // Valvetronic controller is genuinely unknown until somebody sends it.
+    kwpDtc: null, vin: '0000000',
+  },
   0x29: {
     ident: '5A 80 00 00 06 75 90 45 04 04 00 06 00 06 20 02 04 08 24',
     kwpDtc: '58 04 5E 1F A0 5E 16 20 5E 24 A0 5E 43 A0', vin: 'AY31060KP04220',
@@ -88,7 +95,7 @@ export function replay() {
 
     const result = { ...mod, present: true, ident: b(rec.ident) };
     if (mod.kwp) {
-      result.faults = P.decodeKwpFaults(b(rec.kwpDtc));
+      result.faults = rec.kwpDtc ? P.decodeKwpFaults(b(rec.kwpDtc)) : null;
       result.shadow = null;
       result.vin = rec.vin;
     } else {

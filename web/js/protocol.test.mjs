@@ -109,6 +109,7 @@ for (const [name, kwp, raw, part, hw] of [
   ['LCM',  0, 'D0 10 A0 06 91 98 25 15 31 30 00 09 02 09 30 6C', '6.919.825', '15'],
   ['DME',  1, '5A 80 00 00 07 51 95 92 10 0C 00 0F 30 4C', '7.519.592', '10'],
   ['ABS',  1, '5A 80 00 00 06 75 90 45 04 04 00 06 00 06', '6.759.045', '04'],
+  ['VTC1', 1, '5A 80 00 00 07 51 62 07 10 01 00 14 39 31', '7.516.207', '10'],
 ]) {
   const got = P.decodeIdent({ ident: bytes(raw), kwp: !!kwp });
   check(`${name}: BMWTNR and HW`, got && [got.part, got.hw], [part, hw]);
@@ -122,6 +123,17 @@ for (const [name, kwp, raw, part, hw] of [
 {
   const a = P.splitReply(bytes('80 05 02 02 85   80 0A A0 02 4B 50 04 22 00 15')).answer;
   check('IKE: stored VIN', P.decodeIkeVin(a), 'KP04220');
+}
+
+/* -- the Valvetronic controller, which this project walked past for a fortnight ---------------- */
+// Not in the vendor's DS2 probe list, only in its eight-address KWP one, so every sweep missed it.
+{
+  const raw = bytes(`B8 1B F1 02 1A 90 DA
+                     B8 F1 1B 09 5A 90 30 30 30 30 30 30 30 A1`);
+  const a = P.splitKwpReply(raw).answer;
+  let vin = '';
+  for (const b of a.data.slice(2)) if (b >= 0x30 && b <= 0x5a) vin += String.fromCharCode(b);
+  check('VTC1: VIN field', vin, '0000000');   // the vendor prints exactly this
 }
 
 /* -- a mangled frame must be refused, not half-read ------------------------------------------ */

@@ -64,6 +64,12 @@ function tileFor(mod) {
  * It lived in a collapsed `<details>` under the grid and would have gone unnoticed. Dashed, like
  * an absent module, because an absent module is exactly what it is hunting for.
  */
+/** How many addresses the sweep would visit: the vendor's list, less the ones we have tiles for. */
+function unknownCount() {
+  const known = new Set(P.MODULES.map((m) => m.addr));
+  return P.PROBE_ADDRESSES.filter((a) => !known.has(a)).length;
+}
+
 function huntTile() {
   const el = document.createElement('button');
   el.className = 'tile hunt';
@@ -72,7 +78,7 @@ function huntTile() {
     <svg class="ic" aria-hidden="true"><use href="#ic-hunt"/></svg>
     <div class="name">${t('tile.hunt.name')}</div>
     <div class="label">${t('tile.hunt.label')}</div>
-    <div class="state">${t('tile.hunt.state')}</div>`;
+    <div class="state">${t('tile.hunt.state', { n: unknownCount() })}</div>`;
   el.addEventListener('click', hunt);
   return el;
 }
@@ -493,7 +499,9 @@ async function hunt() {
       const div = document.createElement('div');
       div.className = 'fault';
       const a = `0x${f.addr.toString(16).toUpperCase().padStart(2, '0')}`;
-      div.innerHTML = `<code>${a}</code>
+      const proto = f.kwp ? 'KWP2000' : 'DS2';
+      const note = P.CURIOSITY_ADDRESSES.has(f.addr) ? ` · ${t('hunt.curiosity')}` : '';
+      div.innerHTML = `<code>${a}</code> <span class="raw">${proto}${note}</span>
         ${f.id ? `<div class="desc">BMWTNR ${f.id.part} · HW ${f.id.hw}</div>` : ''}
         <div class="raw">${P.hex(f.ident)}</div>`;
       out.appendChild(div);
@@ -524,11 +532,12 @@ async function hunt() {
 
 function issueBody(found) {
   const lines = ['This app found a module it does not know about.', ''];
-  lines.push('| address | BMWTNR | HW | identity |');
-  lines.push('|---|---|---|---|');
+  lines.push('| address | protocol | BMWTNR | HW | identity |');
+  lines.push('|---|---|---|---|---|');
   for (const f of found) {
     const a = `0x${f.addr.toString(16).toUpperCase().padStart(2, '0')}`;
-    lines.push(`| \`${a}\` | ${f.id ? f.id.part : '—'} | ${f.id ? f.id.hw : '—'} | \`${P.hex(f.ident)}\` |`);
+    lines.push(`| \`${a}\` | ${f.kwp ? 'KWP2000' : 'DS2'} | ${f.id ? f.id.part : '—'} `
+      + `| ${f.id ? f.id.hw : '—'} | \`${P.hex(f.ident)}\` |`);
   }
   lines.push('', '**Car:** (model, year, engine — if you would share it)', '');
   lines.push('<details><summary>Raw traffic</summary>', '', '```', buildLog(), '```', '</details>');
