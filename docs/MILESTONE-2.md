@@ -111,44 +111,39 @@ records the bytes — so the calibration comes out of the same recording, with n
 
 ---
 
-## 3. Steering angle, live
+## 3. Steering angle, live — measured 2026-11-06
 
-**Why this one and not the others.** It is the only live value in the capture with a varying input:
-the wheel was moved while recording. Everything else sat still.
-
-**What is established.** `0xA651` → DS2 `0B 01` on `0x57`, 33 readings, 17 distinct. The reply body
-is five bytes:
+**Settled.** `0xA651` → DS2 `0B 01` on `0x57`, sixty-two readings over a real sweep. The reply body
+is `[angle][complement][95][noise]`:
 
 ```
-A0  FA 85  95 D2
-A0  F5 8A  95 D0
-A0  E3 9B  95 D1
-A0  EF 70  95 CF
+   0   FE 82 95 D1     at rest
+   8   ED 92 95 D0     237  =  -19
+   9   BA C2 95 CF     186  =  -70
+  10   73 F5 95 D1     115  = +115   <- continuous: -70 - 71 wraps
+  12   0B 8A 95 CF      11  =  +11
+  40   FE 82 95 CF     back at rest, byte for byte
 ```
 
-The first two move together and the rest barely moves. `FA+85`, `F5+8A`, `F8+87` and `FB+84` all sum
-to `0x17F`, so **the second byte is the first one's complement** — the redundant-channel encoding a
-steering sensor is required to have. `EF+70` sums to `0x15F`, short by exactly `0x20`, so one bit of
-that byte is a flag and not part of the number.
+- **The angle byte wraps** inside a movement well short of full lock, and there is no turn counter
+  or coarse field anywhere in the reply. So this command cannot give an absolute angle on its own.
+- **The second byte is `(0x80 − b1) mod 256`**, exactly, whenever the wheel is still — and drifts
+  while it moves, which is what a redundant channel sampled a moment apart does.
+- The third byte is always `0x95`; the fourth jitters within ±2 of `0xD1`, which is noise.
+- At rest it reads `FE 82` at the start and `FE 82` again fifty readings later. The sensor is
+  exactly repeatable, so nothing here is drift.
 
-**What is missing, and a useful constraint on it.** The owner moved the wheel about **one or two
-centimetres at the rim** — enough to prove data was coming back, not enough to calibrate. The first
-byte covered `E3`…`FE` over that, a span of 27 counts.
+**An earlier version of this section was wrong on both counts** — it called the second byte a
+complement summing to `0x17F` and read a flag bit out of one sample that summed to `0x15F`. The
+sums only looked constant because all four samples came from a two-centimetre nudge. Fitting a
+rule to four adjacent points invented a flag that does not exist.
 
-Two centimetres on a rim of roughly 38 cm is in the region of 6°, so the resolution is of the order
-of a fifth of a degree per count. That is a rough estimate from a remembered hand movement and
-should be treated as one — but it is enough for the conclusion that matters: **one byte at that
-resolution covers about ±28°, and the wheel turns far further than that.** There is a coarse field
-somewhere we have not identified. The `95` that never moved and the `D2`/`CF` that jittered are the
-candidates, and a two-centimetre sample cannot tell them apart.
-
-**Cost.** Folded into the capture in §2; alone, five minutes at the car and an hour of arithmetic.
-
-**How we would know it is right.** Lock to lock, pausing at full left, centre and full right. Three
-widely separated positions settle the scale, the sign and whether a coarse field exists, and the
-return to centre catches drift. Doing it with the vendor software running means its own display
-gives the degrees while the proxy records the bytes — the calibration then comes out of one file,
-with nothing to write down and lose.
+**What is left.** The coarse field, wherever it lives. It is not in `0xA651`, and it is not in
+`0x35CF` (DS2 `08 <page>` on `0x57`), whose six pages are each read once and look like calibration
+rather than live values. The vendor's own screen shows degrees, so it reads the coarse part
+somewhere — a capture of *only* that screen, with the wheel swept lock to lock, would show which
+command carries it. Everything else on that screen is now decoded, so the next capture has one
+question to answer instead of several.
 
 ---
 

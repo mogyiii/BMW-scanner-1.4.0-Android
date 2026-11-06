@@ -1,5 +1,54 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # 📐 The steering angle, measured properly — and a correction — 2026-11-06
+>
+> `log/2026-11-06/`: twenty unbroken minutes of the vendor software with the proxy attached, every
+> readable menu visited, 2.1 MB, 60 distinct commands of which **ten are new** (67 known in total).
+>
+> **The steering reply is `[angle][complement][95][noise]`, and the angle wraps.**
+>
+> Sixty-two readings of `0xA651` (DS2 `0B 01`), this time with a real sweep rather than two
+> centimetres. At rest the first two bytes are `FE 82`, and they are `FE 82` again fifty readings
+> later after the wheel has been swept and returned — the sensor is exactly repeatable.
+>
+> ```
+>    0   FE 82 95 D1     at rest
+>    8   ED 92 95 D0     237
+>    9   BA C2 95 CF     186
+>   10   73 F5 95 D1     115      <- 186 - 71
+>   11   3E BC 95 D0      62
+>   12   0B 8A 95 CF      11
+>   40   FE 82 95 CF     back at rest, byte for byte
+> ```
+>
+> Read as signed, `237 186 115 62 11` is `-19 -70 +115 +62 +11`: the step from `-70` to `+115` is
+> `-71` once the wrap is allowed for, and it is continuous with every step around it. **The byte
+> wraps inside a movement the owner describes as well short of full lock.** There is no turn
+> counter and no coarse field anywhere in the reply, so this command cannot give an absolute angle
+> — which settles the open question in `MILESTONE-2.md` §3 with data instead of an estimate.
+>
+> **Correction.** That document says the second byte is the first one's complement because
+> `FA+85`, `F5+8A`, `F8+87` and `FB+84` all sum to `0x17F`, and that one summing to `0x15F` means a
+> flag bit. Both halves are wrong. The rule is `b2 = (0x80 − b1) mod 256`; the sums looked like
+> `0x17F`/`0x180` only because of where the subtraction wrapped, and the apparent `0x20` flag was
+> an artefact of fitting four samples that happened to be adjacent. With a real sweep the sums run
+> all over — `0x095`, `0x0FA`, `0x123`, `0x168` — and the simple rule holds exactly whenever the
+> wheel is **still**. It breaks only while the wheel is moving, which is what a redundant sensor
+> read a moment apart should do. Four samples from a two-centimetre nudge were enough to invent a
+> flag bit that does not exist.
+>
+> **Engine live values: absent from a second capture.** The same variance test that finds the
+> steering immediately — which `(command, address)` pairs return different bytes on repeated reads —
+> finds nothing whatever on `0x12`. Across both captures that is now 3600-odd frames with no engine
+> poll loop in them. The owner watched the vendor display rpm and blipped the throttle to confirm
+> it, so it happens; it has simply never happened while the proxy was recording. The log is
+> continuous from 16:42:34 to 17:02:29, so if it was in that window it is not a coverage gap.
+>
+> **The crashes are in the log.** The application exits and restarts at 16:59:04 after an EWS
+> `65 00` read (`0x35ED`), then opens and closes three times in three seconds before settling. The
+> proxy survives it — it records the unload and reload — so a crash costs the session, not the
+> recording.
+
 > # ✅ A tenth module, found by accident — 2026-11-05
 >
 > The owner asked, for fun, to add `0x33` to the unknown-module sweep — the OBD-II functional
