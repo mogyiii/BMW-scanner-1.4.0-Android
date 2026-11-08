@@ -160,6 +160,7 @@ for (const [name, kwp, raw, part, hw] of [
   check('LEW 0x0C from the binary', P.faultText(0x57, 0x0c), 'CAN-Bus off');
   check('LEW 0x0F from the binary', P.faultText(0x57, 0x0f), 'Stack error / Case error');
   check('IKE 0xFE from the binary', P.faultText(0x80, 0xfe), 'No CAN message (DMER3)');
+  check('IHKA 0x01 from the binary', P.faultText(0x5b, 0x01), 'Defroster flap motor');
   // The hand-written table still wins where it has an entry, so Hungarian survives.
   check('hand-written entry wins, Hungarian', P.faultText(0x57, 0x0b, 'hu'), 'Hibás LWS-azonosító');
   check('hand-written entry wins, English', P.faultText(0x57, 0x0b, 'en'), 'Wrong LWS-ID');

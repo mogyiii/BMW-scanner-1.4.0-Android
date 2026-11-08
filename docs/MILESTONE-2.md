@@ -34,9 +34,9 @@ module jumps from `08` to `0A`. And an early termination rule that stopped the w
 reached the first string killed the steering table outright, because its first record points inside
 the index.
 
-**What ships.** The steering sensor (15 codes) and the instrument cluster (40 codes), because
-those are the tables that reproduce *every* code whose text the vendor printed for the test car.
-That takes the app from twelve hand-written descriptions to fifty-five.
+**What ships.** The steering sensor (15 codes), the climate module (23) and the instrument
+cluster (40) — the tables that reproduce *every* code whose text the vendor printed for the test
+car. That takes the app from twelve hand-written descriptions to seventy-eight.
 
 **What does not, and why it matters more than what does.** The binary holds 93 of these tables and
 there is one per module *variant*. For the ABS, the best candidate has 115 codes and gets two of
@@ -51,8 +51,8 @@ anyone picks this up:
 
 | module | situation |
 |---|---|
-| ABS, DME | Right structure, **wrong variant**. The DME's "Failure oil status sensor" exists exactly once in the binary, in a table that files it under `0x27C5` where the vendor prints `0x27C3`. The ABS is off by one and by ten on two of four. Small, inconsistent offsets — the signature of a neighbouring variant, not of a decoding error. |
-| IHKA | **The parser misses its tables.** "AUC heating" has twelve copies and *none* of them lies inside a table this extractor finds, though they sit just past one that it does. Something about those tables fails the `refcount == -1` or minimum-size filter. |
+| ABS, DME | Right structure, **wrong variant**, and still open. The DME's "Failure oil status sensor" exists exactly once in the binary, in a table that files it under `0x27C5` where the vendor prints `0x27C3`. The ABS is off by one and by ten on two of four. Small, inconsistent offsets — the signature of a neighbouring variant, not of a decoding error. |
+| IHKA | **Fixed.** The parser was starting its code walk at `prev = 0` with a strict `>`, so any table numbering its first code `0` — the rear climate table does — died on record zero and was discarded whole. With `prev = -1` the image yields 136 tables instead of 93, and the climate module's own table is among them. |
 | SRS | **The text is composed.** "Side airbag, front right door, resistance too low" does not exist in the binary as a string at all; "Side airbag" does. The vendor assembles that line from parts. |
 
 **So the remaining work is the selector**, and it is now a smaller, sharper question than before:

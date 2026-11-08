@@ -21,7 +21,8 @@ than knowing the selector, and the output says which tables were confirmed that 
 
 Usage:
     python fault_text.py <unpacked.bin>            summary of what was found
-    python fault_text.py <unpacked.bin> --json     the confirmed tables, for the web app
+    python fault_text.py <unpacked.bin> --json     the confirmed tables, as JSON
+    python fault_text.py <unpacked.bin> --js       the block to paste into web/js/protocol.js
 """
 import json
 import struct
@@ -47,7 +48,10 @@ def parse_table(data, blob):
     length = struct.unpack_from("<I", blob, data - 4)[0]
     if not (16 < length < 60000) or data + length > len(blob):
         return None
-    out, n, prev = {}, 0, 0
+    # `prev` starts below zero because some tables number their first code 0 rather than 1 - the
+    # rear climate table does - and starting at zero with a strict `>` stopped the walk on record
+    # zero and silently discarded the whole table.
+    out, n, prev = {}, 0, -1
     while data + n * 5 + 5 <= data + length:
         rec = data + n * 5
         offset = struct.unpack_from(">H", blob, rec)[0]
@@ -119,6 +123,19 @@ def main():
             report.append((name, addr, len(hits), len(tables[best]), file_to_va(best)))
         else:
             report.append((name, addr, 0, 0, None))
+
+    if "--js" in sys.argv:
+        total = sum(len(t) for t in confirmed.values())
+        print("export const FAULT_TEXT_EXTRACTED = {")
+        for addr, tab in sorted(confirmed.items()):
+            print(f"  0x{addr:02x}: {{")
+            for code, text in sorted(tab.items()):
+                esc = text.replace("\\", "\\\\").replace("'", "\'")
+                print(f"    0x{code:02x}: '{esc}',")
+            print("  },")
+        print("};")
+        print(f"// {total} descriptions, {len(confirmed)} modules", file=sys.stderr)
+        return
 
     if want_json:
         json.dump({f"0x{a:02X}": {f"0x{c:X}": t for c, t in sorted(tab.items())}

@@ -1,5 +1,25 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # 📖 One wrong initial value was hiding a third of the tables — 2026-11-06
+>
+> The fault-table extractor started its index walk at `prev = 0` and required each code to be
+> strictly greater. Any table numbering its first code **0** rather than 1 therefore died on record
+> zero and was discarded whole, silently, as "not a table".
+>
+> With `prev = -1` the image yields **136 tables instead of 93**, and the climate module's own table
+> is among them. Shipped descriptions go from 55 to **78** across three modules.
+>
+> The bug is worth recording because of how it presented. The symptom was "the climate module's
+> text is stored differently" — twelve copies of "AUC heating" and not one inside any table the
+> extractor could find. That is a true observation and it pointed at the wrong cause entirely; the
+> structure was identical, the reader was refusing to start. I had already written the wrong
+> explanation into `MILESTONE-2.md` as a per-module diagnosis.
+>
+> The ABS and the engine controller are still open and still look like genuine variant mismatches:
+> the DME's "Failure oil status sensor" exists exactly once in the image, filed under `0x27C5` where
+> the vendor prints `0x27C3`. The airbag's phrasing is absent from the binary altogether and is
+> composed at runtime.
+
 > # 📖 The fault-description tables are decoded — 2026-11-06
 >
 > The text is not compressed or generated. Each table is a Delphi constant string holding its own

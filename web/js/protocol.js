@@ -364,7 +364,8 @@ export const FAULT_TEXT = {
  * signature of a neighbouring variant. Shipping it would have added two correct descriptions and a
  * hundred plausible wrong ones, so it is not here.
  *
- * 55 descriptions, 2 modules. `FAULT_TEXT` above wins where both have an entry,
+ * 78 descriptions across the steering sensor, the climate module and the instrument
+ * cluster. `FAULT_TEXT` above wins where both have an entry,
  * because that one is translated and this one is not.
  */
 export const FAULT_TEXT_EXTRACTED = {
@@ -384,6 +385,31 @@ export const FAULT_TEXT_EXTRACTED = {
     0x0d: 'LWS-gradient too large',
     0x0e: 'LWS-maximum exceeded',
     0x0f: 'Stack error / Case error',
+  },
+  0x5b: {
+    0x00: 'Ventilation flap motor',
+    0x01: 'Defroster flap motor',
+    0x02: 'Footwell flap motor',
+    0x03: 'Fresh air / Air circulation flap motor left',
+    0x05: 'Fresh air / Air circulation flap motor right',
+    0x0a: 'Pressure sensor, AUC Supply',
+    0x0c: 'Evaporator sensor',
+    0x11: 'Heat exchanger sensor',
+    0x14: 'Inner temperature sensor',
+    0x15: 'Relay Rear window defogger',
+    0x16: 'Additional heater, Relay Windshield defogger',
+    0x17: 'Auxiliary water pump',
+    0x18: 'Water valve',
+    0x19: 'Blower control voltage',
+    0x1a: 'Sensor blower',
+    0x1b: 'Communication with the Additional heater',
+    0x1c: 'AUC sensor',
+    0x1d: 'Pressure sensor',
+    0x1e: 'AUC heating',
+    0x1f: 'Latent heat storage system Cut off valve',
+    0x20: 'Latent heat storage system Shut off valve',
+    0x31: 'Solar sensor or Latent heat storage system Temperature sensor',
+    0xfe: 'Wrong air conditioning unit mounted',
   },
   0x80: {
     0x3d: 'Acoustic transmitter disconnected (gong tone 1/2/3)',
