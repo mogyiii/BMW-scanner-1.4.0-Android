@@ -351,12 +351,90 @@ export const FAULT_TEXT = {
   },
 };
 
+/**
+ * Fault descriptions lifted out of the vendor binary, in English only.
+ *
+ * `tools/fault_text.py` reads these from the executable's own lookup tables rather than inventing
+ * them. **A module appears here only if its table reproduces, exactly, every code whose text the
+ * vendor printed for the test car** — the binary holds one table per module *variant*, fifteen of
+ * them for the climate module alone, and picking the wrong one yields confident nonsense.
+ *
+ * The ABS is the reason that rule is written down. Its best candidate table has 115 codes and gets
+ * two of this car's four exactly right; the other two are off by one and by ten, which is the
+ * signature of a neighbouring variant. Shipping it would have added two correct descriptions and a
+ * hundred plausible wrong ones, so it is not here.
+ *
+ * 55 descriptions, 2 modules. `FAULT_TEXT` above wins where both have an entry,
+ * because that one is translated and this one is not.
+ */
+export const FAULT_TEXT_EXTRACTED = {
+  0x57: {
+    0x01: 'Terminal 30 defective',
+    0x02: 'Sensor current out of range',
+    0x03: '90 degrees difference of wiper too large (Normal operation)',
+    0x04: '90 degrees difference of wiper too large (Adjustment operation)',
+    0x05: 'EEPROM defective',
+    0x06: 'AD-converter defective',
+    0x07: 'ROM-Check Error',
+    0x08: 'RAM-Check Error',
+    0x09: 'No CAN message (ASC)',
+    0x0a: 'Wrong CAN-Version',
+    0x0b: 'Wrong LWS-ID',
+    0x0c: 'CAN-Bus off',
+    0x0d: 'LWS-gradient too large',
+    0x0e: 'LWS-maximum exceeded',
+    0x0f: 'Stack error / Case error',
+  },
+  0x80: {
+    0x3d: 'Acoustic transmitter disconnected (gong tone 1/2/3)',
+    0x3e: 'Fault when activating indicator instruments',
+    0x43: 'Overcurrent in instrument circuit',
+    0x82: 'Oil-pressure sensor',
+    0x86: 'Speedometer signal',
+    0x87: 'Body bus (K-bus)',
+    0x8a: 'Instrumentation bus (I-bus)',
+    0x8b: 'Gong tone (T3)',
+    0x8c: 'Voltage supply, terminal R, faulty',
+    0x8e: 'EGS signal line disturbed',
+    0x8f: 'Overvoltage in voltage supply',
+    0x90: 'Voltage supply, terminal 15, faulty',
+    0x91: 'Gong tone (T2)',
+    0xbb: 'Gong tone (T1)',
+    0xbc: 'Brake-fluid level',
+    0xbd: 'Electronic braking-force distribution',
+    0xbe: 'Data-filing difference to central light module (LCM)',
+    0xc0: 'Internal fault, EEPROM checksum, coding incorrect/incomplete',
+    0xc2: 'Distance signal from ABS/ASC/DSC control unit',
+    0xc5: 'Speed signal from engine control unit',
+    0xc6: 'Output PIN 6 (code EWS), blue plug',
+    0xcc: 'Tank sensor 1, left',
+    0xcd: 'Consumption signal from engine control unit 1',
+    0xce: 'Outside-temperature sensor',
+    0xd2: 'Service interval indicator (SIA) reset',
+    0xd4: 'Coolant temperature sensor',
+    0xd6: 'Oil temperature sensor',
+    0xd9: 'Tank sensor 2, right',
+    0xef: 'Consumption signal from engine control unit 2',
+    0xf3: 'CAN-bus off',
+    0xf4: 'No CAN message',
+    0xf5: 'No CAN message (ASC1)',
+    0xf6: 'No CAN message (DMER1)',
+    0xf7: 'No CAN message (DMER2)',
+    0xf8: 'No CAN message (DMER4)',
+    0xf9: 'No CAN message (DMEL4)',
+    0xfa: 'No CAN message (EML1)',
+    0xfb: 'No CAN message (EGS1)',
+    0xfc: 'No CAN message (MST1)',
+    0xfe: 'No CAN message (DMER3)',
+  },
+};
+
 /** The description for a code on a module, or an empty string when we do not have one. */
 export function faultText(addr, code, lang = 'en') {
-  const perModule = FAULT_TEXT[addr];
-  const entry = perModule && perModule[code];
-  if (!entry) return '';
-  return entry[lang] || entry.en || '';
+  const entry = FAULT_TEXT[addr] && FAULT_TEXT[addr][code];
+  if (entry) return entry[lang] || entry.en || '';
+  const extracted = FAULT_TEXT_EXTRACTED[addr];
+  return (extracted && extracted[code]) || '';
 }
 
 /**

@@ -133,6 +133,7 @@ credits each answer to the wrong question. That one number cost a fortnight.
 | | |
 |---|---|
 | `tools/command_atlas.py` | what each command means, per module, read out of the echo |
+| `tools/fault_text.py` | fault descriptions, read out of the vendor binary's own tables |
 | `tools/decode_proxy.py` | a capture replayed as the conversation it represents |
 | `tools/ftd2xx-proxy/` | a logging pass-through that sits under the genuine software |
 | `tools/ds2-probe-win/` | our exact frames, sent through the genuine driver, to isolate our bugs |

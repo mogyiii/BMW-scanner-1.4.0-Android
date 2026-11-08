@@ -154,6 +154,19 @@ for (const [name, kwp, raw, part, hw] of [
   }
 }
 
+/* -- descriptions extracted from the binary ---------------------------------------------------- */
+{
+  // Codes this car never produced, so the text can only have come out of the vendor's own tables.
+  check('LEW 0x0C from the binary', P.faultText(0x57, 0x0c), 'CAN-Bus off');
+  check('LEW 0x0F from the binary', P.faultText(0x57, 0x0f), 'Stack error / Case error');
+  check('IKE 0xFE from the binary', P.faultText(0x80, 0xfe), 'No CAN message (DMER3)');
+  // The hand-written table still wins where it has an entry, so Hungarian survives.
+  check('hand-written entry wins, Hungarian', P.faultText(0x57, 0x0b, 'hu'), 'Hibás LWS-azonosító');
+  check('hand-written entry wins, English', P.faultText(0x57, 0x0b, 'en'), 'Wrong LWS-ID');
+  // Nothing invented for a module whose table could not be confirmed.
+  check('ABS gets no extracted text', P.faultText(0x29, 0x1234), '');
+}
+
 /* -- a mangled frame must be refused, not half-read ------------------------------------------ */
 {
   const raw = bytes('B8 29 F1 04 18 02 FF FF 00');   // checksum deliberately wrong

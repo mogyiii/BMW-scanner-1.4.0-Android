@@ -1,5 +1,44 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # 📖 The fault-description tables are decoded — 2026-11-06
+>
+> The text is not compressed or generated. Each table is a Delphi constant string holding its own
+> index:
+>
+> ```
+> [refcount -1][length:4]            the AnsiString header
+> [textOffset:2 BE][code:2 BE][00]   repeated - the index
+> [len][characters]                  repeated - the strings
+> ```
+>
+> Fault code `c` is the record whose code field is `c + 1`; that record's first field is the byte
+> offset of the text within the same string. Addresses resolve as `file = VA − 0x400000 + 16`:
+> `unpacked.bin` is a memory dump whose sixteen-byte header states the image base.
+>
+> **55 descriptions now ship**, up from twelve hand-written ones — the steering sensor's fifteen
+> codes and the instrument cluster's forty. `tools/fault_text.py` extracts them.
+>
+> **The ABS is the interesting result, and it is a refusal.** The binary holds 93 of these tables,
+> one per module *variant*. The best ABS candidate has 115 codes and gets two of this car's four
+> exactly right; the other two are off by one and by ten. That is a neighbouring variant, not this
+> car's. Shipping it would have added two correct descriptions and a hundred plausible wrong ones,
+> so nothing was shipped for the ABS. The climate module, airbag and engine controller match no
+> table at all — the climate text is split, since "AUC heating" is absent from the array holding
+> "AUC sensor".
+>
+> **Two mistakes made while getting here, both the same shape.** First, assuming the index position
+> *is* the code: true for the steering sensor, whose codes are dense, and false for the climate
+> module, which jumps `08` → `0A`. Second, adding a termination rule that stopped the index walk
+> when it reached the first string — which killed the steering table outright, because its first
+> record points *inside* the index. Both were rules fitted to the one module that happened to be
+> simple.
+>
+> **What is left is now a sharper question than before:** not how the text is stored, but which of
+> 93 tables the vendor picks from a module's identity. The variant names are themselves one of these
+> arrays (`LWS5`, `LWS5.2`, `LWS5.1B`, `LWS5_` at `0x1F9495`), and each table is loaded by a
+> two-instruction getter, `MOV EAX, <table>; CALL`. No table address is stored as data anywhere in
+> the file, so the remaining step needs a decompiler rather than another byte search.
+
 > # ✅ The engine speed is on the immobiliser — 2026-11-06
 >
 > `0x5132` → DS2 `6B` on `0x44`, sixth byte, engine speed in hundreds of rpm.

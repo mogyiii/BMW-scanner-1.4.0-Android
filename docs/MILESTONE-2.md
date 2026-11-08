@@ -10,62 +10,52 @@ Ordered by value per unit of work. Nothing here is started.
 
 ---
 
-## 1. Fault descriptions for every module
+## 1. Fault descriptions — the format is solved, the variant selector is not
 
-**The problem.** Twelve codes have text. Every other code shows as `5E1F / A0` and a row of bytes,
-which is honest but not much use to somebody standing next to their car.
+**The table format is fully decoded, and 55 descriptions now ship.** `tools/fault_text.py` reads
+them out of the executable.
 
-**What is established.** The vendor binary carries the text in plain, uncompressed, length-prefixed
-strings packed end to end. `build/unpacked/unpacked.bin`, walk `[length][characters]` repeatedly:
-
-```
-0x0F7FB4  [ 0] Terminal 30 defective
-          [ 1] Sensor current out of range
-          [ 2] 90 degrees difference of wiper too large (Normal operation)
-          …
-          [10] Wrong LWS-ID
-```
-
-For the steering angle sensor the index is **`code − 1`**, and that reproduces all three codes this
-car produced, exactly as the vendor printed them. (An earlier note in `findings.md` said the base
-was 4. It is 1; the note was fitted to one code and happened to land.)
-
-**What is missing, and it is not what it looks like.** The obvious next step — do the same for the
-other modules — fails, and the reason is worth knowing before anyone spends a day on it. The climate
-module's array is unmistakably the right one by content:
+Each table is an ordinary Delphi constant string holding its own lookup structure:
 
 ```
-0x0FB2F1  [ 0] Evaporator sensor      [ 1] AUC sensor      [ 2] Brightness
-          [ 3] Inner temperature sensor               …    [30] Unknown error location
+[refcount -1][length:4]            the AnsiString header
+[textOffset:2 BE][code:2 BE][00]   repeated - the index
+[len][characters]                  repeated - the strings
 ```
 
-but no single offset maps this car's `1C → AUC sensor` and `1E → AUC heating` onto it, and
-"AUC heating" is not in that array at all. The explanation is in the counts: **"AUC sensor" appears
-fifteen times in the binary and "AUC heating" twelve.** There is not one table per module. There is
-one per *module variant* — the vendor's own report names the variant it picked (`IHKA E46
-PU98/PU99`, `LWS5.1B`, `DSC E46,R50,E85`), and it picks it from the identity bytes it has just read.
+A fault code `c` is the record whose code field is `c + 1`, and that record's first field is the
+byte offset of the description's text inside the same string. Addresses resolve as
+`file = VA − 0x400000 + 16`, because `unpacked.bin` is a memory dump with a sixteen-byte header
+that states the image base itself.
 
-So the real work is **finding the selector**, not guessing offsets: the function that turns an
-identity into a table pointer. The tables themselves are already readable.
+Two things had to be got right and were initially got wrong. The index position is **not** the
+code — that is true only for the steering sensor, whose codes happen to be dense; the climate
+module jumps from `08` to `0A`. And an early termination rule that stopped the walk when the index
+reached the first string killed the steering table outright, because its first record points inside
+the index.
 
-**Half of the selector is already located.** The variant names the vendor prints are themselves a
-length-prefixed array, in the same format as the fault text:
+**What ships.** The steering sensor (15 codes) and the instrument cluster (40 codes), because
+those are the tables that reproduce *every* code whose text the vendor printed for the test car.
+That takes the app from twelve hand-written descriptions to fifty-five.
 
-```
-0x1F9495   04 "LWS5"   06 "LWS5.2"   07 "LWS5.1B"   05 "LWS5_"
-```
+**What does not, and why it matters more than what does.** The binary holds 93 of these tables and
+there is one per module *variant*. For the ABS, the best candidate has 115 codes and gets two of
+this car's four exactly right — the other two are off by one and by ten, the signature of a
+neighbouring variant. Shipping it would have bought two correct descriptions and a hundred
+plausible wrong ones. The climate module, the airbag and the engine controller produce no matching
+table at all; the climate text is split across a location list and something else, since
+"AUC heating" is not in the array that holds "AUC sensor".
 
-and the image base is `0x400000` with file offsets equal to RVAs in that region, so pointers in the
-binary can be resolved by subtraction. What is *not* there is a pointer to the fault table: nothing
-in the file holds the address of `0x0F7FB4`, give or take two bytes. The tables are reached by
-index or by computation, not by a stored address — which is why this needs the decompiler and not
-another byte search. One or two days stands.
+**So the remaining work is the selector**, and it is now a smaller, sharper question than before:
+not "how is the text stored" but "which of 93 tables does the vendor choose, given the identity
+bytes". The variant names are themselves one of these length-prefixed arrays (`LWS5`, `LWS5.2`,
+`LWS5.1B`, `LWS5_` at `0x1F9495`), and each table is loaded by a two-instruction getter —
+`MOV EAX, <table>; CALL` — so the call sites are findable. No pointer to a table is stored
+anywhere in the file, so this is a decompiler job.
 
-**Cost.** A day, maybe two, in the decompiler. No car needed.
-
-**How we would know it is right.** This car gives twelve codes across six modules with known text.
-Any selector worth having reproduces all twelve. That is a real test, not a plausibility check — and
-it is already written down in `docs/STATE.md`.
+**How we would know it is right.** Unchanged, and now partly used: this car gives twelve codes
+across six modules with known text. A selector worth having reproduces all twelve. Two modules
+are done that way already.
 
 ---
 
