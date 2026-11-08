@@ -48,6 +48,19 @@ PU98/PU99`, `LWS5.1B`, `DSC E46,R50,E85`), and it picks it from the identity byt
 So the real work is **finding the selector**, not guessing offsets: the function that turns an
 identity into a table pointer. The tables themselves are already readable.
 
+**Half of the selector is already located.** The variant names the vendor prints are themselves a
+length-prefixed array, in the same format as the fault text:
+
+```
+0x1F9495   04 "LWS5"   06 "LWS5.2"   07 "LWS5.1B"   05 "LWS5_"
+```
+
+and the image base is `0x400000` with file offsets equal to RVAs in that region, so pointers in the
+binary can be resolved by subtraction. What is *not* there is a pointer to the fault table: nothing
+in the file holds the address of `0x0F7FB4`, give or take two bytes. The tables are reached by
+index or by computation, not by a stored address — which is why this needs the decompiler and not
+another byte search. One or two days stands.
+
 **Cost.** A day, maybe two, in the decompiler. No car needed.
 
 **How we would know it is right.** This car gives twelve codes across six modules with known text.
