@@ -124,7 +124,7 @@ checked against this.
 | `0x12` | DME, engine | KWP | `27C3/64` oil status sensor |
 | `0x1B` | VTC1, Valvetronic | KWP | **never asked** — the vendor's report says "no data" |
 | `0x29` | ABS / DSC | KWP | `5E1F/A0`, `5E16/20`, `5E24/A0`, `5E43/A0` |
-| `0x44` | EWS, immobiliser | DS2 | none |
+| `0x44` | EWS, immobiliser | DS2 | none — and it carries the **engine speed** |
 | `0x57` | LEW, steering angle | DS2 | `0B/AF`, `09/97`, `04/17` — **cleared, stayed cleared** |
 | `0x5B` | IHKA, climate | DS2 | `1C/44`, `1E/42` |
 | `0x80` | IKE, cluster | DS2 | `BE/48` — **cleared, stayed cleared** |

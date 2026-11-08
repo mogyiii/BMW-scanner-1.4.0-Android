@@ -56,58 +56,41 @@ it is already written down in `docs/STATE.md`.
 
 ---
 
-## 2. Engine live values — and the one capture that would settle several things at once
+## 2. Engine live values — solved 2026-11-06
 
-**Correction.** An earlier draft of this document ruled engine live values out. That was wrong, and
-the way it was wrong is worth keeping: two probe commands are genuinely refused — `0x41AA` answers
-`7F A2 11` and `0x209C` answers `7F 22 11`, service not supported — and the capture contains no
-engine poll loop. From absence plus two refusals I concluded unavailability. The owner watched the
-vendor software display 600–700 rpm. It works; the route it works by is simply not in the recording
-we have, which covers only the menus that were clicked while the proxy was attached.
+**It is on the immobiliser.** `0x5132` → DS2 `6B` on `0x44`, sixth byte, engine speed in hundreds.
 
-**What the capture does establish.** Exactly one thing in it changes between repeated reads, which
-is what live data is:
+Two documents in this repository said engine live values were unavailable, on the strength of the
+engine controller refusing `A2` and `22 20 00` and no engine poll loop appearing in any capture.
+All of that is true and none of it was the point: **nobody is polling the engine controller.** The
+immobiliser has to know whether the engine is turning, so the DME tells it, and the vendor's screen
+reads it from there. The owner said from the start that the rpm was in the EWS menu; I spent two
+captures searching address `0x12`.
 
-```
-command  addr  reads  distinct
-0xA651   57    33     17        steering angle
-0xC731   5B     6      3        climate fault memory (an occurrence counter inside the entry)
-```
-
-Nothing else. There is no engine poll loop in these 1525 frames.
-
-**The constraint worth knowing before planning around it.** The owner's instinct — that an ordinary
-ELM327 reads engine data over documented OBD-II PIDs, so this cable should too — is right about the
-car and blocked by the cable. Each vendor command carries a **fixed service prefix** and only the
-arguments come from us:
+The evidence is a throttle blip the owner performed deliberately so the display would move, caught
+at the 1.3-second interval they described:
 
 ```
-0x4769 + payload 00 10 20   ->   DS2  06 08 00 | 00 10 20
-0xD390 + payload 00 00 00 00 40  ->  KWP  23 | 00 00 00 00 40
-0xC731 + payload 01         ->   DS2  04 | 01
+  16:47:12.881   0F   1500
+  16:47:15.789   07    700   back to idle
+  16:47:21.097   14   2000   the blip
+  16:47:22.414   08    800
+  16:47:25.021   07    700
 ```
 
-So a request is not something we compose; it is a command the cable already knows, with our bytes
-appended. There is no table in the executable mapping command numbers to services — the known ones
-are scattered through it as incidental byte matches and never cluster — so the mapping lives in the
-cable's own firmware. **We cannot invent a mode-01 OBD-II request.** We can only use a command that
-exists, and the only way to learn one is to watch the vendor software use it.
+and the same byte reading `06`/`07` at idle in the previous day's capture, before anyone was looking
+for it. Five independent agreements: the menu the owner names, the poll rate they describe, idle
+matching the figure they read off the screen, the spike landing where they pressed the pedal, and
+the decay afterwards.
 
-Brute-forcing command numbers is not an option: `0xC751` sits in the same number space and is on the
-do-not-send list, and an unknown number could be anything.
+**Resolution is 100 rpm and that is the car, not us** — nothing else in the reply moves. It is
+enough for "is it running, and roughly how fast", which is what an immobiliser needs to know.
 
-**So: one targeted capture, and it pays for two items at once.** The vendor software, the proxy
-attached, and nothing clicked except the live-data screens:
+**Shipped.** The scan reads it, the header shows it next to the odometer, and
+`protocol.test.mjs` asserts all five frames above.
 
-1. Engine running, open the engine live-data screen, leave it for thirty seconds. That reveals the
-   command, and the idle rpm on screen gives the value to decode against.
-2. Then the steering-angle live screen, turning the wheel **lock to lock** this time, pausing at
-   full left, centre and full right.
-
-The second one matters because the vendor's screen shows the angle in degrees while the proxy
-records the bytes — so the calibration comes out of the same recording, with no notes to lose.
-
-**Cost.** Fifteen minutes with the laptop and the engine running.
+**What is not done:** polling. The app reads it once per scan, so it is a snapshot rather than a
+gauge. A live display is a UI job, not a protocol one — the hard part is finished.
 
 ---
 

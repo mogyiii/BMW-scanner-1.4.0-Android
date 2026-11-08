@@ -39,6 +39,8 @@ const RECORDED = {
   0x44: {
     ident: '44 10 A0 86 90 56 66 03 81 81 07 02 02 04 08 DA',
     faults: '44 05 A0 00 E1', shadow: null, adfg: '44 07 A0 FF FF FF 1C',
+    // Mid-blip, from 16:47:21 -- the one frame in the capture that shows 2000 rpm.
+    ewsLive: '44 1F A0 42 0C 14 01 55 00 31 66 C0 E5 C1 D0 5F E5 EC C8 9C 5E 57 C8 C9 A4 5B AE EA 4B 00 6C',
   },
   0x57: {
     ident: '57 10 A0 06 75 99 09 04 01 30 60 12 02 02 EE AD',
@@ -104,6 +106,7 @@ export function replay() {
       result.adfg = b(rec.adfg).slice(3, -1);
       if (rec.mileage) result.mileage = P.decodeMileage(b(rec.mileage));
       if (rec.ikeVin) result.vin = P.decodeIkeVin(b(rec.ikeVin));
+      if (rec.ewsLive) result.live = P.decodeEwsLive(b(rec.ewsLive));
     }
     out.push(result);
   }

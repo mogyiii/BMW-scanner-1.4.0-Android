@@ -1,5 +1,38 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ✅ The engine speed is on the immobiliser — 2026-11-06
+>
+> `0x5132` → DS2 `6B` on `0x44`, sixth byte, engine speed in hundreds of rpm.
+>
+> I searched two captures and several thousand frames for an engine poll loop on `0x12`, found
+> none, and wrote in two documents that engine live values were unavailable. The owner had told me
+> twice that they had watched the vendor software display rpm, and on being asked which menu,
+> answered: **the EWS menu**. It was never on the engine controller. The immobiliser has to know
+> whether the engine is turning, the DME tells it, and the vendor reads it from there.
+>
+> The variance test had been pointing at it the whole time and I misread what it was pointing at.
+> `0x5132` showed 37 reads and 5 distinct replies in the first capture — I noted it, called it "a
+> counter", and moved on. Five distinct values across 37 reads is exactly what a steady idle looks
+> like.
+>
+> The proof is a throttle blip the owner did on purpose so the number would move:
+>
+> ```
+>   16:47:12.881   0F   1500
+>   16:47:15.789   07    700   back to idle
+>   16:47:21.097   14   2000   the blip
+>   16:47:22.414   08    800
+>   16:47:25.021   07    700
+> ```
+>
+> at the 1.3-second interval they described, and the same byte reads `06`/`07` at idle in the
+> previous day's capture — recorded before anyone knew to look, which makes it an independent
+> confirmation rather than a second look at the same thing.
+>
+> **The lesson is not about the EWS.** The owner supplied the answer in their first message on the
+> subject, I treated it as a recollection to be verified rather than a fact to be used, and
+> verified it against the wrong address. Twice.
+
 > # 📐 The steering angle, measured properly — and a correction — 2026-11-06
 >
 > `log/2026-11-06/`: twenty unbroken minutes of the vendor software with the proxy attached, every

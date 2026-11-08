@@ -57,6 +57,11 @@ Per module it reads the BMW part number and hardware revision, the live fault me
 also gives up the odometer and its stored VIN, and the engine controller and ABS give the VIN over
 KWP.
 
+**Engine speed comes from the immobiliser, not the engine controller.** The DME refuses the live
+services outright; the EWS has to know whether the engine is turning, so it is told, and `0x5132`
+hands over the block that carries it. Resolution is 100 rpm, which is what the immobiliser is
+given.
+
 ## Two ways to run it
 
 **The browser version is the one to use.** `web/` is a static page driving the cable over WebUSB —

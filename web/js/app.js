@@ -112,6 +112,7 @@ function drawVitals() {
   const results = [...state.results.values()].filter((r) => r.present && !r.busy);
   const vin = results.map((r) => r.vin).filter(Boolean).sort((a, b) => b.length - a.length)[0];
   const km = results.map((r) => r.mileage).find((m) => m);
+  const live = results.map((r) => r.live).find(Boolean);
   const dl = $('vitals');
   dl.textContent = '';
 
@@ -124,6 +125,7 @@ function drawVitals() {
   };
   add(t('vital.vin'), vin);
   add(t('vital.km'), km ? `${fmt(km)} km` : '');
+  add(t('vital.rpm'), live ? t('vital.rpm.value', { n: fmt(live.rpm) }) : '');
   add(t('vital.modules'), results.length ? `${results.length} / ${P.MODULES.length}` : '');
 
   if (results.length) {
@@ -184,6 +186,7 @@ function showDetail(mod) {
   if (ident) facts.push(`<b>${ident.part}</b> · HW ${ident.hw}`);
   if (mod.vin) facts.push(`${t('vital.vin')} <b>${mod.vin}</b>`);
   if (mod.mileage) facts.push(`<b>${fmt(mod.mileage)} km</b>`);
+  if (mod.live) facts.push(t('vital.rpm') + ` <b>${t('vital.rpm.value', { n: fmt(mod.live.rpm) })}</b>`);
   if (facts.length) {
     const p = document.createElement('p');
     p.style.margin = '0 0 4px';
@@ -343,6 +346,7 @@ function buildLog() {
     if (ident) lines.push(`      BMWTNR ${ident.part}   HW ${ident.hw}`);
     if (r.vin) lines.push(`      VIN ${r.vin}`);
     if (r.mileage) lines.push(`      ${t('log.km')} ${r.mileage} km`);
+    if (r.live) lines.push(`      ${t('vital.rpm')} ${r.live.rpm} rpm`);
     if (r.adfg) lines.push(`      ADFG ${P.hex(r.adfg).replace(/ /g, '')}`);
     if (r.ident) lines.push(`      ident ${P.hex(r.ident)}`);
     for (const [name, store, missing] of [

@@ -31,6 +31,8 @@ const STRINGS = {
 
     'vital.vin': 'alvázszám',
     'vital.km': 'kilométeróra',
+    'vital.rpm': 'fordulatszám',
+    'vital.rpm.value': '{n} /perc',
     'vital.modules': 'vezérlőegység',
 
     'btn.connect': 'Kábel csatlakoztatása',
@@ -171,6 +173,8 @@ const STRINGS = {
 
     'vital.vin': 'chassis number',
     'vital.km': 'odometer',
+    'vital.rpm': 'engine speed',
+    'vital.rpm.value': '{n} rpm',
     'vital.modules': 'modules',
 
     'btn.connect': 'Connect the cable',

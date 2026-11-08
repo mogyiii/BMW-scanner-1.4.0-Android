@@ -106,18 +106,24 @@ async function readDs2Module(ftdi, mod, onTrace) {
   const faults = await readFaultStore(session, mod, P.CMD.FAULTS, '0xC731');
   const shadow = await readFaultStore(session, mod, P.CMD.SHADOW, '0x9E56');
 
-  // The instrument cluster is the only module that knows the mileage, and the header should show
-  // what the car says rather than what someone typed into the page.
+  // Two modules carry something the header wants. The cluster knows the mileage and its own stored
+  // VIN; the immobiliser is told the engine speed, which is the only live value this app reads and
+  // is not where anyone would look for it.
   let mileage = null;
   let vin = '';
+  let live = null;
   if (mod.addr === 0x80) {
     const km = P.splitReply(await session.send(P.buildFrame(P.CMD.MILEAGE, mod.addr), '0x8DE3'));
     if (km) mileage = P.decodeMileage(km.answer);
     const v = P.splitReply(await session.send(P.buildFrame(P.CMD.IKE_VIN, mod.addr), '0xC6E1'));
     if (v) vin = P.decodeIkeVin(v.answer);
   }
+  if (mod.addr === 0x44) {
+    const s = P.splitReply(await session.send(P.buildFrame(P.CMD.EWS_LIVE, mod.addr), '0x5132'));
+    if (s) live = P.decodeEwsLive(s.answer);
+  }
 
-  return { ...mod, present: true, ident: ident.answer, adfg, faults, shadow, mileage, vin };
+  return { ...mod, present: true, ident: ident.answer, adfg, faults, shadow, mileage, vin, live };
 }
 
 /**

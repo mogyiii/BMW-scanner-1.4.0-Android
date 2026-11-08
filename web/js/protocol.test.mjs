@@ -136,6 +136,24 @@ for (const [name, kwp, raw, part, hw] of [
   check('VTC1: VIN field', vin, '0000000');   // the vendor prints exactly this
 }
 
+/* -- engine speed, which lives on the immobiliser and not on the engine controller ------------ */
+// The owner blipped the throttle on purpose so the vendor's display would move. These are the
+// frames that came back, at 1.3-second intervals, with the rpm they were watching.
+{
+  const head = '44 04 6B 2B   44 1F A0 42 0C ';
+  const tail = ' 01 55 00 31 66 C0 E5 C1 D0 5F E5 EC C8 9C 5E 57 C8 C9 A4 5B AE EA 4B 00 00';
+  for (const [raw, rpm, when] of [
+    ['07', 700,  'idle'],
+    ['0F', 1500, 'blip rising'],
+    ['14', 2000, 'the blip'],
+    ['08', 800,  'falling back'],
+    ['06', 600,  'idle, the day before'],
+  ]) {
+    const a = P.splitReply(bytes(head + raw + tail)).answer;
+    check(`EWS: engine speed, ${when}`, P.decodeEwsLive(a).rpm, rpm);
+  }
+}
+
 /* -- a mangled frame must be refused, not half-read ------------------------------------------ */
 {
   const raw = bytes('B8 29 F1 04 18 02 FF FF 00');   // checksum deliberately wrong

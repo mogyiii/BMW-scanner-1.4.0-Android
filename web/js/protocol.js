@@ -34,6 +34,7 @@ export const CMD = {
   SHADOW:  0x9e56,   // DS2 14  - shadow fault memory, paged exactly like 04
   MILEAGE: 0x8de3,   // DS2 02 01 - the odometer, on the instrument cluster
   IKE_VIN: 0xc6e1,   // DS2 02 02 - the cluster's stored VIN
+  EWS_LIVE: 0x5132,  // DS2 6B    - the immobiliser's status block, which carries engine speed
   ADFG:    0x71a0,   // DS2 0E  - the three assembly-release bytes
   CLEAR:   0x1bcf,   // DS2 05  - clear fault memory
   // The engine controller and the ABS are not DS2 modules; these map to KWP2000 services.
@@ -387,6 +388,39 @@ export function decodeIdent(mod) {
     part: `${part[0]}.${part.slice(1, 4)}.${part.slice(4)}`,
     hw: hw.toString(16).toUpperCase().padStart(2, '0'),
   };
+}
+
+/**
+ * Decodes engine speed out of the immobiliser's status block.
+ *
+ * **The engine speed is not on the engine controller.** Two captures and several thousand frames
+ * were searched for an engine poll loop and there is none: the DME refuses `A2` and `22 20 00`
+ * outright. The owner, who had actually watched the vendor software display rpm, said it was in the
+ * **EWS** menu — and it is. The immobiliser has to know whether the engine is turning, so the DME
+ * tells it, and `0x5132` hands the whole status block over.
+ *
+ * The sixth byte is the engine speed in hundreds. The evidence is a throttle blip the owner did on
+ * purpose so it would be visible, caught at 1.3-second intervals:
+ *
+ * ```
+ *   16:47:12.881   0F   1500
+ *   16:47:15.789   07    700   back to idle
+ *   16:47:21.097   14   2000   the blip
+ *   16:47:22.414   08    800
+ *   16:47:25.021   07    700
+ * ```
+ *
+ * and the same byte reads `06`/`07` at idle in a capture from the previous day. Five independent
+ * agreements: the screen the owner names, the poll rate they describe, idle matching the rpm they
+ * read off the display, the spike landing exactly where they pressed the pedal, and the decay back
+ * to idle afterwards.
+ *
+ * **The resolution really is 100 rpm.** Nothing else in the reply moves, so this is what the
+ * immobiliser is told, not a value we have rounded.
+ */
+export function decodeEwsLive(answer) {
+  if (!answer || answer.length < 8 || answer[2] !== 0xa0) return null;
+  return { rpm: answer[5] * 100 };
 }
 
 /**
