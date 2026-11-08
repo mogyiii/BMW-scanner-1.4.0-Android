@@ -55,12 +55,42 @@ anyone picks this up:
 | IHKA | **Fixed.** The parser was starting its code walk at `prev = 0` with a strict `>`, so any table numbering its first code `0` — the rear climate table does — died on record zero and was discarded whole. With `prev = -1` the image yields 136 tables instead of 93, and the climate module's own table is among them. |
 | SRS | **The text is composed.** "Side airbag, front right door, resistance too low" does not exist in the binary as a string at all; "Side airbag" does. The vendor assembles that line from parts. |
 
-**So the remaining work is the selector**, and it is now a smaller, sharper question than before:
-not "how is the text stored" but "which of 93 tables does the vendor choose, given the identity
-bytes". The variant names are themselves one of these length-prefixed arrays (`LWS5`, `LWS5.2`,
-`LWS5.1B`, `LWS5_` at `0x1F9495`), and each table is loaded by a two-instruction getter —
-`MOV EAX, <table>; CALL` — so the call sites are findable. No pointer to a table is stored
-anywhere in the file, so this is a decompiler job.
+### The selector, as far as it is mapped
+
+The chain from a table back towards the identity is now traced most of the way, and the shape is
+not what "find the selector function" suggested.
+
+**Every table has a getter.** 134 of the 136 sit behind an identical fourteen-byte prologue ending
+`MOV EAX, <table>; CALL <common lookup>`. Each getter is called from exactly one place.
+
+**Those call sites are switch cases.** The dispatch is the classic Delphi dense-case form:
+
+```
+MOV EDX, [0x6DA4A0]                a global pointer
+MOV EDX, [EDX]
+MOV EAX, [EDX + EAX*4 + 0x2B8]     this module's variant index
+CMP EAX, 0x4E                      bounds check
+JA  default
+MOV AL,  [EAX + 0x4D3D67]          a byte map, one entry per variant index
+JMP      [EAX*4 + 0x4D3DB6]        a jump table, one entry per case
+```
+
+So **the variant is a small integer held per module in a global record**, at offset `0x2B8` of
+whatever `[0x6DA4A0]` points to, and a switch turns it into a table. Seventeen dispatchers of
+exactly this shape exist; the largest maps 79 variant indices onto 22 cases and 20 tables.
+
+**Two gaps remain, and they are different sizes.**
+
+1. *Not every getter is reached this way.* The steering sensor's is called from `0x004F81C7`, and
+   the nearest dispatcher of the above shape is 13 KB earlier — so some families use a plain
+   if/else chain or another form. Finding those is mechanical.
+2. *Nothing yet shows how an identity becomes a variant index.* That is the real remaining
+   question, and it is one function: whatever fills `[…+0x2B8]` after a module answers `1A 80`.
+
+**The practical consequence is small and worth stating.** None of this changes what ships today —
+the three confirmed modules were matched against the control set, not through the selector. The
+selector matters for the ABS and the engine controller, and for making descriptions work on cars
+other than this one.
 
 **How we would know it is right.** Unchanged, and now partly used: this car gives twelve codes
 across six modules with known text. A selector worth having reproduces all twelve. Two modules
