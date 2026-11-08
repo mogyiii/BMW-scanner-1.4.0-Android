@@ -46,6 +46,15 @@ plausible wrong ones. The climate module, the airbag and the engine controller p
 table at all; the climate text is split across a location list and something else, since
 "AUC heating" is not in the array that holds "AUC sensor".
 
+**The four unshipped modules are not one problem but three**, which is worth knowing before
+anyone picks this up:
+
+| module | situation |
+|---|---|
+| ABS, DME | Right structure, **wrong variant**. The DME's "Failure oil status sensor" exists exactly once in the binary, in a table that files it under `0x27C5` where the vendor prints `0x27C3`. The ABS is off by one and by ten on two of four. Small, inconsistent offsets — the signature of a neighbouring variant, not of a decoding error. |
+| IHKA | **The parser misses its tables.** "AUC heating" has twelve copies and *none* of them lies inside a table this extractor finds, though they sit just past one that it does. Something about those tables fails the `refcount == -1` or minimum-size filter. |
+| SRS | **The text is composed.** "Side airbag, front right door, resistance too low" does not exist in the binary as a string at all; "Side airbag" does. The vendor assembles that line from parts. |
+
 **So the remaining work is the selector**, and it is now a smaller, sharper question than before:
 not "how is the text stored" but "which of 93 tables does the vendor choose, given the identity
 bytes". The variant names are themselves one of these length-prefixed arrays (`LWS5`, `LWS5.2`,
