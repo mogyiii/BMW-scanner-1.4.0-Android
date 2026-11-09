@@ -1,6 +1,6 @@
 {
-  "name": "BMW diagnostics",
-  "short_name": "BMW diag",
+  "name": "BMW Scanner 1.4 diagnostics",
+  "short_name": "BMW Scanner",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

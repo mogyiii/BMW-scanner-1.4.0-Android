@@ -563,7 +563,7 @@ async function steeringLive() {
 
 /* ---------------------------------------------------- modules we do not know */
 
-const REPO = 'mogyiii/BMW-scanner-1.4.0-Android';
+const REPO = 'mogyiii/bmw-scanner-1.4-webusb';
 
 /**
  * Sweeps the addresses this software has no module for, and offers up whatever answers.
