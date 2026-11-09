@@ -57,17 +57,28 @@ in its eight-address KWP one, so every sweep walked past it.
 
 ## Scope
 
-**In:** reading, and clearing fault memories.
+**In:** reading, and clearing fault memories. **Out:** writing anything else — a decision, not a
+to-do. The risk is not symmetric with reading: a read that goes wrong returns nothing, while a
+coding block written wrong can take a module's function with it, and the recovery path is a backup
+this app does not implement. `VendorProtocol.KNOWN_WRITES` marks the write commands found so far
+so nobody sends one by accident.
 
-**Out: writing anything else, and this was decided rather than deferred.** Module coding — comfort
-closing and the like — was raised, looked at and dropped: the risk is not symmetric with reading,
-and the vendor software has backup and restore buttons this app does not. Odometer writing was
-excluded on day one and there is no code here that could do it. `VendorProtocol.KNOWN_WRITES`
-marks the write commands found so far so nobody sends one by accident.
+## What it does not do
 
-The oil service reset is out for the same reason and, as it happens, not by choice: it is DS2
-service `0C`, an actuator call, and the cluster on this car refuses it anyway — the vendor
-software gets the same refusal.
+The vendor's PA-Soft software does considerably more than this, and anyone arriving from it should
+know where the line falls before plugging anything in.
+
+| | |
+|---|---|
+| **Coding and programming** | Not implemented, and not planned. Comfort closing, retrofit coding and the rest were considered and dropped: the risk is not symmetric with reading, and PA-Soft has module backup and restore buttons that this does not. |
+| **Odometer writing** | Refused on day one. There is no code here that could do it. |
+| **EEPROM read and write, module backup/restore** | Not implemented. The vendor software dumps module memory; this reads diagnostic data only. |
+| **Service interval reset** | Not implemented. It is an actuator call rather than a read, and on the test car the cluster refuses it even from PA-Soft. |
+| **Key and immobiliser programming** | Not implemented. |
+| **Most live values** | PA-Soft has live-data screens this does not. Engine speed and steering angle are the two this app reads, because they are the two that proved available on the test car. |
+| **Model coverage** | PA-Soft knows the whole DS2 generation. This knows the ten modules of one E46, plus a sweep that finds anything else and asks you to report it. |
+
+**Clearing faults is implemented**, on both protocols, with a read-back afterwards.
 
 ## What this cable can and cannot be made to do
 
@@ -89,26 +100,51 @@ appeared — they sit behind a condition this car does not satisfy.
 WebUSB needs a secure context, so the page must come from `https://` or `localhost`. GitHub Pages
 is its home; a service worker caches it on first load, so it starts with no signal in a car park.
 
-Chrome or Edge, on Android or a desktop.
-
-**Per platform**, and the distinction between tested and expected is kept because it is the whole
-habit of this project:
-
-| | |
-|---|---|
-| **Android** | Works. This is where it was developed and read a car. |
-| **Windows** | Works. The device must first be bound to WinUSB with [Zadig](https://zadig.akeo.ie/), because without a WinUSB-compatible driver Chrome cannot claim it. |
-| **macOS** | **Expected to work, never tested.** Chrome supports WebUSB there, and macOS's own `AppleUSBFTDI` binds vendor `0x0403` — this cable reports `0x0333`, so nothing in the system should claim the interface and Chrome should get it without any driver work. The same re-flashed EEPROM that stops every other OBD tool recognising the cable is what makes this easy. On a recent Mac you will want a USB-A adapter. |
-| **Linux** | Expected to work, never tested. Likely wants a udev rule granting access to `0333:0137`. |
-| **iOS** | **Cannot work.** Safari has no WebUSB and Apple does not allow arbitrary USB access from native apps either, so no route exists. |
-
-If you try it on macOS or Linux, the result either way is worth an issue — "it just worked" is as
-useful as a failure here.
-
 ```sh
 cd web && python -m http.server 8000      # then http://localhost:8000
 node js/protocol.test.mjs                 # the decoders against the vendor's answers
 ```
+
+## Tested on
+
+Kept separate from "should work", because the difference is the habit this whole project runs on.
+
+| | tested | notes |
+|---|---|---|
+| **Android — Chrome 156/157** | **yes, with the cable, on the car** | Every reading in this repository came from here. |
+| **Desktop Chrome / Edge** | the interface only | Driven in demo mode during development; never with a cable attached. Expected to work, since WebUSB is the same API. |
+| **Windows + cable** | **no** | Needs the device bound to WinUSB with [Zadig](https://zadig.akeo.ie/) first; without a WinUSB-compatible driver Chrome cannot claim it. |
+| **macOS + cable** | **no** | Expected to work, and the reasoning is specific: Apple's `AppleUSBFTDI` binds vendor `0x0403`, while this cable reports `0x0333`, so nothing should claim the interface ahead of Chrome. The re-flashed EEPROM that stops other OBD tools recognising it is what should make this easy. A recent Mac wants a USB-A adapter. |
+| **Linux + cable** | **no** | Expected to work; likely wants a udev rule for `0333:0137`. |
+| **iOS** | **impossible** | Safari has no WebUSB and Apple does not allow it from native apps either. No route exists. |
+| **Firefox** | **impossible** | No WebUSB. |
+
+**Hardware:** one cable, a BMW Scanner 1.4.0 reporting `PASOFT / BMW Scanner V14x`, USB
+`0333:0137`, serial `PA5BG64Y`. **Car:** one 2002 E46 316i with the N42 engine. Other DS2-era BMWs
+are expected to read; none has been tried.
+
+If you run it anywhere not marked "yes", the result either way is worth an issue — "it just
+worked" is as useful here as a failure.
+
+## Your first reading
+
+1. **Plug the cable into the OBD socket** and turn the ignition to position 2, or start the
+   engine. The modules run on the ignition-switched supply; with the key out there is nothing
+   awake to answer, and the app will say so before wasting your time.
+2. **Plug the cable into the phone** (USB-OTG adapter) or the computer.
+3. **Open the page** and press **Connect the cable**. The browser asks which device to share;
+   pick the one named *BMW Scanner V14x*. The permission is remembered.
+4. **Press Read all.** It takes about a minute — ten modules, each needing its own connection
+   because the link does not survive being reused across addresses.
+5. **You now have:** a tile per module with its fault count, the chassis number, odometer and
+   engine speed in the header, and per module its BMW part number, hardware and software version
+   and both fault stores. Tap a tile for the detail, including every fault's raw bytes.
+
+After that, tapping a single tile re-reads just that module in about five seconds, which is what
+you want when watching something change.
+
+**Share the log** at the bottom to get the whole thing as a text file — decoded results and raw
+traffic together.
 
 ## The Android app
 
