@@ -79,13 +79,49 @@ So **the variant is a small integer held per module in a global record**, at off
 whatever `[0x6DA4A0]` points to, and a switch turns it into a table. Seventeen dispatchers of
 exactly this shape exist; the largest maps 79 variant indices onto 22 cases and 20 tables.
 
-**Two gaps remain, and they are different sizes.**
+**The field is written from a string-comparison chain.** `0x004A17A0`:
 
-1. *Not every getter is reached this way.* The steering sensor's is called from `0x004F81C7`, and
-   the nearest dispatcher of the above shape is 13 KB earlier — so some families use a plain
-   if/else chain or another form. Finding those is mechanical.
-2. *Nothing yet shows how an identity becomes a variant index.* That is the real remaining
-   question, and it is one function: whatever fills `[…+0x2B8]` after a module answers `1A 80`.
+```
+XOR EAX,EAX ; MOV AL,BL           the module index
+IMUL EAX,EAX,0xC1                 193 dwords per module
+MOV EDX,[0x6DA4A0] ; MOV EDX,[EDX]
+MOV [EDX+EAX*4+0x2B8],ESI         ESI = the variant index
+```
+
+and immediately above it, dozens of `MOV EDX,<string>; CALL <compare>; MOV ESI,<n>` triples. The
+chain is selected by a module abbreviation — `A/C`, `ABS`, `DME`, `IKE`, `LEW`, `SRS`, `ZKE`, `EGS`
+and the rest — and within a chain an identifier string picks the index: short hex-looking tokens
+like `0D10`, `0BC5`, `5716`, `431E`, letter-prefixed ones like `JE0012`, `LQ0021`, `X20SG34`, and
+seven-digit numbers like `1405169`. Roughly 450 of them across the image.
+
+**Not our part numbers.** None of this car's eight BMWTNR values appears in any chain, so the
+identifier is built from something else in the identity — the hardware and software bytes are the
+obvious candidates and are not yet confirmed.
+
+**The steering sensor closes the loop and shows the shape.** Its dispatch is not a jump table at
+all:
+
+```
+MOV EAX,[EDX+EAX*4+0x2B8]
+DEC EAX ; SUB EAX,4 ; JNB away     so indices 1..4 fall through
+CALL 0x004F7F30                    the steering sensor's getter
+```
+
+Four variant indices share one table — and the binary holds exactly four LWS variant names
+(`LWS5`, `LWS5.2`, `LWS5.1B`, `LWS5_`). That is why this module worked on the first attempt and
+why it has only one table.
+
+**What is actually blocking the ABS is narrower than "the selector".** The four codes the vendor
+prints for this car are `5E1F`, `5E16`, `5E24`, `5E43`, and all four descriptions exist exactly
+once in the image — in table `0x004EAC30`, so that must be the table the vendor uses. But only two
+of the four are index keys there. The other two sit under `5E18` and `5E4E`, neighbours of the
+codes actually printed. So for the ABS the fault code is **not** the index key directly; something
+maps one to the other. That is now the specific open question, and it is a different one from
+variant selection.
+
+**Two smaller gaps.** Some getters are reached by a jump table and some by a direct compare, so an
+automated walk has to handle both; and nothing yet confirms which bytes of an identity become the
+identifier string.
 
 **The practical consequence is small and worth stating.** None of this changes what ships today —
 the three confirmed modules were matched against the control set, not through the selector. The
