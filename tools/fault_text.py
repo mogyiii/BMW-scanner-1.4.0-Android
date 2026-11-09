@@ -7,11 +7,16 @@ constant strings, and each one holds a complete lookup table:
     [textOffset:2 BE][code:2 BE][0] repeated - the index
     [len][characters] repeated      the strings
 
-A fault code is looked up by finding the record whose code field is `code + 1`, and the record's
-first field is the byte offset of the description's text within the same string. Both halves of
-that sentence were found the hard way: an earlier attempt assumed the index position *was* the
-code, which is true for the steering sensor and false for the climate module, whose codes are
-sparse - `08` is followed by `0A`.
+**A fault code selects the first record whose code field is strictly greater than it.** The keys
+are exclusive upper bounds, so the index describes ranges rather than individual codes, and the
+record's first field is the byte offset of the text within the same string.
+
+That rule took three wrong guesses to find. The index position is not the code (true only where
+the codes happen to be dense). The key is not `code + 1` (true only where there are no gaps - it
+reproduced the steering sensor perfectly and failed the ABS on two codes of four). What settles it
+is that `field > code` reproduces all eleven codes whose text the vendor printed for the test car,
+across five modules and both protocols, including the engine controller where key `0x27C3` exists
+and holds different text from the one the vendor prints for code `0x27C3`.
 
 **There is one table per module variant, not per module.** "AUC sensor" appears fifteen times in
 the binary because fifteen climate variants list it. The vendor picks the right one from the
@@ -51,7 +56,7 @@ def parse_table(data, blob):
     # `prev` starts below zero because some tables number their first code 0 rather than 1 - the
     # rear climate table does - and starting at zero with a strict `>` stopped the walk on record
     # zero and silently discarded the whole table.
-    out, n, prev = {}, 0, -1
+    out, n, prev = [], 0, -1
     while data + n * 5 + 5 <= data + length:
         rec = data + n * 5
         offset = struct.unpack_from(">H", blob, rec)[0]
@@ -63,10 +68,18 @@ def parse_table(data, blob):
         size = blob[data + offset - 1]
         text = blob[data + offset: data + offset + size]
         if size and all(32 <= c < 127 for c in text):
-            out[code - 1] = text.decode("latin-1")
+            out.append((code, text.decode("latin-1")))
         prev = code
         n += 1
     return out if len(out) >= 3 else None
+
+
+def lookup(table, code):
+    """The vendor's own rule: the first key strictly greater than the code."""
+    for key, text in table:
+        if key > code:
+            return text
+    return None
 
 
 def find_tables(blob):
@@ -114,7 +127,7 @@ def main():
     confirmed = {}
     report = []
     for addr, (name, known) in sorted(CONTROL.items()):
-        hits = [o for o, t in tables.items() if all(t.get(c) == x for c, x in known.items())]
+        hits = [o for o, t in tables.items() if all(lookup(t, c) == x for c, x in known.items())]
         if hits:
             # Several variants can satisfy a one-code control set; the largest table is the one
             # that covers the most codes, and they agree on every code the control set names.
@@ -128,18 +141,17 @@ def main():
         total = sum(len(t) for t in confirmed.values())
         print("export const FAULT_TEXT_EXTRACTED = {")
         for addr, tab in sorted(confirmed.items()):
-            print(f"  0x{addr:02x}: {{")
-            for code, text in sorted(tab.items()):
+            print(f"  0x{addr:02x}: [")
+            for code, text in tab:
                 esc = text.replace("\\", "\\\\").replace("'", "\'")
-                print(f"    0x{code:02x}: '{esc}',")
-            print("  },")
+                print(f"    [0x{code:02x}, '{esc}'],")
+            print("  ],")
         print("};")
         print(f"// {total} descriptions, {len(confirmed)} modules", file=sys.stderr)
         return
 
     if want_json:
-        json.dump({f"0x{a:02X}": {f"0x{c:X}": t for c, t in sorted(tab.items())}
-                   for a, tab in sorted(confirmed.items())},
+        json.dump({f"0x{a:02X}": [[c, t] for c, t in tab] for a, tab in sorted(confirmed.items())},
                   sys.stdout, indent=1, ensure_ascii=False)
         return
 

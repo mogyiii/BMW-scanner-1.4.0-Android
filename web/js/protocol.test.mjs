@@ -164,8 +164,32 @@ for (const [name, kwp, raw, part, hw] of [
   // The hand-written table still wins where it has an entry, so Hungarian survives.
   check('hand-written entry wins, Hungarian', P.faultText(0x57, 0x0b, 'hu'), 'Hibás LWS-azonosító');
   check('hand-written entry wins, English', P.faultText(0x57, 0x0b, 'en'), 'Wrong LWS-ID');
-  // Nothing invented for a module whose table could not be confirmed.
-  check('ABS gets no extracted text', P.faultText(0x29, 0x1234), '');
+  // The ABS and the engine controller now resolve too, through the range rule. These are the
+  // vendor's own words for this car's codes, reached without the hand-written table.
+  // The hand-written table still wins for these two, in Hungarian, so the range rule is checked
+  // against the extracted table directly - that is the part under test.
+  const viaRange = (addr, code) => {
+    for (const [k, t] of P.FAULT_TEXT_EXTRACTED[addr]) if (k > code) return t;
+    return '';
+  };
+  check('ABS 0x5E16 through the range rule',
+    viaRange(0x29, 0x5e16), 'CAN Timeout instrument cluster');
+  check('ABS 0x5E43 through the range rule',
+    viaRange(0x29, 0x5e43), 'Steering angle sensor internal.');
+  check('ABS 0x5E16 still shows Hungarian to a Hungarian reader',
+    P.faultText(0x29, 0x5e16, 'hu'), 'CAN időtúllépés — műszerfal');
+  check('DME 0x27C3 through the range rule',
+    P.faultText(0x12, 0x27c3), 'Failure oil status sensor');
+  // And the key is a bound, not a code: 0x27C3 as a *key* holds different text, which is exactly
+  // the trap that made `key - 1` look right on the dense tables.
+  check('DME key 0x27C3 is not DME code 0x27C3',
+    P.FAULT_TEXT_EXTRACTED[0x12].find(([k]) => k === 0x27c3)[1],
+    'Output A/C-compressor control');
+  // A code past the last key gets nothing; a code inside a gap gets its range's text, which is
+  // the vendor's behaviour. Both are asserted so a change to either is deliberate.
+  check('a code above every key gets nothing', P.faultText(0x29, 0xffff), '');
+  check('a code in a gap takes its range', P.faultText(0x29, 0x5e17),
+    'CAN Timeout instrument cluster');
 }
 
 /* -- a reply from the wrong module is not an answer -------------------------------------------- */

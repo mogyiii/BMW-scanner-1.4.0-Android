@@ -1,5 +1,36 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ✅ The fault-description lookup is solved — 2026-11-09
+>
+> **374 descriptions now ship across five modules**, up from twelve hand-written. The last piece
+> was the one that had resisted three guesses.
+>
+> **The index key is an exclusive upper bound.** A fault code selects the first record whose key is
+> strictly greater than it; the table describes ranges, not codes.
+>
+> The engine controller is the clean counter-example to everything tried before it. Key `0x27C3`
+> exists in its table and holds "Output A/C-compressor control". The vendor prints "Failure oil
+> status sensor" for *code* `0x27C3` — and that text lives under key `0x27C6`. So the key is not
+> the code, not the code plus one, and not the code plus any constant. `key > code` reproduces all
+> eleven codes whose text the vendor printed, across five modules and both protocols, first time.
+>
+> Each earlier guess had been fitted to whichever module was in front of me. "The index position is
+> the code" came from the steering sensor, whose codes are dense. "`key = code + 1`" came from the
+> same place and survived because consecutive keys make the two rules identical. The ABS broke it
+> and I read the breakage as a wrong variant rather than a wrong rule — which cost the detour
+> through the selector, though that turned out to be worth having anyway.
+>
+> **The selector, found on the way, is also solved**: a module's variant is its `DI` field as hex,
+> looked up in a per-module comparison chain, giving an index that a switch turns into a table.
+> A/C `DI 32` → 12, DME `DI 000F` → 43, ABS `DI 0006` → 19, each confirmed against a table already
+> known to be right.
+>
+> **One honest consequence.** Keys being bounds means a code inside a gap resolves to its range's
+> text rather than to nothing. That is what the vendor does, and it is why the raw bytes stay on
+> screen beside every description.
+>
+> Still out: the airbag module, whose text is composed at runtime rather than stored.
+
 > # 🐛 The sweep reported two modules that do not exist — 2026-11-09
 >
 > `log/2026-11-09/`. The ten-minute verification trip did its job, and the thing it verified was a

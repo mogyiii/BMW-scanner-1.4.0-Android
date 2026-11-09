@@ -57,6 +57,11 @@ Per module it reads the BMW part number and hardware revision, the live fault me
 also gives up the odometer and its stored VIN, and the engine controller and ABS give the VIN over
 KWP.
 
+**Fault codes come with the vendor's own descriptions** on five of the ten modules — 374 of them,
+extracted from the executable rather than written by hand. A module's table is chosen by its `DI`
+field, and a code selects the first table entry whose key is strictly greater than it; both rules
+are checked against every code the vendor printed for the test car.
+
 **Engine speed comes from the immobiliser, not the engine controller.** The DME refuses the live
 services outright; the EWS has to know whether the engine is turning, so it is told, and `0x5132`
 hands over the block that carries it. Resolution is 100 rpm, which is what the immobiliser is
@@ -133,7 +138,7 @@ credits each answer to the wrong question. That one number cost a fortnight.
 | | |
 |---|---|
 | `tools/command_atlas.py` | what each command means, per module, read out of the echo |
-| `tools/fault_text.py` | fault descriptions, read out of the vendor binary's own tables |
+| `tools/fault_text.py` | 374 fault descriptions, read out of the vendor binary's own tables |
 | `tools/decode_proxy.py` | a capture replayed as the conversation it represents |
 | `tools/ftd2xx-proxy/` | a logging pass-through that sits under the genuine software |
 | `tools/ds2-probe-win/` | our exact frames, sent through the genuine driver, to isolate our bugs |

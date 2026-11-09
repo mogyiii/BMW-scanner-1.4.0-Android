@@ -10,207 +10,48 @@ Ordered by value per unit of work. Nothing here is started.
 
 ---
 
-## 1. Fault descriptions — the format is solved, the variant selector is not
+## 1. Fault descriptions — solved 2026-11-09
 
-**The table format is fully decoded, and 55 descriptions now ship.** `tools/fault_text.py` reads
-them out of the executable.
+**374 descriptions ship, across five modules**, up from twelve hand-written ones. `tools/fault_text.py`
+reads them out of the vendor binary; a module is included only if its table reproduces, exactly,
+every code whose text the vendor printed for the test car.
 
-Each table is an ordinary Delphi constant string holding its own lookup structure:
+| module | table | entries |
+|---|---|---|
+| DME `0x12` | `0x004B3FB8` | 181 |
+| ABS `0x29` | `0x004EAC30` | 115 |
+| LEW `0x57` | `0x004F7F54` | 15 |
+| IHKA `0x5B` | `0x004FE21C` | 23 |
+| IKE `0x80` | `0x00510604` | 40 |
 
-```
-[refcount -1][length:4]            the AnsiString header
-[textOffset:2 BE][code:2 BE][00]   repeated - the index
-[len][characters]                  repeated - the strings
-```
+Three things had to be worked out, and each one was got wrong first.
 
-A fault code `c` is the record whose code field is `c + 1`, and that record's first field is the
-byte offset of the description's text inside the same string. Addresses resolve as
-`file = VA − 0x400000 + 16`, because `unpacked.bin` is a memory dump with a sixteen-byte header
-that states the image base itself.
+**The format.** Each table is a Delphi constant string holding its own index:
+`[refcount -1][length:4]`, then `[key:2 BE][code:2 BE][00]` records, then length-prefixed strings.
 
-Two things had to be got right and were initially got wrong. The index position is **not** the
-code — that is true only for the steering sensor, whose codes happen to be dense; the climate
-module jumps from `08` to `0A`. And an early termination rule that stopped the walk when the index
-reached the first string killed the steering table outright, because its first record points inside
-the index.
+**Which table.** One per module *variant*, 136 in the image. A module's variant is chosen by its
+`DI` field as hex, looked up in a per-module comparison chain between `0x499000` and `0x4A2000`,
+giving an index that a switch turns into a table. Verified on three modules independently — A/C
+`DI 32` → 12, DME `DI 000F` → 43, ABS `DI 0006` → 19 — each landing on a table already known by
+other means to be the right one.
 
-**What ships.** The steering sensor (15 codes), the climate module (23) and the instrument
-cluster (40) — the tables that reproduce *every* code whose text the vendor printed for the test
-car. That takes the app from twelve hand-written descriptions to seventy-eight.
+**How a code finds its text, which was the last and hardest piece.** The key is an **exclusive
+upper bound**: a fault code selects the first record whose key is strictly greater than it. The
+index describes ranges, not individual codes.
 
-**What does not, and why it matters more than what does.** The binary holds 93 of these tables and
-there is one per module *variant*. For the ABS, the best candidate has 115 codes and gets two of
-this car's four exactly right — the other two are off by one and by ten, the signature of a
-neighbouring variant. Shipping it would have bought two correct descriptions and a hundred
-plausible wrong ones. The climate module, the airbag and the engine controller produce no matching
-table at all; the climate text is split across a location list and something else, since
-"AUC heating" is not in the array that holds "AUC sensor".
+Reading the key as `code + 1` is right only where the keys are consecutive. It reproduced the
+steering sensor perfectly and failed the ABS on two codes of four, and the engine controller gave
+the clearest counter-example: key `0x27C3` exists and holds "Output A/C-compressor control", while
+the vendor prints "Failure oil status sensor" for *code* `0x27C3`, which lives under key `0x27C6`.
+`key > code` reproduces **all eleven** codes whose text the vendor printed, across five modules and
+both protocols.
 
-**The four unshipped modules are not one problem but three**, which is worth knowing before
-anyone picks this up:
+**One consequence.** Because keys are bounds, a code inside a gap resolves to its range's text
+rather than to nothing. That is the vendor's own behaviour, and it is why the raw bytes stay on
+screen next to every description.
 
-| module | situation |
-|---|---|
-| ABS, DME | Right structure, **wrong variant**, and still open. The DME's "Failure oil status sensor" exists exactly once in the binary, in a table that files it under `0x27C5` where the vendor prints `0x27C3`. The ABS is off by one and by ten on two of four. Small, inconsistent offsets — the signature of a neighbouring variant, not of a decoding error. |
-| IHKA | **Fixed.** The parser was starting its code walk at `prev = 0` with a strict `>`, so any table numbering its first code `0` — the rear climate table does — died on record zero and was discarded whole. With `prev = -1` the image yields 136 tables instead of 93, and the climate module's own table is among them. |
-| SRS | **The text is composed.** "Side airbag, front right door, resistance too low" does not exist in the binary as a string at all; "Side airbag" does. The vendor assembles that line from parts. |
-
-### The selector, as far as it is mapped
-
-The chain from a table back towards the identity is now traced most of the way, and the shape is
-not what "find the selector function" suggested.
-
-**Every table has a getter.** 134 of the 136 sit behind an identical fourteen-byte prologue ending
-`MOV EAX, <table>; CALL <common lookup>`. Each getter is called from exactly one place.
-
-**Those call sites are switch cases.** The dispatch is the classic Delphi dense-case form:
-
-```
-MOV EDX, [0x6DA4A0]                a global pointer
-MOV EDX, [EDX]
-MOV EAX, [EDX + EAX*4 + 0x2B8]     this module's variant index
-CMP EAX, 0x4E                      bounds check
-JA  default
-MOV AL,  [EAX + 0x4D3D67]          a byte map, one entry per variant index
-JMP      [EAX*4 + 0x4D3DB6]        a jump table, one entry per case
-```
-
-So **the variant is a small integer held per module in a global record**, at offset `0x2B8` of
-whatever `[0x6DA4A0]` points to, and a switch turns it into a table. Seventeen dispatchers of
-exactly this shape exist; the largest maps 79 variant indices onto 22 cases and 20 tables.
-
-**The field is written from a string-comparison chain.** `0x004A17A0`:
-
-```
-XOR EAX,EAX ; MOV AL,BL           the module index
-IMUL EAX,EAX,0xC1                 193 dwords per module
-MOV EDX,[0x6DA4A0] ; MOV EDX,[EDX]
-MOV [EDX+EAX*4+0x2B8],ESI         ESI = the variant index
-```
-
-and immediately above it, dozens of `MOV EDX,<string>; CALL <compare>; MOV ESI,<n>` triples. The
-chain is selected by a module abbreviation — `A/C`, `ABS`, `DME`, `IKE`, `LEW`, `SRS`, `ZKE`, `EGS`
-and the rest — and within a chain an identifier string picks the index: short hex-looking tokens
-like `0D10`, `0BC5`, `5716`, `431E`, letter-prefixed ones like `JE0012`, `LQ0021`, `X20SG34`, and
-seven-digit numbers like `1405169`. Roughly 450 of them across the image.
-
-**Not our part numbers.** None of this car's eight BMWTNR values appears in any chain, so the
-identifier is built from something else in the identity — the hardware and software bytes are the
-obvious candidates and are not yet confirmed.
-
-**The steering sensor closes the loop and shows the shape.** Its dispatch is not a jump table at
-all:
-
-```
-MOV EAX,[EDX+EAX*4+0x2B8]
-DEC EAX ; SUB EAX,4 ; JNB away     so indices 1..4 fall through
-CALL 0x004F7F30                    the steering sensor's getter
-```
-
-Four variant indices share one table — and the binary holds exactly four LWS variant names
-(`LWS5`, `LWS5.2`, `LWS5.1B`, `LWS5_`). That is why this module worked on the first attempt and
-why it has only one table.
-
-**What is actually blocking the ABS is narrower than "the selector".** The four codes the vendor
-prints for this car are `5E1F`, `5E16`, `5E24`, `5E43`, and all four descriptions exist exactly
-once in the image — in table `0x004EAC30`, so that must be the table the vendor uses. But only two
-of the four are index keys there. The other two sit under `5E18` and `5E4E`, neighbours of the
-codes actually printed. So for the ABS the fault code is **not** the index key directly; something
-maps one to the other. That is now the specific open question, and it is a different one from
-variant selection.
-
-### The selector is solved
-
-**A module's fault table is chosen by its `DI` field, as hex, looked up in a per-module chain.**
-Verified independently on three modules, each time by the dispatch landing on a table whose
-contents were already known to be right for this car:
-
-| module | identity `DI` | identifier | variant index | table | check |
-|---|---|---|---|---|---|
-| A/C `0x5B` | `32` | `"32"` | 12 | `0x004FE21C` | the table confirmed earlier against the vendor's text |
-| DME `0x12` | `000F` | `"0F"` | 43 | `0x004B3FB8` | the only table containing "Failure oil status sensor" |
-| ABS `0x29` | `0006` | `"0006"` | 19 | `0x004EAC30` | the only table containing all four of this car's descriptions |
-
-The chains live between `0x499000` and `0x4A2000`, one per module abbreviation, each a run of
-`MOV EDX,<identifier>; CALL compare; MOV ESI,<index>`. Only five modules have a real chain —
-`DME2` with 474 identifiers, `ABS` with 159, `EHC` with 27, `A/C` with 22, `EGS` with 15 — and the
-rest resolve to a single variant. The width of the identifier follows the width of the field the
-vendor prints: two hex digits for the DS2 climate module, four for the KWP ABS.
-
-Dispatch then comes in three shapes, all now accounted for: a byte map plus jump table (DME), a
-direct indexed jump (A/C, IKE), and a plain range compare (the steering sensor, where indices 1–4
-all fall through to its single table).
-
-### What the solved selector did *not* buy
-
-The ABS and the engine controller still cannot ship descriptions, and the reason is now precisely
-stated rather than suspected. **Their tables are no longer in doubt** — the selector picks them —
-but the fault code is not the index key.
-
-```
-DME table 0x004B3FB8     field 0x27C3  "Output A/C-compressor control"
-                         field 0x27C6  "Failure oil status sensor"   <- vendor prints 27C3
-```
-
-The key `0x27C3` exists and holds different text, so this is not an offset or a decoding slip:
-the vendor applies a mapping between the code a module reports and the key it looks up. The ABS
-shows the same thing with inconsistent gaps — `5E1F→5E20`, `5E24→5E25`, `5E16→5E18`, `5E43→5E4E`.
-
-Until that mapping is found, shipping either table would attach confident wrong text to real
-faults. That is the same decision as before, now made with the table identified instead of
-suspected.
-
-### The climate module closes the loop end to end
-
-One module is now traced from identity bytes to printed text, with the vendor's own output as the
-check at both ends.
-
-The chain that follows the `A/C` abbreviation compares two-hex-digit strings:
-
-```
-'00'->3  '01'->4  '02'->5  '04'->17  '10'->2  '20'->6  '21'->7  '22'->8  '23'->9
-'24'->22 '30'->11 '31'->12 '32'->12  '33'->13 '34'->18 '40'->20 '44'->19 '60'->14
-'64'->21 '68'->21 '80'->15 '81'->16
-```
-
-Independently, the dispatch that guards the climate table is a direct indexed jump —
-`CMP EAX,0x16; JA default; JMP [EAX*4 + 0x500835]` — and **only variant indices 11 and 12 reach
-the table we had already confirmed against the vendor's text**.
-
-This car's climate identity is `5B 10 A0 86 91 68 82 25 15 32 0D 16 02 55 07 5F`, and the vendor's
-report for the same module reads `HW 25, CI 15, DI 32, BI/VI 0D`. The byte at index 9 is `0x32` —
-the **DI** field — and `'32'` maps to index 12.
-
-So for this module the identifier is the DI byte as two hex digits, and the whole path holds:
-
-```
-identity byte 9 = 0x32  ->  "32"  ->  variant index 12  ->  table 0x004FE21C  ->  "AUC sensor"
-```
-
-Three independent things agree: the chain, the dispatch range, and a table confirmed earlier by a
-completely different method.
-
-**It does not generalise as it stands.** The instrument cluster's `DI` is `53` and `'53'` is not in
-the chain its abbreviation heads — that abbreviation sits in a routing function, and the cluster's
-own hex chain is elsewhere. The ABS chain uses six-digit identifiers (`033834`, `037345`, `037661`)
-that match neither its part number nor any field the vendor prints for it. So the *mechanism* is
-established; which field feeds it is per-module and still has to be read off one chain at a time.
-
-**And the ABS has a second, separate blocker** that no amount of selector work will clear: of the
-four codes the vendor prints for this car, two are not index keys in the only table containing
-their text. Something maps the printed code to the key, and that is its own question.
-
-**Two smaller gaps.** Some getters are reached by a jump table and some by a direct compare, so an
-automated walk has to handle both.
-
-**The practical consequence is small and worth stating.** None of this changes what ships today —
-the three confirmed modules were matched against the control set, not through the selector. The
-selector matters for the ABS and the engine controller, and for making descriptions work on cars
-other than this one.
-
-**How we would know it is right.** Unchanged, and now partly used: this car gives twelve codes
-across six modules with known text. A selector worth having reproduces all twelve. Two modules
-are done that way already.
+**Still out:** the airbag module. Its text is composed at runtime — "Side airbag, front right door,
+resistance too low" does not exist in the binary as a string, though "Side airbag" does.
 
 ---
 
