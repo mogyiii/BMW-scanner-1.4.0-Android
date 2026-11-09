@@ -165,78 +165,35 @@ lines up, we have learnt that cheaply and shown nobody a wrong number.
 
 ---
 
-## 5. Lighting module, live — the app now captures the pages
+## 5. Lighting module, live — not available, and the experiment was mine to get wrong
 
-**Shipped into the log, not the screen.** `0x79DE` → DS2 `15 <page>` on `0xD0`, pages 0 to 3,
-sixteen bytes each. They go into the shared log as raw bytes under `0x79DE lap N`. Nothing is
-decoded, because nothing can be until there are readings taken under known conditions.
+**Closed with a negative result.** The owner took eight readings on 2026-11-09 — two baselines at
+switch 0, then switch 1, switch 2, main beam, left indicator, rear fog, and the brake pedal held.
+All four pages of `0x79DE` are **byte-identical across all eight**, and byte-identical to the same
+pages captured on 2026-11-05 with the car in an entirely different state. They are static coding
+data, not live status.
 
-**The experiment.** One scan per lighting state, each one shared, with a note of which state it
-was:
+Widening the question settles it: across both vendor captures, **not one command ever sent to the
+lighting module returned a different answer on repeat.** Twelve distinct commands, seventy-odd
+reads, zero variance. The vendor's own software never reads live lighting status from this LCM,
+and nothing in the known command set does either.
 
-1. Everything off — the baseline.
-2. Sidelights only.
-3. Dipped beam.
-4. Main beam.
-5. Left indicator on (leave it ticking).
-6. Brake pedal pressed — needs a second person or something heavy on the pedal.
+**The experiment should not have been run, and that is on me.** On 5 November I ran the variance
+analysis that answers this and printed its output: `0x79DE` showed eighteen payloads and eighteen
+distinct replies — one constant answer per page, which is exactly what static data looks like. I
+then designed a six-state experiment around it four days later without rereading my own result.
+The owner spent a trip producing eight readings that a thirty-second check would have made
+unnecessary.
 
-Each scan takes about a minute. Diffing six readings against the baseline shows which bits move
-for which circuit, and that is the whole decode. Ignition in position 2 throughout; the engine
-does not need to run.
+**What the readings are nevertheless good for.** This car has had angel eyes fitted and removed,
+and the lighting module's configuration pages are byte-identical to four days earlier across eight
+different electrical states. Nothing is drifting, and the baseline is stable. That is worth having,
+even though it is not what anyone went looking for.
 
-**Why the order matters.** Change one thing at a time and return to the baseline if anything gets
-confusing. The first steering-angle attempt produced data nobody could use because two variables
-moved at once and nothing was written down.
-
-### Two things about this car's lighting, which matter before anything is concluded
-
-The owner supplied both, and neither is visible from the bus.
-
-**Angel eyes were retrofitted at some point and later removed**, before the current owner bought
-the car. Nothing was added to or taken from the module list; the rings were reportedly just
-disconnected. So a lighting output may sit permanently open where a standard car's would not, and
-a bit that looks like "this circuit is on" could as easily be "this circuit is unusual on this
-particular car". That is the exact shape of error this project keeps making — a rule fitted to one
-sample — and here it would be fitted to a modified sample.
-
-**The third brake light was replaced with a used part.** It should behave normally, but if the
-brake reading looks odd that is the first thing to suspect rather than the decode.
-
-**One reassuring data point already exists.** The lighting module currently reports **no faults and
-no shadow faults**, and its identity matched the vendor's report byte for byte. Whatever was done
-and undone, the module is not complaining about it — so the removal was clean enough that the
-baseline is probably a fair baseline. "Probably" is doing real work in that sentence, which is why
-it is written down rather than assumed.
-
-## 5. Confirm the things built but never run
-
-The unknown-module sweep, the shadow-memory unlock and the Valvetronic module all went in without
-ever meeting a cable.
-
-- **The sweep** should find nothing on this car. That *is* the result worth having: it confirms the
-  nine are the whole list and that the sweep does not invent answers. If it reports a find here,
-  something is wrong with it.
-- **The unlock** should make the airbag module's `06/20` appear, which the vendor software sees and
-  this app currently cannot.
-
-- **The Valvetronic controller at `0x1B`** should identify as `7.516.207` / hardware `10`. Its
-  fault memory is the genuinely open question: the vendor software never asked it, and its report's
-  error column for that row reads "no data". Our app will ask. Whatever comes back — codes, a
-  refusal, or silence — is new, and the app now reports all three differently.
-
-**Cost.** One trip, ten minutes. This is the cheapest item on the list and the only one that
-verifies code already shipped.
-
-**Where `0x1B` came from.** It was found while adding one unrelated address to the sweep as a joke.
-Checking that the addition was worth anything meant comparing the vendor's two probe lists, which
-turned up six addresses it only ever asks over KWP — four of which our sweep did not know about,
-and one of which is a module on this very car that we had never read. The lesson is not about
-Valvetronic: it is that the sweep had been shipped **sending the DS2 identify only**, on a project
-whose own engine controller and ABS do not answer that. A tenth module was sitting in a capture we
-had already analysed twice.
-
----
+**If live lighting data is ever wanted**, the next step is not another experiment on the car. It is
+to find out whether the vendor software has a lighting live-value screen at all — and if it does,
+to capture *only* that screen with the proxy attached, which is the method that worked for the
+engine speed.
 
 ## 6. Lighting module, live
 
