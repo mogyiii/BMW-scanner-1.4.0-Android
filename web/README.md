@@ -39,6 +39,45 @@ All strings live in `js/i18n.js`; the markup carries `data-i18n` keys rather tha
 descriptions are the one place where the English is not a translation — both languages come from
 the vendor software's own report, so the English is the original.
 
+## Internet, and installing it as an app
+
+**The first load needs a network. Nothing after that does.** WebUSB only runs in a secure context,
+so the page has to come from `https://` or `localhost` — it cannot be opened as a file off a USB
+stick. Once it has loaded once, the service worker holds `index.html`, the manifest and the five
+JavaScript files, and the app starts with no signal at all. That is the normal situation in a car
+park and the reason the cache exists.
+
+`demo.js` is deliberately not precached: it is only ever fetched by `?demo=1`, and the offline case
+this is built for is not a replay.
+
+**It installs like an app.** The manifest declares `display: standalone`, so Chrome's *Add to Home
+screen* (Android) or the install icon in the address bar (desktop) gives it an icon and a window
+with no browser chrome. Nothing is installed in the operating-system sense — it is the same cached
+page, launched from a shortcut — which also means the install can be deleted without a trace and
+updates arrive by themselves.
+
+The cable permission survives this. The browser remembers the device once it has been granted, so a
+second visit goes straight to **Connect the cable** without the chooser.
+
+## The report
+
+**Share the log** gives the whole thing: decoded results *and* every raw byte. That file is for us —
+protocol arguments get settled by looking at bytes.
+
+**Download report** gives one self-contained HTML page with the findings and no hex: the car's
+details, the faults grouped by module with their descriptions, and every clean module collapsed to a
+single line so a reader reaches the faults without scrolling past nine clean bills of health. It is
+for the owner's records, for showing a mechanic, or for a forum post.
+
+HTML rather than PDF because generating a PDF in the browser means shipping a library this page
+would otherwise not need, while a styled HTML file prints to PDF from the browser's own dialog —
+which every phone and laptop already has. There is a print stylesheet for exactly that. The file
+references nothing external, so it still opens years from now with no network.
+
+It follows the language switch, including the date format. The fault descriptions do not, for the
+reason given above: they are the vendor's own English, and where there is none the report says so
+rather than leaving a suggestive blank.
+
 ## Reading one module
 
 Tapping a tile with a cable attached reads that module alone, about five seconds instead of the

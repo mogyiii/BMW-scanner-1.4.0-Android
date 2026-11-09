@@ -451,6 +451,145 @@ async function copyLog() {
   }
 }
 
+/* ------------------------------------------------------------------ report */
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/**
+ * One self-contained HTML page: the findings, without the hex.
+ *
+ * `buildLog()` exists for us - it carries every raw byte because a decoder argument is settled by
+ * looking at bytes. This is for everyone else: the owner keeping a record, a mechanic being shown
+ * what came up, a forum post. Those readers do not want 200 lines of trace, and burying eight
+ * faults inside it is how a finding gets missed.
+ *
+ * HTML rather than text or PDF. Text cannot lay out a table, and generating a PDF in the browser
+ * means shipping a library this page would otherwise not need - whereas a styled HTML file prints
+ * to PDF from the browser's own dialog, which every phone and laptop already has. It stays one
+ * file with no external reference, so it still opens years from now with no network.
+ *
+ * Modules with nothing to report collapse to one line each. A reader scanning this should reach the
+ * faults without scrolling past nine clean bills of health.
+ */
+function buildReport() {
+  const all = [...state.results.values()].filter((r) => !r.busy);
+  const present = all.filter((r) => r.present);
+  const silent = all.filter((r) => !r.present);
+  const vin = present.map((r) => r.vin).filter(Boolean).sort((a, b) => b.length - a.length)[0];
+  const km = present.map((r) => r.mileage).find((m) => m);
+  const kwp = present.filter((r) => r.kwp).length;
+
+  // Counted over both stores, and only over stores that answered. A module whose read failed must
+  // not contribute a zero here - the whole point of the three-state handling elsewhere.
+  const faulty = [];
+  let total = 0;
+  for (const r of present) {
+    const stores = [[t('log.live'), r.faults], [t('log.shadow'), r.shadow]];
+    const found = stores.filter(([, s]) => s && !s.locked && s.count > 0);
+    total += found.reduce((n, [, s]) => n + s.count, 0);
+    if (found.length) faulty.push([r, found]);
+  }
+
+  const rows = [];
+  const row = (term, value) => { if (value) rows.push(`<tr><th>${esc(term)}</th><td>${esc(value)}</td></tr>`); };
+  row(t('vital.vin'), vin);
+  row(t('vital.km'), km ? `${fmt(km)} km` : '');
+  row(t('vital.modules'), `${present.length} / ${P.MODULES.length}`);
+  row(t('rep.protocols'), present.length ? `${present.length - kwp} × DS2, ${kwp} × KWP2000` : '');
+  row(t('rep.date'), new Date().toLocaleString(LOCALE[lang] || 'en-GB'));
+
+  const nameOf = (r) => (P.MODULES.find((m) => m.addr === r.addr) || { name: '?' }).name;
+  const addrOf = (r) => `0x${r.addr.toString(16).toUpperCase().padStart(2, '0')}`;
+
+  const parts = [];
+  parts.push(`<h2>${esc(total ? tn('rep.faults', total) : t('rep.nofaults'))}</h2>`);
+
+  for (const [r, stores] of faulty) {
+    parts.push(`<section class="mod"><h3>${esc(nameOf(r))} <span class="addr">${addrOf(r)}</span></h3>`);
+    for (const [label, store] of stores) {
+      parts.push(`<p class="store">${esc(label)} — ${store.count}</p><table class="faults">`);
+      for (const e of store.entries) {
+        const text = P.faultText(r.addr, e.code, lang);
+        parts.push(`<tr><td class="code">${codeOf(e)}</td><td class="code">${paramOf(e)}</td>`
+          + `<td>${text ? esc(text) : `<span class="unknown">${esc(t('rep.undescribed'))}</span>`}</td></tr>`);
+      }
+      parts.push('</table>');
+    }
+    parts.push('</section>');
+  }
+
+  // Everything that is fine, or that could not be asked, as compact lines rather than sections.
+  const notes = [];
+  for (const r of present) {
+    if (faulty.some(([f]) => f === r)) continue;
+    const unread = !r.faults;
+    const locked = r.faults && r.faults.locked;
+    notes.push(`<li><b>${esc(nameOf(r))}</b> <span class="addr">${addrOf(r)}</span> — ${esc(
+      unread ? t('rep.unread') : locked ? t('rep.locked') : t('rep.clean'))}</li>`);
+  }
+  for (const r of silent) {
+    notes.push(`<li class="off"><b>${esc(nameOf(r))}</b> <span class="addr">${addrOf(r)}</span> — ${esc(
+      r.reason || t('reason.silent'))}</li>`);
+  }
+  if (notes.length) parts.push(`<h2>${esc(t('rep.other'))}</h2><ul class="notes">${notes.join('')}</ul>`);
+
+  return `<!doctype html>
+<html lang="${lang}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(t('log.title'))}${vin ? ` — ${esc(vin)}` : ''}</title>
+<style>
+  :root { color-scheme: light }
+  body { font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: #0d1b2a;
+         background: #fff; max-width: 46rem; margin: 0 auto; padding: 2rem 1.25rem 4rem }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; color: #0a2d5e }
+  h2 { font-size: 1.05rem; margin: 2rem 0 .75rem; padding-bottom: .35rem;
+       border-bottom: 2px solid #14529d; color: #0f3f7d }
+  h3 { font-size: 1rem; margin: 1.25rem 0 .4rem }
+  .sub { color: #566475; margin: 0 0 1.5rem; font-size: .9rem }
+  table { border-collapse: collapse; width: 100% }
+  .car th { text-align: left; color: #566475; font-weight: 500; width: 11rem; padding: .3rem 0 }
+  .car td { padding: .3rem 0 }
+  .mod { break-inside: avoid }
+  .store { margin: .5rem 0 .3rem; color: #566475; font-size: .88rem }
+  .faults td { padding: .35rem .5rem; border-top: 1px solid #d8e2ee; vertical-align: top }
+  .faults td:first-child { padding-left: 0 }
+  .code { font-family: ui-monospace, Menlo, Consolas, monospace; width: 3.5rem; color: #0f3f7d }
+  .unknown { color: #8b97a6; font-style: italic }
+  .addr { font-family: ui-monospace, Menlo, Consolas, monospace; color: #8b97a6; font-weight: 400;
+          font-size: .85em }
+  .notes { list-style: none; padding: 0; margin: 0 }
+  .notes li { padding: .3rem 0; border-top: 1px solid #d8e2ee }
+  .notes li.off { color: #8b97a6 }
+  footer { margin-top: 2.5rem; padding-top: .9rem; border-top: 1px solid #d8e2ee;
+           color: #8b97a6; font-size: .8rem }
+  footer a { color: #14529d }
+  /* Printing is how this becomes a PDF, so the page has to be built for paper as well. */
+  @media print { body { max-width: none; padding: 0 } h2 { break-after: avoid } }
+</style></head><body>
+<h1>${esc(t('log.title'))}</h1>
+<p class="sub">${esc(t('rep.sub'))}</p>
+<table class="car">${rows.join('')}</table>
+${parts.join('\n')}
+<footer>${t('rep.footer')}</footer>
+</body></html>`;
+}
+
+async function saveReport() {
+  const html = buildReport();
+  const name = `bmw-report-${new Date().toISOString().slice(0, 10)}.html`;
+  const file = new File([html], name, { type: 'text/html' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: t('log.title') }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+  $('savedmsg').textContent = t('status.saved');
+}
+
 /* ------------------------------------------------------------------ actions */
 
 async function connect() {
@@ -742,6 +881,7 @@ $('connect').addEventListener('click', connect);
 $('scan').addEventListener('click', run);
 $('stop').addEventListener('click', () => { state.stop = true; setStatus(t('status.stopping')); });
 $('d-close').addEventListener('click', () => $('detail').close());
+$('doc').addEventListener('click', saveReport);
 $('share').addEventListener('click', shareLog);
 $('copy').addEventListener('click', copyLog);
 draw();

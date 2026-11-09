@@ -143,8 +143,10 @@ worked" is as useful here as a failure.
 After that, tapping a single tile re-reads just that module in about five seconds, which is what
 you want when watching something change.
 
-**Share the log** at the bottom to get the whole thing as a text file — decoded results and raw
-traffic together.
+Two things come out of it. **Share the log** is the whole thing as text, decoded results and raw
+traffic together, which is what an issue here wants. **Download report** is a one-page HTML document
+with the findings and no hex — for your own records, for a mechanic, or for printing to PDF from the
+browser's own dialog.
 
 ## The Android app
 
