@@ -16,7 +16,8 @@ const $ = (id) => document.getElementById(id);
 const state = { ftdi: null, stop: false, busy: false, results: new Map() };
 
 /** Thousands separators follow the chosen language, not the browser's. */
-const fmt = (n) => n.toLocaleString(lang === 'hu' ? 'hu-HU' : 'en-GB');
+const LOCALE = { hu: 'hu-HU', de: 'de-DE', en: 'en-GB' };
+const fmt = (n) => n.toLocaleString(LOCALE[lang] || 'en-GB');
 
 /* ------------------------------------------------------------------ tiles */
 

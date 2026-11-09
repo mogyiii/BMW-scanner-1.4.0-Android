@@ -1,14 +1,16 @@
 /**
- * Hungarian and English, chosen by the reader.
+ * English, German and Hungarian, chosen by the reader.
  *
  * The app was written in Hungarian because its first user speaks Hungarian, and the cable it drives
  * is sold worldwide — so the strings live here instead of in the markup. Static text is tagged with
  * `data-i18n` in `index.html` and filled in by `applyStatic`; anything assembled at runtime goes
  * through `t`.
  *
- * The fault descriptions are the one place where the English is not a translation of the Hungarian:
- * both come from the vendor software's own report for this car, so the English is the original and
- * the Hungarian is the translation.
+ * **The fault descriptions are not here and are not translated.** They are extracted from the
+ * vendor binary, which carries them in English for the five modules this app ships; the German
+ * and Hungarian `note.evidence` strings say so rather than leaving a reader to wonder. Twelve
+ * codes do have hand-written Hungarian, and for those the English came from the vendor's own
+ * report - so there the English is the original and the Hungarian the translation.
  */
 
 const STRINGS = {
@@ -326,15 +328,179 @@ const STRINGS = {
     'log.raw': '--- raw traffic ---',
     'log.km': 'odometer',
   },
+  de: {
+    'app.title': 'BMW-Diagnose',
+    'app.subtitle': 'DS2 und KWP2000 — Kabel anschließen zum Auslesen',
+    'app.subtitle.scanning': 'Wird ausgelesen…',
+    'app.subtitle.done': '{ds2} Steuergeräte über DS2, {kwp} über KWP2000 — aus dem Fahrzeug selbst',
+
+    'mod.zke': 'Karosserieelektronik',
+    'mod.dme': 'Motorsteuerung',
+    'mod.abs': 'ABS / DSC',
+    'mod.vtc': 'Valvetronic',
+    'mod.ews': 'Wegfahrsperre',
+    'mod.lew': 'Lenkwinkelsensor',
+    'mod.ihka': 'Klimaanlage',
+    'mod.ike': 'Kombiinstrument',
+    'mod.srs': 'Airbag',
+    'mod.lcm': 'Lichtmodul',
+
+    'vital.vin': 'Fahrgestellnummer',
+    'vital.km': 'Kilometerstand',
+    'service.raw': 'Servicezähler (Bedeutung noch nicht bestätigt)',
+    'vital.rpm': 'Drehzahl',
+    'vital.rpm.value': '{n} /min',
+    'vital.modules': 'Steuergeräte',
+
+    'btn.connect': 'Kabel verbinden',
+    'btn.connected': 'Kabel verbunden',
+    'btn.scan': 'Alle auslesen',
+    'btn.again': 'Nur dieses erneut auslesen',
+    'btn.stop': 'Stopp',
+    'btn.close': 'Schließen',
+    'btn.clear': 'Fehler löschen',
+    'btn.clearing': 'Wird gelöscht…',
+    'btn.unlock': 'Freischalten und auslesen',
+    'btn.live': 'Lenkwinkel live',
+    'btn.hunt': 'Nach unbekannten Steuergeräten suchen',
+    'btn.share': 'Protokoll teilen',
+    'btn.copy': 'Kopieren',
+    'btn.report': 'Melden (GitHub)',
+
+    'status.idle': 'Nicht verbunden.',
+    'status.ready': 'Bereit zum Auslesen.',
+    'status.reading': 'Wird ausgelesen…',
+    'status.readingone': '{name} wird ausgelesen…',
+    'status.readone': '{name} ausgelesen.',
+    'status.stopped': 'Angehalten.',
+    'status.stopping': 'Stopp nach diesem Steuergerät…',
+    'status.nodevice': 'Kein Gerät ausgewählt.',
+    'status.failed': 'Fehlgeschlagen: {msg}',
+    'status.aborted': 'Abgebrochen: {msg}',
+    'status.summary': '{found} Steuergeräte haben geantwortet, {faulty} mit Fehlern.',
+    'status.summary.unreadable': '  {n} Fehlerspeicher nicht lesbar.',
+    'status.replay': 'Aufgezeichnete Sitzung.',
+    'status.saved': 'Heruntergeladen.',
+    'status.copied': 'In die Zwischenablage kopiert.',
+    'status.noclipboard': 'Zwischenablage nicht verfügbar — bitte Teilen verwenden.',
+
+    'tile.busy': 'wird ausgelesen…',
+    'tile.clean': 'keine Fehler',
+    'tile.unreadable': 'nicht lesbar',
+    'tile.shadowlocked': 'Schatten gesperrt',
+    'tile.faults': '{n} Fehler',
+    'tile.faults.one': '1 Fehler',
+    'tile.shadowfaults': '{n} Schattenfehler',
+    'tile.shadowfaults.one': '1 Schattenfehler',
+    'tile.both': '{n} + {m} Fehler',
+    'tile.hunt.name': 'Fehlt eines?',
+    'tile.hunt.label': 'Nach weiteren Steuergeräten suchen',
+    'tile.hunt.state': '{n} weitere Adressen',
+
+    'reason.nolink': 'keine Verbindung',
+    'reason.silent': 'keine Antwort',
+    'reason.notrecorded': 'nicht aufgezeichnet',
+
+    'store.live': 'Fehlerspeicher',
+    'store.shadow': 'Schattenspeicher',
+    'store.empty': 'keine gespeicherten Fehler',
+    'store.locked': 'gesperrt',
+    'store.livemissing': 'keine Antwort, Inhalt unbekannt',
+    'store.shadowmissing': 'kein solcher Speicher',
+    'store.unreadable': '{n} Fehler, die Einträge waren aber nicht lesbar.',
+
+    'clear.refused': 'Fehlgeschlagen: {reason}.',
+    'clear.readback': 'Gelöscht. Wird erneut ausgelesen…',
+    'clear.empty': 'Gelöscht, der Speicher ist leer.',
+    'clear.live': 'Das Steuergerät hat das Löschen angenommen, aber {n} Fehler kamen sofort '
+      + 'zurück — das sind aktive Fehler, keine bloß gespeicherten Einträge.',
+    'clear.live.one': 'Das Steuergerät hat das Löschen angenommen, aber der Fehler kam sofort '
+      + 'zurück — er liegt aktiv an, es ist kein bloß gespeicherter Eintrag.',
+    'clear.blind': 'Das Steuergerät hat das Löschen angenommen, doch beim erneuten Auslesen kam '
+      + 'keine Antwort — was noch darin steht, sagt dieser Durchlauf nicht. Bitte erneut auslesen.',
+    'clear.conditions': 'das Steuergerät hat abgelehnt — Bedingungen nicht erfüllt '
+      + '(Zündung in Stellung 2, Motor aus)',
+    'clear.rejected': 'das Steuergerät hat abgelehnt (0x{code})',
+    'clear.garbled': 'unverständliche Antwort',
+
+    'unlock.why1': 'Das Steuergerät gibt seinen Schattenspeicher erst nach einer Freischaltung '
+      + 'heraus. Die Herstellersoftware sendet dafür zwei Befehle: <code>90 FF FF</code>, dann '
+      + '<code>95</code> mit <b>den eigenen Identifikationsbytes des Steuergeräts</b> — keine '
+      + 'neuen Daten.',
+    'unlock.why2': 'Das sieht nach einer Freischaltung aus und nicht nach einem Schreibvorgang: '
+      + 'die Antwort ist eine leere Quittung, und die Identifikation bleibt danach unverändert. '
+      + '<b>Bewiesen ist es nicht</b>, deshalb sendet diese App es nie von selbst.',
+    'unlock.running': 'Wird freigeschaltet…',
+    'unlock.short': 'die Identifikation ist zu kurz für die Freischaltung',
+    'unlock.norefused': 'das Steuergerät hat die Freischaltung nicht angenommen',
+    'unlock.stilllocked': 'auch nach der Freischaltung gesperrt',
+
+    'live.title': 'Lenkwinkel live',
+    'live.intro': 'Der Winkel ist <b>relativ</b>, nicht in Grad. Das Byte läuft schon innerhalb '
+      + 'einer Bewegung über, die weit vor dem vollen Einschlag endet, und die Antwort enthält '
+      + 'keinen Umdrehungszähler — gezeigt werden also Bewegung, Richtung und der Punkt, zu dem '
+      + 'das Lenkrad zurückkehrt, nicht der tatsächliche Winkel. Mit Stopp beenden.',
+    'live.steady': 'beide Kanäle stimmen überein',
+    'live.moving': 'in Bewegung — die Kanäle weichen ab',
+    'live.range': 'Bereich {min} … {max}',
+    'live.samples': '{n} Messwerte',
+    'live.lost': 'das Steuergerät antwortet nicht mehr, nach {n} Messwerten',
+
+    'hunt.title': 'Unbekannte Steuergeräte',
+    'hunt.intro': 'Die Kacheln oben sind die Steuergeräte, die diese Software kennt und die '
+      + 'dieses Fahrzeug hat. Ein anderer BMW kann zusätzlich ein Getriebe-, Navigations- oder '
+      + 'Telefonsteuergerät haben, das die App noch nicht kennt. Hier werden die übrigen '
+      + 'Adressen abgefragt, die auch die Herstellersoftware prüft, auf beiden Protokollen.',
+    'hunt.intro2': 'Wird eines gefunden, lässt es sich per Knopfdruck melden: die '
+      + 'Identifikationsbytes sind genau das, was zum Aufnehmen fehlt. Es dauert, weil jede '
+      + 'Adresse eine eigene Verbindung braucht.',
+    'hunt.curiosity': 'keine BMW-Adresse',
+    'hunt.progress': '0x{addr} — {done}/{total}',
+    'hunt.progress.found': '0x{addr} — {done}/{total}, bisher {n} gefunden',
+    'hunt.done': '{total} Adressen geprüft, {n} unbekannte Steuergeräte.',
+    'hunt.none': 'Kein Steuergerät, das die App nicht schon kennt — dieses Fahrzeug antwortet '
+      + 'nur auf den Adressen oben.',
+
+    'raw.summary': 'Rohdaten',
+    'note.evidence': 'Zu jedem Fehler stehen die Rohbytes auf dem Bildschirm. Das Auslesen ist '
+      + 'gegen die Ausgabe der Herstellersoftware geprüft, an einem E46 316i von 2002 — die '
+      + '<b>Beschreibungen</b> gibt es jedoch nur für die Codes, die dieses Fahrzeug '
+      + 'tatsächlich erzeugt hat, und <b>nur auf Englisch</b>: die Herstellersoftware führt sie '
+      + 'für diese Steuergeräte nicht auf Deutsch. Zu einem unbekannten Code gibt es keine '
+      + 'Beschreibung — lieber gar nichts als eine plausibel klingende Vermutung.',
+    'note.clear': 'Das Löschen leert nur die <i>gespeicherte</i> Liste. Liegt ein Fehler gerade '
+      + 'an, nimmt das Steuergerät das Löschen an und meldet beim nächsten Auslesen denselben '
+      + 'Code — deshalb liest diese App immer erneut aus und sagt, was zurückgekommen ist.',
+    'note.unsupported': 'Dieser Browser kann nicht auf USB-Geräte zugreifen. Unter Android oder '
+      + 'am Rechner werden <b>Chrome</b> oder <b>Edge</b> benötigt. Safari unterstützt WebUSB '
+      + 'nicht, und Apple erlaubt den Zugriff auch nativen Apps nicht — auf einem iPhone ist '
+      + 'dieses Kabel daher auf keinem Weg nutzbar.',
+    'note.ignition': 'Die K-Leitung liegt nur zu {pct}% auf High, die Steuergeräte schlafen also. '
+      + 'Zündung in Stellung 2 bringen oder den Motor starten, sonst antwortet nichts.',
+    'note.demo': '<b>Demo-Modus.</b> Dies sind aufgezeichnete Antworten einer Sitzung vom '
+      + '05.11.2026, durch dieselben Dekoder geschickt — <b>es ist kein Kabel angeschlossen und '
+      + 'dies ist kein Live-Auslesen.</b> <a href="./">Zurück zum Live-Modus</a>.',
+
+    'log.title': 'BMW-Diagnose',
+    'log.present': 'vorhanden',
+    'log.live': 'Fehlerspeicher',
+    'log.shadow': 'Schattenspeicher',
+    'log.nostore': 'kein solcher Speicher',
+    'log.unanswered': 'KEINE ANTWORT',
+    'log.locked': 'GESPERRT',
+    'log.raw': '--- Rohdaten ---',
+    'log.km': 'Kilometerstand',
+  },
 };
 
-export const LANGUAGES = [['hu', 'Magyar'], ['en', 'English']];
+export const LANGUAGES = [['hu', 'Magyar'], ['en', 'English'], ['de', 'Deutsch']];
 
 /** Hungarian for Hungarian speakers, English for everyone else, and whatever was chosen after that. */
 function initial() {
   const saved = localStorage.getItem('lang');
   if (saved && STRINGS[saved]) return saved;
-  return (navigator.language || '').toLowerCase().startsWith('hu') ? 'hu' : 'en';
+  const want = (navigator.language || '').toLowerCase().slice(0, 2);
+  return STRINGS[want] ? want : 'en';
 }
 
 export let lang = initial();

@@ -21,8 +21,14 @@ driver takes it otherwise. Android and macOS need nothing; Linux may need a udev
 
 ## Language
 
-English and Hungarian, picked in the header and remembered. New to the app: Hungarian if the
-browser asks for Hungarian, English otherwise.
+English, German and Hungarian, picked in the header and remembered. New to the app: whichever
+of the three the browser asks for, English otherwise.
+
+**The fault descriptions stay English in every language**, and the German and Hungarian notes say
+so. They are extracted from the vendor binary, which carries them in English for the five modules
+this app ships; translating 374 technical fault descriptions by hand would produce confident
+German for faults nobody has verified. The twelve hand-written entries are the exception and do
+carry Hungarian.
 
 All strings live in `js/i18n.js`; the markup carries `data-i18n` keys rather than words. The fault
 descriptions are the one place where the English is not a translation — both languages come from
@@ -52,7 +58,7 @@ is a replay — a diagnostic screen that cannot be told apart from a live one is
 | `js/session.js` | the measured order of the conversation, per module |
 | `js/app.js` | tiles and dialogs; knows nothing about USB |
 | `js/demo.js` | recorded replies for `?demo=1` |
-| `js/i18n.js` | every string, in English and Hungarian |
+| `js/i18n.js` | every string, in English, German and Hungarian |
 | `js/protocol.test.mjs` | the decoders against the vendor software's own answers |
 
 The numbers in those files are measured, not chosen. The 800 ms quiet period in `readUntilQuiet` is

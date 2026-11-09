@@ -3,7 +3,7 @@
 Reads a BMW's control modules through a **BMW Scanner 1.4.0** cable (USB `0333:0137`) from a web
 page, without the cable's original Windows software. Fault codes with the vendor's own
 descriptions, module identification, odometer, VIN, engine speed, live steering angle, and
-clearing fault memories. English and Hungarian.
+clearing fault memories. English, German and Hungarian.
 
 → **[Open it](https://mogyiii.github.io/bmw-scanner-1.4-webusb/)** ·
 [see it with recorded data, no cable needed](https://mogyiii.github.io/bmw-scanner-1.4-webusb/?demo=1)
