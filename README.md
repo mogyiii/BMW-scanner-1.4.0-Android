@@ -123,6 +123,27 @@ phone running Android 16, **every** install route failed while the project targe
 returned `INSTALL_FAILED_VERIFICATION_FAILURE`. Raising `compileSdk`/`targetSdk` to 36 fixed it. It
 was the low targetSdk, not a sideloading restriction.
 
+## Nothing here is a modified copy of anything
+
+A fair question when a project talks this much about somebody else's software, so: **the vendor's
+program was never patched, cracked, altered or redistributed, and neither was the cable's
+firmware.**
+
+What was actually done is observation. `tools/ftd2xx-proxy` is a DLL written from scratch that
+implements the handful of `FT_*` functions the vendor software calls, logs every byte in both
+directions, and forwards them to the genuine FTDI driver renamed alongside it. The vendor program
+runs completely unmodified and does not know it is there; it is a wiretap, not a patch. Reading
+the fault-description tables meant dumping the protected executable from memory to get past its
+packer, which is reading, not writing — and that dump is `.gitignore`d, because it is not ours to
+hand out.
+
+This repository contains no vendor binary. The only compiled things in it are two small programs
+written for this project: the logging proxy and a Windows probe that sends our own frames through
+the genuine driver.
+
+The application itself shares no code with the original. It is a new implementation of a protocol
+recovered by watching the wire, which is what the rest of this README is about.
+
 ## Why not the original software
 
 The cable is fine; the software is not usable here.

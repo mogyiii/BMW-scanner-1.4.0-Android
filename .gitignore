@@ -20,3 +20,6 @@ build/unpacked/
 # next to them carry everything the protocol work actually needs.
 log/**/*.bin
 log/**/*.epb
+
+tools/__pycache__/
+*.pyc
