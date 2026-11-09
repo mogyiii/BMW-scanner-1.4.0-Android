@@ -119,6 +119,47 @@ codes actually printed. So for the ABS the fault code is **not** the index key d
 maps one to the other. That is now the specific open question, and it is a different one from
 variant selection.
 
+### The selector is solved
+
+**A module's fault table is chosen by its `DI` field, as hex, looked up in a per-module chain.**
+Verified independently on three modules, each time by the dispatch landing on a table whose
+contents were already known to be right for this car:
+
+| module | identity `DI` | identifier | variant index | table | check |
+|---|---|---|---|---|---|
+| A/C `0x5B` | `32` | `"32"` | 12 | `0x004FE21C` | the table confirmed earlier against the vendor's text |
+| DME `0x12` | `000F` | `"0F"` | 43 | `0x004B3FB8` | the only table containing "Failure oil status sensor" |
+| ABS `0x29` | `0006` | `"0006"` | 19 | `0x004EAC30` | the only table containing all four of this car's descriptions |
+
+The chains live between `0x499000` and `0x4A2000`, one per module abbreviation, each a run of
+`MOV EDX,<identifier>; CALL compare; MOV ESI,<index>`. Only five modules have a real chain —
+`DME2` with 474 identifiers, `ABS` with 159, `EHC` with 27, `A/C` with 22, `EGS` with 15 — and the
+rest resolve to a single variant. The width of the identifier follows the width of the field the
+vendor prints: two hex digits for the DS2 climate module, four for the KWP ABS.
+
+Dispatch then comes in three shapes, all now accounted for: a byte map plus jump table (DME), a
+direct indexed jump (A/C, IKE), and a plain range compare (the steering sensor, where indices 1–4
+all fall through to its single table).
+
+### What the solved selector did *not* buy
+
+The ABS and the engine controller still cannot ship descriptions, and the reason is now precisely
+stated rather than suspected. **Their tables are no longer in doubt** — the selector picks them —
+but the fault code is not the index key.
+
+```
+DME table 0x004B3FB8     field 0x27C3  "Output A/C-compressor control"
+                         field 0x27C6  "Failure oil status sensor"   <- vendor prints 27C3
+```
+
+The key `0x27C3` exists and holds different text, so this is not an offset or a decoding slip:
+the vendor applies a mapping between the code a module reports and the key it looks up. The ABS
+shows the same thing with inconsistent gaps — `5E1F→5E20`, `5E24→5E25`, `5E16→5E18`, `5E43→5E4E`.
+
+Until that mapping is found, shipping either table would attach confident wrong text to real
+faults. That is the same decision as before, now made with the table identified instead of
+suspected.
+
 ### The climate module closes the loop end to end
 
 One module is now traced from identity bytes to printed text, with the vendor's own output as the
