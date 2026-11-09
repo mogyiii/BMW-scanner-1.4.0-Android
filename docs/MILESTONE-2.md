@@ -119,9 +119,48 @@ codes actually printed. So for the ABS the fault code is **not** the index key d
 maps one to the other. That is now the specific open question, and it is a different one from
 variant selection.
 
+### The climate module closes the loop end to end
+
+One module is now traced from identity bytes to printed text, with the vendor's own output as the
+check at both ends.
+
+The chain that follows the `A/C` abbreviation compares two-hex-digit strings:
+
+```
+'00'->3  '01'->4  '02'->5  '04'->17  '10'->2  '20'->6  '21'->7  '22'->8  '23'->9
+'24'->22 '30'->11 '31'->12 '32'->12  '33'->13 '34'->18 '40'->20 '44'->19 '60'->14
+'64'->21 '68'->21 '80'->15 '81'->16
+```
+
+Independently, the dispatch that guards the climate table is a direct indexed jump —
+`CMP EAX,0x16; JA default; JMP [EAX*4 + 0x500835]` — and **only variant indices 11 and 12 reach
+the table we had already confirmed against the vendor's text**.
+
+This car's climate identity is `5B 10 A0 86 91 68 82 25 15 32 0D 16 02 55 07 5F`, and the vendor's
+report for the same module reads `HW 25, CI 15, DI 32, BI/VI 0D`. The byte at index 9 is `0x32` —
+the **DI** field — and `'32'` maps to index 12.
+
+So for this module the identifier is the DI byte as two hex digits, and the whole path holds:
+
+```
+identity byte 9 = 0x32  ->  "32"  ->  variant index 12  ->  table 0x004FE21C  ->  "AUC sensor"
+```
+
+Three independent things agree: the chain, the dispatch range, and a table confirmed earlier by a
+completely different method.
+
+**It does not generalise as it stands.** The instrument cluster's `DI` is `53` and `'53'` is not in
+the chain its abbreviation heads — that abbreviation sits in a routing function, and the cluster's
+own hex chain is elsewhere. The ABS chain uses six-digit identifiers (`033834`, `037345`, `037661`)
+that match neither its part number nor any field the vendor prints for it. So the *mechanism* is
+established; which field feeds it is per-module and still has to be read off one chain at a time.
+
+**And the ABS has a second, separate blocker** that no amount of selector work will clear: of the
+four codes the vendor prints for this car, two are not index keys in the only table containing
+their text. Something maps the printed code to the key, and that is its own question.
+
 **Two smaller gaps.** Some getters are reached by a jump table and some by a direct compare, so an
-automated walk has to handle both; and nothing yet confirms which bytes of an identity become the
-identifier string.
+automated walk has to handle both.
 
 **The practical consequence is small and worth stating.** None of this changes what ships today —
 the three confirmed modules were matched against the control set, not through the selector. The
