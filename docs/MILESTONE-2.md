@@ -50,8 +50,27 @@ both protocols.
 rather than to nothing. That is the vendor's own behaviour, and it is why the raw bytes stay on
 screen next to every description.
 
-**Still out:** the airbag module. Its text is composed at runtime — "Side airbag, front right door,
-resistance too low" does not exist in the binary as a string, though "Side airbag" does.
+**Still out: the airbag module**, and its structure is now known even though it is not shipped.
+
+Its line is composed from two lookups joined by `", "`. The location half lives in a table at
+`0x00505700` whose **keys repeat** — every key carries exactly three consecutive texts, a German
+one, an English one and an empty one — which is why the strict walk used for every other module
+stopped at its second record and discarded the table. Key `0x06` holds `Side airbag, front right
+door`, which is this car's fault.
+
+The second half, `resistance too low`, sits at key `0x06` of a 234-entry table that exists in 47
+copies, one near each module's code. Our fault's parameter is `0x20`, not `0x06`, so a third
+lookup stands between the parameter and that key and has not been found. Nearby code computes a
+key as `((x & 0x40) >> 6) * 20 + 0xF02` into the same table, so those 234 entries are reached by
+several different formulas.
+
+**Not shipped, and the reason is proportion rather than difficulty.** It is one module of ten; the
+one fault this car has in it is already described by hand in both languages; and the location
+table's convention appears to be `key == code` where every other module uses `key > code`, which
+is a difference worth more than one confirming data point before it ships.
+
+**The five shipped tables are not affected.** Checked explicitly: strict and repeat-tolerant walks
+return identical records for all five, so nothing was truncated by the stricter rule.
 
 ---
 
