@@ -131,6 +131,30 @@ checked against this.
 | `0xA4` | SRS, airbag | DS2 | none / **shadow `06/20`** side airbag, front right — read by this app after the unlock, 2026-11-09 |
 | `0xD0` | LCM, lighting | DS2 | none / shadow none |
 
+### What has been done to this car
+
+Supplied by the owner, none of it visible from the bus, and all of it capable of making a reading
+look like a decoding error when it is not.
+
+| | |
+|---|---|
+| **Angel eyes** retrofitted and later removed, before the current owner. Reportedly just disconnected. | A lighting output may sit permanently open where a standard car's would not. |
+| **Third brake light** replaced with a used part. | Should behave normally; suspect it first if the brake reading looks odd. |
+| **Main catalytic converter** reportedly gutted. Passes emissions tests; no mechanic has remarked on it. | The engine controller should be reporting catalyst-efficiency faults and **is not** — its only fault is `27C3`, the oil sensor. Either the tune suppresses the monitor or the readiness tests never complete. |
+| **Engine apparently tuned.** Accelerates unlike others of its type, and the rev limiter does not cut where it should. | When it over-revs, the owner reports the DME fills with fault codes. |
+
+That last one is worth two separate notes. Mechanically, an N42 that does not cut at the limiter
+risks valve float and worse; this is the owner's car and their call, but it is not a quirk.
+
+Diagnostically it is an opportunity nobody should go looking for. **181 engine-controller
+descriptions ship and exactly one is confirmed against a real code on this car.** A log taken after
+the DME has filled itself with codes — because it happened, not because anyone provoked it — would
+be a dozen verification points at once. Worth asking for if it ever occurs; not worth causing.
+
+**None of it invalidates what is shipped.** The DME's identity matched the vendor's report byte for
+byte, and its fault table is selected by `DI`, a hardware-level field that a reflash does not
+touch.
+
 The owner recalled the clear taking three codes out of the ABS. It did not: the ABS refused the
 command outright, and the three that went were the steering angle sensor's. Worth recording because
 the capture settles it and memory does not.
