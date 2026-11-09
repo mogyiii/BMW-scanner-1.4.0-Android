@@ -239,7 +239,8 @@ Both rules reproduce every code the vendor printed for the test car.
 | [`docs/STATE.md`](docs/STATE.md) | one page: where things stand, the control set, and what has been done to this car |
 | [`docs/MILESTONE-2.md`](docs/MILESTONE-2.md) | each follow-on question, what is settled and what is not |
 | [`docs/findings.md`](docs/findings.md) | the full record, newest first, including the wrong turns |
-| [`docs/testing-on-the-car.md`](docs/testing-on-the-car.md) | the field procedure |
+| [`docs/testing-on-the-car.md`](docs/testing-on-the-car.md) | the field procedure, for our own app |
+| [`docs/outside-the-repo.md`](docs/outside-the-repo.md) | the artefacts that are not committed, why, and the vendor-capture procedure |
 
 `findings.md` keeps its mistakes on the page deliberately. Several conclusions here were
 confidently wrong for weeks — the ABS was chased at an address that turned out to be an ASCII

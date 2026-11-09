@@ -1,7 +1,12 @@
-"""Decode a VirtualBox USB capture (DLT_USB_LINUX_MMAPPED, 220) of FTDI traffic."""
+"""Decode a VirtualBox USB capture (DLT_USB_LINUX_MMAPPED, 220) of FTDI traffic.
+
+The one capture this was written for is not in the repository -- see
+`docs/outside-the-repo.md` for where it lives and why it stayed out. What it established is
+written up in full in `docs/field-logs/2026-10-18-run6-vendor-usb-capture.md`.
+"""
 import struct, sys, collections
 
-PATH = sys.argv[1] if len(sys.argv) > 1 else "usbcap1.pcap"
+PATH = sys.argv[1] if len(sys.argv) > 1 else "usbcap-session1.pcap"
 LIMIT = int(sys.argv[2]) if len(sys.argv) > 2 else 150
 
 FTDI_REQ = {

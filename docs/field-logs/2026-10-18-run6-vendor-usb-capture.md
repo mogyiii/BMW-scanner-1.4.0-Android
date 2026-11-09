@@ -6,7 +6,9 @@ the cable attached through VirtualBox's USB passthrough and **all USB traffic ca
 
 The software reported **"Error - Hardware faulty"**.
 
-Capture: 12 128 packets, decoded with `scratchpad/usbparse.py` (DLT_USB_LINUX_MMAPPED).
+Capture: 12 128 packets, decoded with `tools/usbparse.py` (DLT_USB_LINUX_MMAPPED). The pcapng
+itself is not in the repository; `docs/outside-the-repo.md` says where it is. Everything it
+showed is transcribed below.
 
 ## What it did
 
