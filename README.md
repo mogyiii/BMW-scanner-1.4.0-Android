@@ -74,7 +74,7 @@ know where the line falls before plugging anything in.
 | **Odometer writing** | Refused on day one. There is no code here that could do it. |
 | **EEPROM read and write, module backup/restore** | Not implemented. The vendor software dumps module memory; this reads diagnostic data only. |
 | **Service interval reset** | Not implemented. It is an actuator call rather than a read, and on the test car the cluster refuses it even from PA-Soft. |
-| **Key and immobiliser programming** | Not implemented. |
+| **Key and immobiliser programming** | Not implemented. PA-Soft has a full EWS suite — ten key slots with their fixed codes and passwords, enable and disable per key, auto-init, EWS erase and lock, EWS–DME sync-code adaptation for fitting a second-hand controller, and transponder writing in the ignition-lock coil. This reads the EWS's identity and faults and nothing else. |
 | **Most live values** | PA-Soft has live-data screens this does not. Engine speed and steering angle are the two this app reads, because they are the two that proved available on the test car. |
 | **Model coverage** | PA-Soft knows the whole DS2 generation. This knows the ten modules of one E46, plus a sweep that finds anything else and asks you to report it. |
 
@@ -227,6 +227,7 @@ Both rules reproduce every code the vendor printed for the test car.
 | `tools/command_atlas.py` | what each command means, per module, read out of the echo |
 | `tools/command_inventory.py` | every command the software *can* send, from the executable |
 | `tools/fault_text.py` | 374 fault descriptions, out of the vendor binary's own tables |
+| `tools/form_atlas.py` | the vendor's 104 screens and every field name on them |
 | `tools/decode_proxy.py` | a capture replayed as the conversation it represents |
 | `tools/ftd2xx-proxy/` | a logging pass-through that sits under the genuine software |
 | `tools/ds2-probe-win/` | our exact frames through the genuine driver, to isolate our own bugs |

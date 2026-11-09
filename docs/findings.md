@@ -1,5 +1,42 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # 📖 The form resources name every field the vendor displays — 2026-11-09
+>
+> The executable carries **104 Delphi form resources**, and a form lists its own captions. That is a
+> free inventory of the vendor's entire feature set, and it answers a question I had been answering
+> by inference: it names fields, not just commands.
+>
+> **The EWS live-data form is the useful part.** We read `0x5132` and decode one byte of it as
+> engine speed. The form that displays that reply lists what the rest is:
+>
+> > Random code · Odometer · VIN · Key transmits · Key enabled · Status, identification ·
+> > Auto-init complete for all keys · EWS programming status · Status, random code ·
+> > Status, password · Starter enabled — BC code · Status, DME/DDE wire · Terminal R (wire) ·
+> > Status, central locking · BC code (via K-Bus) · Selector lever / Clutch switch ·
+> > Terminal R (K-Bus) · **Engine speed** · Starter enabled · Starter enabled — engine speed limit ·
+> > Starter enabled — gearbox in P/N · Starter enabled — central lock
+>
+> So the reply we already have in hand is mostly undecoded, and the fields are nearly all booleans —
+> terminal R, clutch/selector switch, the four starter-enable conditions. **This is the one live
+> screen we can extend without a new command**, because we are already asking the question and
+> throwing the answer away. A second form, for the other EWS generation, drops the odometer and VIN
+> and adds `Key random code defect` and `WFSI`, so the layout is version-dependent and the mapping
+> has to be confirmed against this car rather than assumed.
+>
+> Confirming it needs no new experiment of the dangerous kind: ignition on and off, clutch in and
+> out, with the existing trace running, and the bits that move are the bits named.
+>
+> **Two corrections to things I had written from the string table alone.** `Passkey` is the
+> Bluetooth telephone module's pairing code, not a car key. `Type-Key` is the BMW *Typschlüssel*
+> from the chassis identification, also not a key. Both read as immobiliser functions in a flat
+> string dump and are nothing of the sort.
+>
+> On the vendor's key handling, which the README had asserted without checking: it is real and it is
+> extensive — ten key slots with fixed codes and passwords, per-key enable and disable, auto-init,
+> EWS erase and lock, EWS–DME sync-code adaptation, and transponder writing in the ignition-lock
+> coil. Recorded because the parity table should be accurate, not because any of it is wanted here.
+> **Writing stays out.**
+
 > # ✅ The fault-description lookup is solved — 2026-11-09
 >
 > **374 descriptions now ship across five modules**, up from twelve hand-written. The last piece
