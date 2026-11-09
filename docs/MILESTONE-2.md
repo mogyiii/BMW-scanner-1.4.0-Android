@@ -157,11 +157,21 @@ view and in the log as "service counters (meaning not yet confirmed)".
 `365` is hard to read as anything but days and `3000` looks like kilometres, but *looks like* is
 not a decoding, and this sits next to the word "oil" where a wrong figure gets acted on.
 
-**The experiment, which takes a minute and needs no cable.** Ignition off, press and hold the
-odometer reset button in the instrument cluster. The cluster displays its own remaining service
-distance and time. Write both down, then compare them with the three numbers the app shows. Two
-dashboard figures against three app figures is enough to pin which is which — and if nothing
-lines up, we have learnt that cheaply and shown nobody a wrong number.
+**The dashboard comparison was tried on 2026-11-09 and does not work on this cluster.** Holding
+the odometer reset button at ignition off shows the total and the trip since refuelling, and
+nothing else. The instruction was mine and it was wrong: this is the basic E46 cluster, which
+indicates the service interval with a row of LEDs at ignition rather than as a number, and I
+assumed a numeric readout without checking. The vendor's own report does not print the interval
+either — its "Service" column is a part number.
+
+**So the comparison waits for a free occasion rather than another trip.** Whenever the service
+interval is next reset — by a garage or by the owner — a reading taken *before* and one taken
+*after* settles it outright: the value that changes is the remaining one, and the direction of the
+change says whether it counts up or down. That is more precise than counting LEDs and costs
+nobody a journey.
+
+Until then the app shows the three numbers with no claim attached, which is the right state for
+a figure that sits next to the word "oil".
 
 ---
 
