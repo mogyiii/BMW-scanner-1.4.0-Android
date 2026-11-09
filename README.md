@@ -89,12 +89,21 @@ appeared — they sit behind a condition this car does not satisfy.
 WebUSB needs a secure context, so the page must come from `https://` or `localhost`. GitHub Pages
 is its home; a service worker caches it on first load, so it starts with no signal in a car park.
 
-Chrome or Edge, on Android or a desktop. **It cannot work on iOS**: Safari has no WebUSB and Apple
-does not allow arbitrary USB access from native apps either, so an iPhone cannot drive this cable
-by any route.
+Chrome or Edge, on Android or a desktop.
 
-On Windows the device must be bound to WinUSB (Zadig) before Chrome can claim it. Android and
-macOS need nothing; Linux may want a udev rule.
+**Per platform**, and the distinction between tested and expected is kept because it is the whole
+habit of this project:
+
+| | |
+|---|---|
+| **Android** | Works. This is where it was developed and read a car. |
+| **Windows** | Works. The device must first be bound to WinUSB with [Zadig](https://zadig.akeo.ie/), because without a WinUSB-compatible driver Chrome cannot claim it. |
+| **macOS** | **Expected to work, never tested.** Chrome supports WebUSB there, and macOS's own `AppleUSBFTDI` binds vendor `0x0403` — this cable reports `0x0333`, so nothing in the system should claim the interface and Chrome should get it without any driver work. The same re-flashed EEPROM that stops every other OBD tool recognising the cable is what makes this easy. On a recent Mac you will want a USB-A adapter. |
+| **Linux** | Expected to work, never tested. Likely wants a udev rule granting access to `0333:0137`. |
+| **iOS** | **Cannot work.** Safari has no WebUSB and Apple does not allow arbitrary USB access from native apps either, so no route exists. |
+
+If you try it on macOS or Linux, the result either way is worth an issue — "it just worked" is as
+useful as a failure here.
 
 ```sh
 cd web && python -m http.server 8000      # then http://localhost:8000

@@ -16,8 +16,13 @@ file directly will not do. Either:
   it starts with no signal afterwards - which is the normal situation in a car park.
 - **Locally**: `python -m http.server 8000` in this folder, then `http://localhost:8000`.
 
-On Windows the device has to be bound to WinUSB (Zadig) before Chrome can claim it, because the FTDI
-driver takes it otherwise. Android and macOS need nothing; Linux may need a udev rule.
+On Windows the device has to be bound to WinUSB (Zadig) first; without a WinUSB-compatible driver
+Chrome cannot claim it.
+
+**macOS and Linux are expected to work and have never been tested.** The reasoning for macOS is
+that `AppleUSBFTDI` binds vendor `0x0403` and this cable reports `0x0333`, so nothing should claim
+the interface ahead of Chrome — the same re-flashed EEPROM that stops other OBD tools recognising
+it. Linux will likely want a udev rule. Either result is worth reporting.
 
 ## Language
 
