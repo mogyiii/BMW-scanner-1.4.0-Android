@@ -28,6 +28,14 @@ All strings live in `js/i18n.js`; the markup carries `data-i18n` keys rather tha
 descriptions are the one place where the English is not a translation — both languages come from
 the vendor software's own report, so the English is the original.
 
+## Reading one module
+
+Tapping a tile with a cable attached reads that module alone, about five seconds instead of the
+minute a full scan takes — and an already-read module gets the same thing as a button in its
+detail view. The trace is not cleared, so repeated reads of one module accumulate in a single log.
+That is deliberate: an experiment that varies one thing and reads it six times wants all six
+readings in one file, in order.
+
 ## Seeing it without a cable
 
 `?demo=1` fills the page with this car's readings from 2026-11-05 and runs them through the same

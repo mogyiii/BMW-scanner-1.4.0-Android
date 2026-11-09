@@ -20,7 +20,11 @@ const fmt = (n) => n.toLocaleString(lang === 'hu' ? 'hu-HU' : 'en-GB');
 /* ------------------------------------------------------------------ tiles */
 
 function tileFor(mod) {
-  const el = document.createElement(mod.present ? 'button' : 'div');
+  // Every tile is a button once a cable is attached, including the ones that have never answered:
+  // tapping one reads that module alone. Six lighting states is six taps of five seconds, not six
+  // full scans of a minute, and the vendor's own software has had per-module reads all along.
+  const tappable = !!state.ftdi && !state.busy && !mod.busy;
+  const el = document.createElement(mod.present || tappable ? 'button' : 'div');
   el.className = 'tile';
   if (mod.busy) el.classList.add('busy');
   else if (!mod.present) el.classList.add('off');
@@ -54,8 +58,36 @@ function tileFor(mod) {
   if (mod.present) {
     el.classList.add('clickable');
     el.addEventListener('click', () => showDetail(mod));
+  } else if (tappable) {
+    el.classList.add('clickable');
+    el.addEventListener('click', () => readOne(mod));
   }
   return el;
+}
+
+/**
+ * Reads one module and leaves the rest of the page alone.
+ *
+ * The trace is *not* cleared, so repeated reads of the same module accumulate in one log — which
+ * is exactly what an experiment wants: six lighting states in one file, in order.
+ */
+async function readOne(mod) {
+  if (!state.ftdi || state.busy) return;
+  state.busy = true;
+  state.results.set(mod.addr, { ...mod, busy: true });
+  draw();
+  setStatus(t('status.readingone', { name: mod.name }));
+  try {
+    const [result] = await scan(state.ftdi, { onTrace: trace, only: [mod.addr] });
+    if (result) state.results.set(mod.addr, result);
+    setStatus(t('status.readone', { name: mod.name }));
+  } catch (e) {
+    state.results.delete(mod.addr);
+    setStatus(t('status.aborted', { msg: e.message }));
+  } finally {
+    state.busy = false;
+    draw();
+  }
 }
 
 /**
@@ -231,6 +263,10 @@ function showDetail(mod) {
     p.textContent = 'ident: ' + P.hex(mod.ident);
     body.appendChild(p);
   }
+
+  const again = $('d-again');
+  again.hidden = !state.ftdi;
+  again.onclick = async () => { $('detail').close(); await readOne(mod); };
 
   const clear = $('d-clear');
   const hasAny = (mod.faults && mod.faults.count > 0) || (mod.shadow && mod.shadow.count > 0);
