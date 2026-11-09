@@ -123,7 +123,26 @@ async function readDs2Module(ftdi, mod, onTrace) {
     if (s) live = P.decodeEwsLive(s.answer);
   }
 
-  return { ...mod, present: true, ident: ident.answer, adfg, faults, shadow, mileage, vin, live };
+  // The cluster's service counters and the lighting module's status pages are read for an
+  // experiment rather than for display: neither is decoded yet, and both need readings taken
+  // under known conditions before they can be. They go into the log as raw bytes.
+  let service = null;
+  if (mod.addr === 0x80) {
+    const sv = P.splitReply(await session.send(P.buildFrame(P.CMD.SERVICE, mod.addr), '0xA358'), mod.addr);
+    if (sv) service = P.decodeService(sv.answer);
+  }
+  let pages = null;
+  if (mod.addr === 0xd0) {
+    pages = [];
+    for (let page = 0; page < 4; page++) {
+      const r = P.splitReply(
+        await session.send(P.buildFrame(P.CMD.LCM_PAGE, mod.addr, [page]), `0x79DE p${page}`), mod.addr);
+      pages.push(r && P.isPositive(r.answer) ? r.answer.slice(3, -1) : null);
+    }
+  }
+
+  return { ...mod, present: true, ident: ident.answer, adfg, faults, shadow,
+           mileage, vin, live, service, pages };
 }
 
 /**

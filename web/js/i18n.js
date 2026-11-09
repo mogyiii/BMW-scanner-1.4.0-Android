@@ -31,6 +31,7 @@ const STRINGS = {
 
     'vital.vin': 'alvázszám',
     'vital.km': 'kilométeróra',
+    'service.raw': 'szerviz-számlálók (jelentésük még nem igazolt)',
     'vital.rpm': 'fordulatszám',
     'vital.rpm.value': '{n} /perc',
     'vital.modules': 'vezérlőegység',
@@ -173,6 +174,7 @@ const STRINGS = {
 
     'vital.vin': 'chassis number',
     'vital.km': 'odometer',
+    'service.raw': 'service counters (meaning not yet confirmed)',
     'vital.rpm': 'engine speed',
     'vital.rpm.value': '{n} rpm',
     'vital.modules': 'modules',

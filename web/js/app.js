@@ -187,6 +187,7 @@ function showDetail(mod) {
   if (mod.vin) facts.push(`${t('vital.vin')} <b>${mod.vin}</b>`);
   if (mod.mileage) facts.push(`<b>${fmt(mod.mileage)} km</b>`);
   if (mod.live) facts.push(t('vital.rpm') + ` <b>${t('vital.rpm.value', { n: fmt(mod.live.rpm) })}</b>`);
+  if (mod.service) facts.push(`${t('service.raw')} <b>${mod.service.join(' / ')}</b>`);
   if (facts.length) {
     const p = document.createElement('p');
     p.style.margin = '0 0 4px';
@@ -348,6 +349,9 @@ function buildLog() {
     if (r.mileage) lines.push(`      ${t('log.km')} ${r.mileage} km`);
     if (r.live) lines.push(`      ${t('vital.rpm')} ${r.live.rpm} rpm`);
     if (r.adfg) lines.push(`      ADFG ${P.hex(r.adfg).replace(/ /g, '')}`);
+    if (r.service) lines.push(`      szerviz-számlálók ${r.service.join(' / ')}`);
+    if (r.pages) r.pages.forEach((pg, i) =>
+      lines.push(`      0x79DE lap ${i}  ${pg ? P.hex(pg) : '—'}`));
     if (r.ident) lines.push(`      ident ${P.hex(r.ident)}`);
     for (const [name, store, missing] of [
       [t('log.live'), r.faults, t('log.unanswered')],

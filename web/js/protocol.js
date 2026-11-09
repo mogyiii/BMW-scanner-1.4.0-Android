@@ -34,6 +34,8 @@ export const CMD = {
   SHADOW:  0x9e56,   // DS2 14  - shadow fault memory, paged exactly like 04
   MILEAGE: 0x8de3,   // DS2 02 01 - the odometer, on the instrument cluster
   IKE_VIN: 0xc6e1,   // DS2 02 02 - the cluster's stored VIN
+  SERVICE: 0xa358,   // DS2 02 03 - three service-interval counters, meaning unconfirmed
+  LCM_PAGE: 0x79de,  // DS2 15 <page> - the lighting module's status pages
   EWS_LIVE: 0x5132,  // DS2 6B    - the immobiliser's status block, which carries engine speed
   ADFG:    0x71a0,   // DS2 0E  - the three assembly-release bytes
   CLEAR:   0x1bcf,   // DS2 05  - clear fault memory
@@ -842,6 +844,21 @@ export function decodeIdent(mod) {
 export function decodeEwsLive(answer) {
   if (!answer || answer.length < 8 || answer[2] !== 0xa0) return null;
   return { rpm: answer[5] * 100 };
+}
+
+/**
+ * Reads the cluster's three service-interval counters — **without claiming what they are.**
+ *
+ * `0xA358` answers `A0 03 00 03 D4 01 6D 0B B8 00 00 01`, which is three big-endian 16-bit values:
+ * 980, 365 and 3000. `365` is hard to read as anything but days and `3000` looks like a kilometre
+ * figure, but *looks like* is not a decoding, and this sits next to the word "oil" where a wrong
+ * number would be acted on. So the raw three are surfaced for comparison against what the cluster
+ * itself displays — ignition off, odometer button held — and nothing is labelled until that
+ * comparison is made.
+ */
+export function decodeService(answer) {
+  if (!answer || answer.length < 12 || answer[2] !== 0xa0) return null;
+  return [0, 1, 2].map((i) => (answer[5 + i * 2] << 8) | answer[6 + i * 2]);
 }
 
 /**

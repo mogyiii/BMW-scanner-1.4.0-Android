@@ -57,6 +57,7 @@ const RECORDED = {
     faults: '80 14 A0 01 BE 48 28 00 80 00 00 80 00 00 80 00 00 80 00 EB',
     shadow: null, adfg: '80 07 A0 84 00 00 A3',
     mileage: '80 08 A0 01 32 17 40 4C', ikeVin: '80 0A A0 02 4B 50 04 22 00 15',
+    service: '80 0F A0 03 00 03 D4 01 6D 0B B8 00 00 01 25',
   },
   0xa4: {
     ident: 'A4 10 A0 86 91 27 55 10 32 09 00 16 02 08 32 74',
@@ -107,6 +108,7 @@ export function replay() {
       if (rec.mileage) result.mileage = P.decodeMileage(b(rec.mileage));
       if (rec.ikeVin) result.vin = P.decodeIkeVin(b(rec.ikeVin));
       if (rec.ewsLive) result.live = P.decodeEwsLive(b(rec.ewsLive));
+      if (rec.service) result.service = P.decodeService(b(rec.service));
     }
     out.push(result);
   }

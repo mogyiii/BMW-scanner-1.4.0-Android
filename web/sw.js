@@ -5,7 +5,7 @@
  * which would mean needing a signal in a car park. Caching the handful of files on first load fixes
  * that: afterwards it starts with no network at all.
  */
-const CACHE = 'bmw-ds2-v10';
+const CACHE = 'bmw-ds2-v11';
 // `demo.js` is deliberately not precached: it is only ever loaded by `?demo=1`, and the car park
 // case this cache exists for does not involve a replay.
 const FILES = [

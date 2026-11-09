@@ -148,31 +148,46 @@ question to answer instead of several.
 
 ---
 
-## 4. Service interval
+## 4. Service interval — the app now reads it, the meaning is yours to confirm
 
-**Why.** The owner asked about the oil service early on, and it is a thing people actually want to
-see. Reading it is a read; resetting it is not, and stays out (see below).
+**Shipped as raw numbers, deliberately unlabelled.** `0xA358` → DS2 `02 03` on the cluster returns
+three big-endian 16-bit values; on this car `980 / 365 / 3000`. They appear in the cluster's detail
+view and in the log as "service counters (meaning not yet confirmed)".
 
-**What is established.** `0xA358` → DS2 `02 03` on the cluster:
+`365` is hard to read as anything but days and `3000` looks like kilometres, but *looks like* is
+not a decoding, and this sits next to the word "oil" where a wrong figure gets acted on.
 
-```
-A0 03 00  03 D4  01 6D  0B B8  00 00 01
-          = 980  = 365  = 3000
-```
-
-Three 16-bit values. `365` is hard to read as anything but days.
-
-**What is missing.** What the other two are, and in what units. **This is a guess and must not ship
-as anything else** — the app would be putting a number next to the word "oil" and people act on
-that.
-
-**Cost.** An hour, most of it UI.
-
-**How we would know it is right.** The cluster shows the remaining service distance and time itself:
-ignition off, hold the odometer button. Two numbers on the dashboard against three in the reply is
-enough to pin the mapping, and if it does not line up we have learnt that cheaply and shown nothing.
+**The experiment, which takes a minute and needs no cable.** Ignition off, press and hold the
+odometer reset button in the instrument cluster. The cluster displays its own remaining service
+distance and time. Write both down, then compare them with the three numbers the app shows. Two
+dashboard figures against three app figures is enough to pin which is which — and if nothing
+lines up, we have learnt that cheaply and shown nobody a wrong number.
 
 ---
+
+## 5. Lighting module, live — the app now captures the pages
+
+**Shipped into the log, not the screen.** `0x79DE` → DS2 `15 <page>` on `0xD0`, pages 0 to 3,
+sixteen bytes each. They go into the shared log as raw bytes under `0x79DE lap N`. Nothing is
+decoded, because nothing can be until there are readings taken under known conditions.
+
+**The experiment.** One scan per lighting state, each one shared, with a note of which state it
+was:
+
+1. Everything off — the baseline.
+2. Sidelights only.
+3. Dipped beam.
+4. Main beam.
+5. Left indicator on (leave it ticking).
+6. Brake pedal pressed — needs a second person or something heavy on the pedal.
+
+Each scan takes about a minute. Diffing six readings against the baseline shows which bits move
+for which circuit, and that is the whole decode. Ignition in position 2 throughout; the engine
+does not need to run.
+
+**Why the order matters.** Change one thing at a time and return to the baseline if anything gets
+confusing. The first steering-angle attempt produced data nobody could use because two variables
+moved at once and nothing was written down.
 
 ## 5. Confirm the things built but never run
 
