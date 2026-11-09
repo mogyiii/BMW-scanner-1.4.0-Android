@@ -138,6 +138,7 @@ credits each answer to the wrong question. That one number cost a fortnight.
 | | |
 |---|---|
 | `tools/command_atlas.py` | what each command means, per module, read out of the echo |
+| `tools/command_inventory.py` | every command the software *can* send, from the executable |
 | `tools/fault_text.py` | 374 fault descriptions, read out of the vendor binary's own tables |
 | `tools/decode_proxy.py` | a capture replayed as the conversation it represents |
 | `tools/ftd2xx-proxy/` | a logging pass-through that sits under the genuine software |

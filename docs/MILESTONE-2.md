@@ -217,6 +217,37 @@ doing first.
 
 ---
 
+## What this cable can and cannot be made to do
+
+Worth settling, because it bounds everything else on this list.
+
+**We never talk to the car. We talk to the cable's microcontroller**, which talks to the car. Every
+request is a 16-bit command the microcontroller already knows, plus arguments we supply; the
+command carries a fixed service prefix that lives in the cable's firmware and appears nowhere in
+the executable. `0x4769` with payload `00 10 20` becomes DS2 `06 08 00 | 00 10 20` on the wire —
+the first three bytes are not ours to choose. So **arbitrary K-line frames are out**, and with them
+any idea of reading sensors the vendor never wrote a command for.
+
+**But the ceiling is far above what the app uses.** `tools/command_inventory.py` finds every
+command the software can issue, by locating each `MOV ECX, imm` that feeds one of the two
+transaction routines:
+
+```
+318 distinct commands the software can send
+ 61 observed on the wire across both captures, 257 never
+```
+
+**Five of them are issued under a "Reading live data:" label, and two have never been captured** —
+`0x4F29` and `0x9398`. The three that have are the airbag's `0B` (all `FF` on this car), the
+immobiliser's `08`, and the paged `08` the steering sensor and others answer.
+
+**They must not be sent speculatively.** `0xC751` sits in the same number space, and an unknown
+command's service prefix is unknown by definition. The way to learn one is the way the rest were
+learnt: run the vendor software with the proxy attached, open the screen, and read the K-line
+echo. Two commands is a short capture.
+
+---
+
 ## Ruled out, with the evidence
 
 Recorded so nobody spends an afternoon rediscovering them.
