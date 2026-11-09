@@ -45,6 +45,7 @@ const STRINGS = {
     'btn.clear': 'Hibák törlése',
     'btn.clearing': 'Törlés…',
     'btn.unlock': 'Feloldás és olvasás',
+    'btn.live': 'Élő kormányszög',
     'btn.hunt': 'Ismeretlen modulok keresése',
     'btn.share': 'Napló megosztása',
     'btn.copy': 'Vágólapra',
@@ -116,6 +117,16 @@ const STRINGS = {
     'unlock.norefused': 'a vezérlő nem fogadta el a feloldást',
     'unlock.stilllocked': 'a feloldás után is zárolt',
 
+    'live.title': 'Élő kormányszög',
+    'live.intro': 'A szög <b>relatív</b>, nem fok. A bájt átfordul egy olyan '
+      + 'mozgáson belül is, ami jóval a teljes elfordulás alatt van, és a válaszban '
+      + 'nincs fordulatszámláló — ezért a mozgás, az irány és a visszatérési pont '
+      + 'látszik, nem a tényleges szög. A Leállítás gombbal fejezed be.',
+    'live.steady': 'a két csatorna egyezik',
+    'live.moving': 'mozgás közben — a csatornák eltérnek',
+    'live.range': 'tartomány {min} … {max}',
+    'live.samples': '{n} mérés',
+    'live.lost': 'a modul abbahagyta a választ {n} mérés után',
     'hunt.title': 'Ismeretlen modulok',
     'hunt.intro': 'A fenti csempék azok a modulok, amiket ez a szoftver ismer, és amiket ez az autó '
       + 'tartalmaz. Egy másik BMW-ben lehet sebességváltó-, navigációs vagy telefonvezérlő is — '
@@ -191,6 +202,7 @@ const STRINGS = {
     'btn.clear': 'Clear faults',
     'btn.clearing': 'Clearing…',
     'btn.unlock': 'Unlock and read',
+    'btn.live': 'Live steering angle',
     'btn.hunt': 'Look for unknown modules',
     'btn.share': 'Share the log',
     'btn.copy': 'Copy',
@@ -263,6 +275,16 @@ const STRINGS = {
     'unlock.norefused': 'the module did not accept the unlock',
     'unlock.stilllocked': 'still locked after the unlock',
 
+    'live.title': 'Live steering angle',
+    'live.intro': 'The angle is <b>relative</b>, not degrees. The byte wraps inside '
+      + 'a movement well short of full lock and the reply carries no turn counter, so '
+      + 'what this shows is movement, direction and the point the wheel returns to — '
+      + 'not the actual angle. Press Stop to finish.',
+    'live.steady': 'both channels agree',
+    'live.moving': 'moving — the channels differ',
+    'live.range': 'range {min} … {max}',
+    'live.samples': '{n} samples',
+    'live.lost': 'the module stopped answering after {n} samples',
     'hunt.title': 'Unknown modules',
     'hunt.intro': 'The tiles above are the modules this software knows and this car has. Another '
       + 'BMW may also have a gearbox, navigation or telephone controller, which this app does not '

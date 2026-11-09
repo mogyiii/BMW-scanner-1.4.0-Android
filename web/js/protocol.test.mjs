@@ -192,6 +192,28 @@ for (const [name, kwp, raw, part, hw] of [
     'CAN Timeout instrument cluster');
 }
 
+/* -- the steering sensor, from the 2026-11-06 sweep ------------------------------------------- */
+{
+  const at = (body) => P.decodeSteering(P.splitReply(bytes('57 05 0B 01 58   ' + body), 0x57).answer);
+  // At rest the two channels agree exactly; mid-sweep they do not, because they are sampled a
+  // moment apart. Both are real readings and the app says which is which.
+  check('steering at rest reads -2',        at('57 08 A0 FE 82 95 D1 C7').signed, -2);
+  check('steering at rest is trusted',      at('57 08 A0 FE 82 95 D1 C7').trusted, true);
+  check('steering mid-sweep reads -70',     at('57 08 A0 BA C2 95 CF DD').signed, -70);
+  check('steering mid-sweep is not trusted', at('57 08 A0 BA C2 95 CF DD').trusted, false);
+  // The wrap: -70 then +115 is a continuous -71 step, which is why this is relative and not an angle.
+  check('steering past the wrap reads +115', at('57 08 A0 73 F5 95 D1 3D').signed, 115);
+}
+
+/* -- every field the vendor's report prints is in the identity we already read ----------------- */
+{
+  const id = P.decodeIdent({ ident: bytes('80 12 A0 F6 91 12 86 12 06 53 12 14 02 26 23 06 87 06') });
+  check('IKE identity fields', [id.hw, id.sw, id.ci, id.di, id.bi, id.date],
+    ['12', '23', '06', '53', '12', '14/02']);   // the vendor's IKE row, exactly
+  const kwp = P.decodeIdent({ ident: bytes('5A 80 00 00 07 51 95 92 10 0C'), kwp: true });
+  check('KWP identity carries no DS2 side fields', kwp.sw, undefined);
+}
+
 /* -- a reply from the wrong module is not an answer -------------------------------------------- */
 // Taken from the sweep that reported two modules this car does not have. Both requests went to an
 // address that answers nothing; both "replies" are the engine controller answering an earlier

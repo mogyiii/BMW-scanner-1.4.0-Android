@@ -211,6 +211,28 @@ export async function clearFaults(ftdi, mod, onTrace) {
 }
 
 /**
+ * Polls the steering sensor until told to stop, reporting each reading as it arrives.
+ *
+ * One connection is opened and reused for the whole run. Everywhere else this project rebuilds the
+ * link per address, because reusing one rots after a few frames — but that was across *different*
+ * addresses. Here it is the same module answering the same question, and the alternative is a DTR
+ * pulse and a handshake between every sample, which would make a live reading impossible. If it
+ * turns out to rot here too, `onSample` will show it: the readings simply stop.
+ */
+export async function pollSteering(ftdi, { onSample, shouldStop } = {}) {
+  const addr = 0x57;
+  const session = await connect(ftdi, addr, null);
+  if (!session) return;
+  while (!(shouldStop && shouldStop())) {
+    const r = P.splitReply(
+      await session.send(P.buildFrame(P.CMD.LEW_LIVE, addr), '0xA651', 120), addr);
+    const sample = r && P.isPositive(r.answer) ? P.decodeSteering(r.answer) : null;
+    if (onSample) onSample(sample, r ? r.answer : null);
+    if (!sample) break;
+  }
+}
+
+/**
  * Unlocks a module's shadow memory and reads it, on the owner's explicit instruction.
  *
  * Never called by a scan. The two commands it sends are described in `protocol.js`; the short

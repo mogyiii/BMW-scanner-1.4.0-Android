@@ -229,6 +229,10 @@
     margin-top: 18px; padding: 15px 17px; border-radius: 16px;
     background: var(--paper); border: 1px solid var(--rule);
   }
+  .livevalue {
+    font-size: 2.6rem; font-weight: 700; letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums; color: var(--blue-800); line-height: 1.1;
+  }
   .panel h2 { font-size: .95rem; margin: 0 0 10px; letter-spacing: -.01em; color: var(--blue-900); }
   .panel-body { padding: 2px 0 6px; }
   .unlock {
@@ -394,6 +398,12 @@
 
 <p class="note" id="ignhint" hidden></p>
 
+<section class="panel" id="live" hidden>
+  <h2 data-i18n="live.title"></h2>
+  <p class="note" style="margin-top:0" data-i18n="live.intro"></p>
+  <div id="live-body"></div>
+</section>
+
 <section class="panel" id="unknown" hidden>
   <h2 data-i18n="hunt.title"></h2>
   <p class="note" style="margin-top:0" data-i18n="hunt.intro2"></p>
@@ -421,6 +431,7 @@
   <div class="dlg-body" id="d-body"></div>
   <div class="dlg-foot">
     <button class="ghost" id="d-again" data-i18n="btn.again" hidden></button>
+    <button class="ghost" id="d-live" data-i18n="btn.live" hidden></button>
     <button class="ghost" id="d-clear" data-i18n="btn.clear" hidden></button>
     <button class="ghost" id="d-close" data-i18n="btn.close"></button>
     <span class="status" id="d-clearmsg"></span>

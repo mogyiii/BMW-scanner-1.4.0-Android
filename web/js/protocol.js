@@ -36,6 +36,7 @@ export const CMD = {
   IKE_VIN: 0xc6e1,   // DS2 02 02 - the cluster's stored VIN
   SERVICE: 0xa358,   // DS2 02 03 - three service-interval counters, meaning unconfirmed
   LCM_PAGE: 0x79de,  // DS2 15 <page> - the lighting module's status pages
+  LEW_LIVE: 0xa651,  // DS2 0B 01 - the steering sensor's angle, the one live DS2 value
   EWS_LIVE: 0x5132,  // DS2 6B    - the immobiliser's status block, which carries engine speed
   ADFG:    0x71a0,   // DS2 0E  - the three assembly-release bytes
   CLEAR:   0x1bcf,   // DS2 05  - clear fault memory
@@ -806,11 +807,23 @@ export function decodeIdent(mod) {
   }
   const part = nibbles.slice(1);
   if (!/^\d{7}$/.test(part)) return null;
-  const hw = src[at + 4];
-  return {
+  const hex = (i) => (src[i] === undefined ? null : src[i].toString(16).toUpperCase().padStart(2, '0'));
+
+  // Everything the vendor's report prints is already in these bytes and was being thrown away.
+  // Checked field by field on all seven DS2 modules against that report: hardware, coding index,
+  // diagnosis index, bus index, build date and software all line up.
+  const out = {
     part: `${part[0]}.${part.slice(1, 4)}.${part.slice(4)}`,
-    hw: hw.toString(16).toUpperCase().padStart(2, '0'),
+    hw: hex(at + 4),
   };
+  if (!mod.kwp && src.length >= at + 12) {
+    out.ci = hex(at + 5);
+    out.di = hex(at + 6);
+    out.bi = hex(at + 7);
+    out.date = `${hex(at + 8)}/${hex(at + 9)}`;
+    out.sw = hex(at + 11);
+  }
+  return out;
 }
 
 /**
@@ -844,6 +857,29 @@ export function decodeIdent(mod) {
 export function decodeEwsLive(answer) {
   if (!answer || answer.length < 8 || answer[2] !== 0xa0) return null;
   return { rpm: answer[5] * 100 };
+}
+
+/**
+ * Decodes the steering sensor's live reply: `[angle][complement][95][noise]`.
+ *
+ * The angle is a signed byte that **wraps** — 62 readings over a real sweep showed it running
+ * past its own range inside a movement well short of full lock, and there is no turn counter
+ * anywhere in the reply. So this is a relative reading, not an absolute one, and the second byte
+ * is `(0x80 - angle) mod 256` exactly whenever the wheel is still.
+ *
+ * `trusted` says whether the two channels currently agree. They disagree while the wheel moves,
+ * because a redundant sensor samples them a moment apart - so a reading taken mid-turn is real
+ * but momentarily inconsistent, and the display should say so rather than pretend.
+ */
+export function decodeSteering(answer) {
+  if (!answer || answer.length < 8 || answer[2] !== 0xa0) return null;
+  const raw = answer[3];
+  const complement = answer[4];
+  return {
+    raw,
+    signed: raw > 127 ? raw - 256 : raw,
+    trusted: complement === ((0x80 - raw) & 0xff),
+  };
 }
 
 /**

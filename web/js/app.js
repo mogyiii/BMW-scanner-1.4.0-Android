@@ -8,7 +8,8 @@
 
 import { Ftdi } from './ftdi.js';
 import * as P from './protocol.js';
-import { scan, idleLevel, clearFaults, unlockShadow, findUnknown } from './session.js';
+import { scan, idleLevel, clearFaults, unlockShadow, findUnknown, pollSteering }
+  from './session.js';
 import { t, tn, lang, setLang, applyStatic, LANGUAGES } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
@@ -215,7 +216,13 @@ function showDetail(mod) {
 
   const ident = P.decodeIdent(mod);
   const facts = [];
-  if (ident) facts.push(`<b>${ident.part}</b> · HW ${ident.hw}`);
+  if (ident) {
+    const bits = [`<b>${ident.part}</b>`, `HW ${ident.hw}`];
+    if (ident.sw) bits.push(`SW ${ident.sw}`);
+    if (ident.ci) bits.push(`CI ${ident.ci}`, `DI ${ident.di}`, `BI ${ident.bi}`);
+    if (ident.date) bits.push(ident.date);
+    facts.push(bits.join(' · '));
+  }
   if (mod.vin) facts.push(`${t('vital.vin')} <b>${mod.vin}</b>`);
   if (mod.mileage) facts.push(`<b>${fmt(mod.mileage)} km</b>`);
   if (mod.live) facts.push(t('vital.rpm') + ` <b>${t('vital.rpm.value', { n: fmt(mod.live.rpm) })}</b>`);
@@ -267,6 +274,12 @@ function showDetail(mod) {
   const again = $('d-again');
   again.hidden = !state.ftdi;
   again.onclick = async () => { $('detail').close(); await readOne(mod); };
+
+  // Only one module answers a live question, so the button lives on that module rather than in a
+  // general "live data" screen that would have one entry.
+  const live = $('d-live');
+  live.hidden = mod.addr !== 0x57 || !state.ftdi;
+  live.onclick = () => { $('detail').close(); steeringLive(); };
 
   const clear = $('d-clear');
   const hasAny = (mod.faults && mod.faults.count > 0) || (mod.shadow && mod.shadow.count > 0);
@@ -380,7 +393,9 @@ function buildLog() {
     if (!r.present) { lines.push(`${head}  -  ${r.reason || t('reason.silent')}`); continue; }
     lines.push(`${head}  ${t('log.present')}  (${r.kwp ? 'KWP2000' : 'DS2'})`);
     const ident = P.decodeIdent(r);
-    if (ident) lines.push(`      BMWTNR ${ident.part}   HW ${ident.hw}`);
+    if (ident) lines.push(`      BMWTNR ${ident.part}   HW ${ident.hw}`
+      + (ident.sw ? `   SW ${ident.sw}   CI ${ident.ci}   DI ${ident.di}`
+          + `   BI ${ident.bi}   ${ident.date}` : ''));
     if (r.vin) lines.push(`      VIN ${r.vin}`);
     if (r.mileage) lines.push(`      ${t('log.km')} ${r.mileage} km`);
     if (r.live) lines.push(`      ${t('vital.rpm')} ${r.live.rpm} rpm`);
@@ -487,6 +502,59 @@ async function run() {
     setStatus(t('status.aborted', { msg: e.message }));
   } finally {
     $('scan').disabled = false;
+    state.busy = false;
+    $('stop').hidden = true;
+    draw();
+  }
+}
+
+/**
+ * The steering readout: the one live value this car offers besides engine speed.
+ *
+ * It shows the raw byte and the signed reading side by side, and says plainly that the angle is
+ * relative. The byte wraps inside a movement well short of full lock and carries no turn counter,
+ * so "157 degrees" would be an invention. What it can honestly show is movement, direction and
+ * the point the wheel returns to — which is what the measurement needs.
+ */
+async function steeringLive() {
+  const panel = $('live');
+  const out = $('live-body');
+  panel.hidden = false;
+  out.textContent = '';
+  state.stop = false;
+  state.busy = true;
+  draw();
+  $('stop').hidden = false;
+
+  const value = document.createElement('div');
+  value.className = 'livevalue';
+  const note = document.createElement('p');
+  note.className = 'status';
+  const trace_ = document.createElement('p');
+  trace_.className = 'meta';
+  out.append(value, note, trace_);
+
+  let n = 0;
+  let min = null;
+  let max = null;
+  try {
+    await pollSteering(state.ftdi, {
+      shouldStop: () => state.stop,
+      onSample: (s, raw) => {
+        n += 1;
+        if (!s) { note.textContent = t('live.lost', { n }); return; }
+        min = min === null ? s.signed : Math.min(min, s.signed);
+        max = max === null ? s.signed : Math.max(max, s.signed);
+        value.textContent = `${s.signed > 0 ? '+' : ''}${s.signed}`;
+        value.style.color = s.trusted ? 'var(--blue-800)' : 'var(--amber)';
+        note.textContent = t(s.trusted ? 'live.steady' : 'live.moving')
+          + `   ·   ${t('live.range', { min, max })}   ·   ${t('live.samples', { n })}`;
+        trace_.textContent = raw ? P.hex(raw) : '';
+      },
+    });
+  } catch (e) {
+    note.textContent = t('status.aborted', { msg: e.message });
+  } finally {
     state.busy = false;
     $('stop').hidden = true;
     draw();
