@@ -189,6 +189,26 @@ does not need to run.
 confusing. The first steering-angle attempt produced data nobody could use because two variables
 moved at once and nothing was written down.
 
+### Two things about this car's lighting, which matter before anything is concluded
+
+The owner supplied both, and neither is visible from the bus.
+
+**Angel eyes were retrofitted at some point and later removed**, before the current owner bought
+the car. Nothing was added to or taken from the module list; the rings were reportedly just
+disconnected. So a lighting output may sit permanently open where a standard car's would not, and
+a bit that looks like "this circuit is on" could as easily be "this circuit is unusual on this
+particular car". That is the exact shape of error this project keeps making — a rule fitted to one
+sample — and here it would be fitted to a modified sample.
+
+**The third brake light was replaced with a used part.** It should behave normally, but if the
+brake reading looks odd that is the first thing to suspect rather than the decode.
+
+**One reassuring data point already exists.** The lighting module currently reports **no faults and
+no shadow faults**, and its identity matched the vendor's report byte for byte. Whatever was done
+and undone, the module is not complaining about it — so the removal was clean enough that the
+baseline is probably a fair baseline. "Probably" is doing real work in that sentence, which is why
+it is written down rather than assumed.
+
 ## 5. Confirm the things built but never run
 
 The unknown-module sweep, the shadow-memory unlock and the Valvetronic module all went in without
