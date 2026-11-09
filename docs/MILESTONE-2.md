@@ -242,9 +242,31 @@ transaction routines:
 immobiliser's `08`, and the paged `08` the steering sensor and others answer.
 
 **They must not be sent speculatively.** `0xC751` sits in the same number space, and an unknown
-command's service prefix is unknown by definition. The way to learn one is the way the rest were
-learnt: run the vendor software with the proxy attached, open the screen, and read the K-line
-echo. Two commands is a short capture.
+command's service prefix is unknown by definition.
+
+**And another capture on this car will not produce them.** The two sit as the arms of one
+`if/else` inside a loop that runs up to 256 times, and the screen reaches that loop only after
+reading `0x99C7` first:
+
+```
+MOV ECX,0x99C7 ; CALL            read once
+...
+TEST AL,AL ; JZ  +0x22
+MOV ECX,0x4F29 ; CALL            one arm
+JMP
+MOV ECX,0x9398 ; CALL            the other
+...
+CMP byte [EAX+0x300],0 ; JNZ out
+INC EBX ; CMP EBX,0x100 ; loop
+```
+
+On this car `0x99C7` answers `FF FF FF FF FF FD FF FF FF FF`, identically on all twenty-three
+reads — which is "nothing here". The loop almost certainly never started, which is why the owner
+clicked through every menu on 2026-11-06 and these two still never appeared. They want a module
+that offers a channel list, and this airbag module does not.
+
+So this is not a missed menu and not worth a trip. It is a capability the cable has and this car
+gives it no reason to use.
 
 ---
 
