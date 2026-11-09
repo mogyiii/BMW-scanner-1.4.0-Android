@@ -122,13 +122,13 @@ checked against this.
 |---|---|---|---|
 | `0x00` | ZKE, body | DS2 | none / shadow none |
 | `0x12` | DME, engine | KWP | `27C3/64` oil status sensor |
-| `0x1B` | VTC1, Valvetronic | KWP | **never asked** — the vendor's report says "no data" |
+| `0x1B` | VTC1, Valvetronic | KWP | none — `58 00`, read 2026-11-09. The vendor never asked it |
 | `0x29` | ABS / DSC | KWP | `5E1F/A0`, `5E16/20`, `5E24/A0`, `5E43/A0` |
 | `0x44` | EWS, immobiliser | DS2 | none — and it carries the **engine speed** |
 | `0x57` | LEW, steering angle | DS2 | `0B/AF`, `09/97`, `04/17` — **cleared, stayed cleared** |
 | `0x5B` | IHKA, climate | DS2 | `1C/44`, `1E/42` |
 | `0x80` | IKE, cluster | DS2 | `BE/48` — **cleared, stayed cleared** |
-| `0xA4` | SRS, airbag | DS2 | none / **shadow `06/20`** side airbag, front right |
+| `0xA4` | SRS, airbag | DS2 | none / **shadow `06/20`** side airbag, front right — read by this app after the unlock, 2026-11-09 |
 | `0xD0` | LCM, lighting | DS2 | none / shadow none |
 
 The owner recalled the clear taking three codes out of the ABS. It did not: the ABS refused the

@@ -168,6 +168,28 @@ for (const [name, kwp, raw, part, hw] of [
   check('ABS gets no extracted text', P.faultText(0x29, 0x1234), '');
 }
 
+/* -- a reply from the wrong module is not an answer -------------------------------------------- */
+// Taken from the sweep that reported two modules this car does not have. Both requests went to an
+// address that answers nothing; both "replies" are the engine controller answering an earlier
+// question late, and both carry 0x12 as their source.
+{
+  const stray = bytes(`B8 33 F1 02 1A 80 E2
+                       B8 F1 12 1F 5A 80 00 00 07 51 95 92 10 0C 00 0F 30 4C 20 02 04 09 08 00
+                       11 16 06 FF FF 02 03 0D 00 00 00 8A`);
+  check('asked 0x33, answered by 0x12 -> no answer', P.splitKwpReply(stray, 0x33).answer, null);
+  check('and the stray source is reported', P.splitKwpReply(stray, 0x33).strayFrom, 0x12);
+  check('the same bytes are a real answer when 0x12 was asked',
+    P.splitKwpReply(stray, 0x12).answer !== null, true);
+  check('and with no address given, the old behaviour is unchanged',
+    P.splitKwpReply(stray).answer !== null, true);
+}
+{
+  // The DS2 side gets the same guard: a frame opens with the address it came from.
+  const raw = bytes('57 04 00 53   80 05 A0 01 24');     // asked 0x57, the cluster replied
+  check('DS2: a frame from the wrong address is not an answer', P.splitReply(raw, 0x57).answer, null);
+  check('DS2: the right address still answers', P.splitReply(raw, 0x80).answer !== null, true);
+}
+
 /* -- a mangled frame must be refused, not half-read ------------------------------------------ */
 {
   const raw = bytes('B8 29 F1 04 18 02 FF FF 00');   // checksum deliberately wrong

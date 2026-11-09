@@ -521,7 +521,7 @@ async function hunt() {
     $('report').onclick = () => window.open(issueUrl(found), '_blank', 'noopener');
     $('report-copy').onclick = async () => {
       try {
-        await navigator.clipboard.writeText(issueBody(found));
+        await navigator.clipboard.writeText(issueBody(found, true));
         $('reportmsg').textContent = t('status.copied');
       } catch (e) { $('reportmsg').textContent = t('status.noclipboard'); }
     };
@@ -534,7 +534,14 @@ async function hunt() {
   }
 }
 
-function issueBody(found) {
+/**
+ * The report text. `withTrace` decides whether the whole raw log comes along.
+ *
+ * It does for the clipboard and it does not for the URL, because a URL cannot carry it. The table
+ * is the part that matters anyway: a module's address, protocol and identity bytes are the whole
+ * of what is needed to add it.
+ */
+function issueBody(found, withTrace) {
   const lines = ['This app found a module it does not know about.', ''];
   lines.push('| address | protocol | BMWTNR | HW | identity |');
   lines.push('|---|---|---|---|---|');
@@ -544,18 +551,31 @@ function issueBody(found) {
       + `| ${f.id ? f.id.hw : '—'} | \`${P.hex(f.ident)}\` |`);
   }
   lines.push('', '**Car:** (model, year, engine — if you would share it)', '');
-  lines.push('<details><summary>Raw traffic</summary>', '', '```', buildLog(), '```', '</details>');
+  if (withTrace) {
+    lines.push('<details><summary>Raw traffic</summary>', '', '```', buildLog(), '```', '</details>');
+  } else {
+    lines.push('<!-- The raw traffic did not fit in the link. Press the copy button in the app',
+               '     and paste it here - it carries every byte this reading was built from. -->');
+  }
   return lines.join(String.fromCharCode(10));
 }
 
+/**
+ * The prefilled issue link, without the trace and short enough to survive.
+ *
+ * The first version put the whole log in the URL under a 5000-character cap. Percent-encoding
+ * roughly triples a hex dump, so the link blew past what a browser will open and the button did
+ * nothing at all. The table alone is a few hundred characters; the copy button beside it carries
+ * the rest.
+ */
 function issueUrl(found) {
   const title = `Unknown module: ${found.map(
     (f) => '0x' + f.addr.toString(16).toUpperCase().padStart(2, '0')).join(', ')}`;
-  // A long trace can overflow what a browser will put in a URL, so the body is capped and the
-  // copy button stays as the route for the whole thing.
-  const body = issueBody(found).slice(0, 5000);
-  return `https://github.com/${REPO}/issues/new`
-    + `?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+  const url = `https://github.com/${REPO}/issues/new`
+    + `?title=${encodeURIComponent(title)}&body=${encodeURIComponent(issueBody(found, false))}`;
+  // Many modules at once could still overflow; then the title alone goes, and the body is pasted.
+  return url.length < 6000 ? url
+    : `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(title)}`;
 }
 
 /* ------------------------------------------------------------------ start */

@@ -112,7 +112,7 @@ export function scramble(data, startKey) {
  * Both are DS2 frames end to end. The first is ours coming home, because a single-wire bus lets a
  * transmitter hear itself - an echo this project once recorded as a loopback defect.
  */
-export function splitReply(raw) {
+export function splitReply(raw, addr) {
   if (raw.length < 4) return null;
   const echoLen = raw[1];
   if (echoLen < 3 || echoLen > raw.length) return null;
@@ -122,6 +122,10 @@ export function splitReply(raw) {
   if (rest.length < 3) return { echo, answer: null };
   const n = rest[1];
   if (n < 3 || n > rest.length) return { echo, answer: null };
+  // A DS2 frame opens with the address it came from. Checking it matters because a slow module's
+  // reply can land inside the next command's read window - see `splitKwpReply` for the day that
+  // cost us two modules that do not exist.
+  if (addr !== undefined && rest[0] !== addr) return { echo, answer: null, strayFrom: rest[0] };
   return { echo, answer: rest.slice(0, n) };
 }
 
@@ -137,7 +141,7 @@ export const isPositive = (frame) => frame && frame.length > 2 && frame[2] === 0
  * were located by searching for a `0x58` byte and hoping, which worked on the engine controller by
  * luck and would have mis-split anything carrying a `0x58` in its data.
  */
-export function splitKwpReply(raw) {
+export function splitKwpReply(raw, addr) {
   const frames = [];
   let i = 0;
   while (i + 5 <= raw.length) {
@@ -153,8 +157,17 @@ export function splitKwpReply(raw) {
     i += total;
   }
   // Ours comes home first; the module's answer is addressed to the tester, 0xF1.
-  const answer = frames.find((f) => f.target === 0xf1);
-  return { echo: frames[0] || null, answer: answer || null, frames };
+  //
+  // **And it has to have come from the module we asked.** Without that check the sweep reported
+  // two modules this car does not have, at 0x33 and 0x6A, both carrying the engine controller's
+  // identity byte for byte: the engine controller had answered an earlier request late, and its
+  // reply landed inside the read window for an address that answers nothing at all. A reply is
+  // only an answer if the right module sent it.
+  const reply = frames.find((f) => f.target === 0xf1);
+  if (reply && addr !== undefined && reply.source !== addr) {
+    return { echo: frames[0] || null, answer: null, strayFrom: reply.source, frames };
+  }
+  return { echo: frames[0] || null, answer: reply || null, frames };
 }
 
 /**

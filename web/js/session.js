@@ -64,7 +64,7 @@ async function connect(ftdi, addr, onTrace) {
  * memory and `0x9E56` the shadow memory: the same structure, the same paging, a different store.
  */
 async function readFaultStore(session, mod, command, label) {
-  const counts = P.splitReply(await session.send(P.buildFrame(command, mod.addr, [0]), label));
+  const counts = P.splitReply(await session.send(P.buildFrame(command, mod.addr, [0]), label), mod.addr);
   if (!counts || !counts.answer) return null;
   if (!P.isPositive(counts.answer)) {
     // `A2` is a refusal with a reason rather than a module that has no such store. The airbag
@@ -73,7 +73,7 @@ async function readFaultStore(session, mod, command, label) {
     return counts.answer[2] === 0xa2 ? { locked: true } : null;
   }
   if (counts.answer[3] === 0) return { count: 0, entries: [] };
-  const page = P.splitReply(await session.send(P.buildFrame(command, mod.addr, [1]), label));
+  const page = P.splitReply(await session.send(P.buildFrame(command, mod.addr, [1]), label), mod.addr);
   if (page && P.isPositive(page.answer)) return P.decodeFaults(page.answer);
   return { count: counts.answer[3], entries: [] };
 }
@@ -90,12 +90,12 @@ async function readDs2Module(ftdi, mod, onTrace) {
   const session = await connect(ftdi, mod.addr, onTrace);
   if (!session) return { ...mod, present: false, reason: 'nincs kapcsolat' };
 
-  const ident = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, mod.addr), '0x46F1'));
+  const ident = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, mod.addr), '0x46F1'), mod.addr);
   if (!ident || !P.isPositive(ident.answer)) {
     return { ...mod, present: false, reason: 'nem válaszolt' };
   }
 
-  const adfgReply = P.splitReply(await session.send(P.buildFrame(P.CMD.ADFG, mod.addr), '0x71A0'));
+  const adfgReply = P.splitReply(await session.send(P.buildFrame(P.CMD.ADFG, mod.addr), '0x71A0'), mod.addr);
   const adfg = adfgReply && P.isPositive(adfgReply.answer)
     ? adfgReply.answer.slice(3, -1) : null;
 
@@ -113,13 +113,13 @@ async function readDs2Module(ftdi, mod, onTrace) {
   let vin = '';
   let live = null;
   if (mod.addr === 0x80) {
-    const km = P.splitReply(await session.send(P.buildFrame(P.CMD.MILEAGE, mod.addr), '0x8DE3'));
+    const km = P.splitReply(await session.send(P.buildFrame(P.CMD.MILEAGE, mod.addr), '0x8DE3'), mod.addr);
     if (km) mileage = P.decodeMileage(km.answer);
-    const v = P.splitReply(await session.send(P.buildFrame(P.CMD.IKE_VIN, mod.addr), '0xC6E1'));
+    const v = P.splitReply(await session.send(P.buildFrame(P.CMD.IKE_VIN, mod.addr), '0xC6E1'), mod.addr);
     if (v) vin = P.decodeIkeVin(v.answer);
   }
   if (mod.addr === 0x44) {
-    const s = P.splitReply(await session.send(P.buildFrame(P.CMD.EWS_LIVE, mod.addr), '0x5132'));
+    const s = P.splitReply(await session.send(P.buildFrame(P.CMD.EWS_LIVE, mod.addr), '0x5132'), mod.addr);
     if (s) live = P.decodeEwsLive(s.answer);
   }
 
@@ -141,10 +141,10 @@ async function readKwpModule(ftdi, mod, onTrace) {
 
   await session.send(P.buildFrame(P.CMD.QUERY, mod.addr), '0x46F1');
   const identReply = await session.send(P.buildFrame(P.CMD.KWP_IDENT, mod.addr), '0x06F3');
-  const identFrames = P.splitKwpReply(identReply);
+  const identFrames = P.splitKwpReply(identReply, mod.addr);
   if (!identFrames.answer) return { ...mod, present: false, reason: 'nem válaszolt' };
 
-  const vinReply = P.splitKwpReply(await session.send(P.buildFrame(P.CMD.KWP_VIN, mod.addr), '0x0DE7'));
+  const vinReply = P.splitKwpReply(await session.send(P.buildFrame(P.CMD.KWP_VIN, mod.addr), '0x0DE7'), mod.addr);
   let vin = '';
   if (vinReply.answer && vinReply.answer.data[0] === 0x5a) {
     for (const b of vinReply.answer.data.slice(2)) {
@@ -153,7 +153,7 @@ async function readKwpModule(ftdi, mod, onTrace) {
   }
 
   // As on the DS2 side: no answer is reported as no answer, never as zero faults.
-  const dtc = P.splitKwpReply(await session.send(P.buildFrame(P.CMD.KWP_DTC, mod.addr), '0xC358'));
+  const dtc = P.splitKwpReply(await session.send(P.buildFrame(P.CMD.KWP_DTC, mod.addr), '0xC358'), mod.addr);
   const faults = dtc.answer ? P.decodeKwpFaults(dtc.answer.data) : null;
 
   return { ...mod, present: true, ident: identFrames.answer.data, vin, faults, shadow: null };
@@ -173,8 +173,7 @@ export async function clearFaults(ftdi, mod, onTrace) {
   if (!session) return { ok: false, reason: 'nincs kapcsolat' };
 
   if (mod.kwp) {
-    const reply = P.splitKwpReply(
-      await session.send(P.buildFrame(P.CMD.KWP_CLEAR, mod.addr), '0x41AC'));
+    const reply = P.splitKwpReply(await session.send(P.buildFrame(P.CMD.KWP_CLEAR, mod.addr), '0x41AC'), mod.addr);
     if (!reply.answer) return { ok: false, reason: 'nem válaszolt' };
     const d = reply.answer.data;
     if (d[0] === 0x54) return { ok: true };
@@ -186,7 +185,7 @@ export async function clearFaults(ftdi, mod, onTrace) {
     return { ok: false, reason: 'értelmezhetetlen válasz' };
   }
 
-  const reply = P.splitReply(await session.send(P.buildFrame(P.CMD.CLEAR, mod.addr), '0x1BCF'));
+  const reply = P.splitReply(await session.send(P.buildFrame(P.CMD.CLEAR, mod.addr), '0x1BCF'), mod.addr);
   if (!reply || !reply.answer) return { ok: false, reason: 'nem válaszolt' };
   if (P.isPositive(reply.answer)) return { ok: true };
   return { ok: false, reason: `a vezérlő elutasította (0x${reply.answer[2].toString(16).toUpperCase()})` };
@@ -204,7 +203,7 @@ export async function unlockShadow(ftdi, mod, onTrace) {
   const session = await connect(ftdi, mod.addr, onTrace);
   if (!session) return { ok: false, reason: 'nincs kapcsolat' };
 
-  const ident = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, mod.addr), '0x46F1'));
+  const ident = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, mod.addr), '0x46F1'), mod.addr);
   if (!ident || !P.isPositive(ident.answer)) return { ok: false, reason: 'nem válaszolt' };
 
   const arg = P.shadowUnlockArgument(ident.answer);
@@ -212,7 +211,7 @@ export async function unlockShadow(ftdi, mod, onTrace) {
 
   await session.send(P.buildFrame(P.SHADOW_UNLOCK.PRIME, mod.addr, [0xff, 0xff]), '0x44DB');
   const grant = P.splitReply(
-    await session.send(P.buildFrame(P.SHADOW_UNLOCK.GRANT, mod.addr, arg), '0xC751'));
+    await session.send(P.buildFrame(P.SHADOW_UNLOCK.GRANT, mod.addr, arg), '0xC751'), mod.addr);
   if (!grant || !P.isPositive(grant.answer)) {
     return { ok: false, reason: 'a vezérlő nem fogadta el a feloldást' };
   }
@@ -251,14 +250,14 @@ export async function findUnknown(ftdi, { onProgress, onTrace, shouldStop } = {}
       const session = await connect(ftdi, addr, onTrace);
       if (!session) continue;
 
-      const ds2 = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, addr), `0x46F1 @${hex}`));
+      const ds2 = P.splitReply(await session.send(P.buildFrame(P.CMD.QUERY, addr), `0x46F1 @${hex}`), addr);
       if (ds2 && P.isPositive(ds2.answer)) {
         found.push({ addr, kwp: false, ident: ds2.answer, id: P.decodeIdent({ ident: ds2.answer }) });
         continue;
       }
 
       const kwp = P.splitKwpReply(
-        await session.send(P.buildFrame(P.CMD.KWP_IDENT, addr), `0x06F3 @${hex}`));
+        await session.send(P.buildFrame(P.CMD.KWP_IDENT, addr), `0x06F3 @${hex}`), addr);
       if (kwp.answer && kwp.answer.data.length > 1) {
         found.push({
           addr, kwp: true, ident: kwp.answer.data,

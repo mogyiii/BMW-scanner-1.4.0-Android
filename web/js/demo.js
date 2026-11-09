@@ -27,10 +27,10 @@ const RECORDED = {
   },
   0x1b: {
     ident: '5A 80 00 00 07 51 62 07 10 01 00 14 39 31 20 02 03 05 10 00 06 8F 06',
-    // The vendor never asked this module for fault codes -- its report's error column says
-    // "no data" -- so the replay has no answer to show and says so. What `18 02 FF FF` gets from a
-    // Valvetronic controller is genuinely unknown until somebody sends it.
-    kwpDtc: null, vin: '0000000',
+    // The vendor never asked this module for fault codes -- its report's error column reads
+    // "no data". This app asked, on 2026-11-09, and got `58 00`: zero faults. Nobody had that
+    // answer before.
+    kwpDtc: '58 00', vin: '0000000',
   },
   0x29: {
     ident: '5A 80 00 00 06 75 90 45 04 04 00 06 00 06 20 02 04 08 24',

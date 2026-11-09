@@ -1,5 +1,37 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # 🐛 The sweep reported two modules that do not exist — 2026-11-09
+>
+> `log/2026-11-09/`. The ten-minute verification trip did its job, and the thing it verified was a
+> bug.
+>
+> Three predictions came true. The **Valvetronic** at `0x1B` answered a fault-memory request for
+> the first time — `58 00`, zero faults, an answer nobody had because the vendor's software never
+> asks. The **shadow unlock** worked exactly as described and produced `06/20`, the side-airbag
+> fault the vendor sees and this app could not. **Engine speed** read 1100 rpm off the immobiliser.
+>
+> And the sweep reported two unknown modules, at `0x33` and `0x6A`, with identical identity bytes:
+>
+> ```
+> 0x06F3 @33   B8 33 F1 02 1A 80 E2   B8 F1 12 1F 5A 80 00 00 07 51 95 92 …
+>                       ^^ asked 0x33          ^^ answered by 0x12
+> ```
+>
+> **Both are the engine controller answering late.** Its reply to an earlier question landed inside
+> the read window for an address that answers nothing, and `splitKwpReply` returned the first frame
+> addressed to the tester without checking who sent it. The giveaway was in the report the app
+> itself generated: two "new" modules sharing the DME's part number and hardware revision to the
+> byte.
+>
+> Both splitters now take the address they asked and refuse an answer from anyone else, so the
+> guard covers every call site rather than the sweep alone. `0x33` is the OBD-II functional address
+> added as a curiosity a few days ago, which makes this the second thing that addition has paid
+> for — it also led to the Valvetronic.
+>
+> **A second bug in the same feature:** the prefilled GitHub issue did nothing, because the URL
+> carried the whole raw log. Percent-encoding roughly triples a hex dump, and the link blew past
+> what a browser will open. The URL now carries the table only; the copy button carries the rest.
+
 > # 📖 One wrong initial value was hiding a third of the tables — 2026-11-06
 >
 > The fault-table extractor started its index walk at `prev = 0` and required each code to be
