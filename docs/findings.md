@@ -1,5 +1,46 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ✅ The seller's blurb explains the live data, and closes an old mistake — 2026-11-10
+>
+> The AliExpress listing carries PA-Soft's own marketing text for the **limited** edition — the
+> giveaway is *"'Unlocked' functions to show possibilities of full version"*, which is demo-teaser
+> language. It names exactly which units each teaser feature covers, and that turns out to be a
+> specification we never had:
+>
+> > Live data in **DME MS43.0, EWS3, SRS MRS2 and MRS4**
+>
+> **The vendor software's own report says what this car actually has**, in the last column of its
+> identification lines:
+>
+> | unit | this car | in the live-data set? |
+> |---|---|---|
+> | DME | `ME9.2 NG` | **no** — the feature targets MS43.0 |
+> | EWS | `EWS3` | yes |
+> | SRS | `MRS4` | yes |
+>
+> **This closes the engine-speed mistake properly.** Findings already records that I searched two
+> captures and thousands of frames for an engine poll on `0x12`, found none, wrote in two documents
+> that engine live values were unavailable, and was wrong because the owner had been telling me it
+> was in the EWS menu. What was never explained was *why* `0x12` was empty. Now it is: the software's
+> DME live-data screen is built for an MS43.0 and this car has an ME9.2. There was nothing to find.
+> The EWS is not a quirky place to read engine speed — on this car it is the only place the vendor
+> offers any live data from, because EWS3 is in the set and the DME is not.
+>
+> **And it strengthens the airbag verdict rather than overturning it.** `0x99C7` answers
+> `FF FF FF FF FF FD FF FF FF FF` identically on all 23 reads, and the two never-captured live-data
+> commands sit behind it. The worry was that we had simply failed to reach the right screen. We had
+> not: this car's SRS is an **MRS4**, which *is* in the supported set. The feature applies and the
+> module still has nothing in it.
+>
+> **The tiering is in the Windows software, not in the cable.** The teaser list covers DTC
+> descriptions and clearing in three units only — yet the vendor's report on this car prints
+> `27C3/64 - Failure oil status sensor` for an ME9.2 DME, and descriptions for the ABS, steering
+> sensor, climate and cluster, none of which are in that list. So the copy is genuinely unlocked
+> past the demo tier. More to the point for us: **this app clears faults on the steering sensor**,
+> which the teaser forbids outright, and `protocol.test.mjs` asserts it. The cable has 318 commands
+> and no tiers. Whatever PA-Soft sells as a licence level lives in its Windows program, and we never
+> run that program.
+
 > # ⚠ The cable is most likely a clone, and it changes one earlier conclusion — 2026-11-10
 >
 > The owner found the AliExpress listing it came from: **1 400 HUF**, about €3.50, described as a

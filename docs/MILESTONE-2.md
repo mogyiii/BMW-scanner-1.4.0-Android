@@ -276,7 +276,8 @@ Recorded so nobody spends an afternoon rediscovering them.
 
 | | |
 |---|---|
-| **Airbag live values** | `0x99C7` → DS2 `0B` returns `FF FF FF FF FF FD FF FF FF FF`, identical on all 23 reads. There is nothing in there. |
+| **Airbag live values** | `0x99C7` → DS2 `0B` returns `FF FF FF FF FF FD FF FF FF FF`, identical on all 23 reads. There is nothing in there — and not because the feature is absent: the vendor advertises airbag live data for MRS2 and MRS4, and this car's SRS is an **MRS4**. It applies, and the module is still empty. |
+| **Engine live values from the DME** | The vendor's live-data screen for the engine is built for an **MS43.0**. This car's report says `ME9.2 NG`. Searching `0x12` for a poll loop was searching for something that was never going to be there; the engine speed comes from the EWS instead. |
 | **Oil service reset** | DS2 `0C 12 01` — service `0C` is an actuator call, so a write. Out of scope by the owner's standing decision, and refused by the cluster anyway: it answers `A2`. The vendor software gets the same refusal. |
 | **Module coding** | Raised, looked at, dropped. The risk is not symmetric with reading and the vendor software has backup and restore buttons this app does not. |
 | **Odometer writing** | Excluded on day one. There is no code here that could. |
