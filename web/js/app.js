@@ -12,6 +12,7 @@ import { scan, idleLevel, clearFaults, unlockShadow, findUnknown, pollSteering }
   from './session.js';
 import { t, tn, lang, setLang, applyStatic, LANGUAGES } from './i18n.js';
 import * as R from './report.js';
+import { VERSION } from './version.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { ftdi: null, stop: false, busy: false, results: new Map() };
@@ -389,6 +390,7 @@ function setStatus(text) { $('status').textContent = text; }
 function buildLog() {
   const lines = [];
   lines.push(`${t('log.title')} - ${new Date().toISOString()}`);
+  lines.push(`app version: ${VERSION}`);
   lines.push(`user agent: ${navigator.userAgent}`);
   lines.push('');
   for (const mod of P.MODULES) {
@@ -575,7 +577,7 @@ function buildReport() {
 <p class="sub">${esc(t('rep.sub'))}</p>
 <table class="car">${rows.join('')}</table>
 ${parts.join('\n')}
-<footer>${t('rep.footer')}</footer>
+<footer>${t('rep.footer')} · v${VERSION}</footer>
 </body></html>`;
 }
 
@@ -908,6 +910,8 @@ $('connect').addEventListener('click', connect);
 $('scan').addEventListener('click', run);
 $('stop').addEventListener('click', () => { state.stop = true; setStatus(t('status.stopping')); });
 $('d-close').addEventListener('click', () => $('detail').close());
+$('version').textContent = `v${VERSION}`;
+$('version').href = `https://github.com/${REPO}/commits/main`;
 $('link-src').href = `https://github.com/${REPO}`;
 $('link-lic').href = `https://github.com/${REPO}/blob/main/LICENSE`;
 $('link-iss').href = `https://github.com/${REPO}/issues`;

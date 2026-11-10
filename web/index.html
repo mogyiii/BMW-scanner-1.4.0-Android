@@ -234,6 +234,9 @@
   .foot-links { margin: 0 0 8px; font-size: .88rem; color: var(--faint); }
   .foot-links a { color: var(--blue-700); text-decoration: none; font-weight: 500; }
   .foot-links a:hover { text-decoration: underline; }
+  /* The version is what tells you whether the cached copy at the car is the current one, so it is
+     monospaced and dimmer - a label to read off, not a link to follow. */
+  .foot-links a.ver { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--faint); }
   .foot-note { margin: 0; font-size: .8rem; color: var(--faint); }
   .dlg-head {
     padding: 16px 18px; display: flex; gap: 13px; align-items: center;
@@ -454,7 +457,8 @@
   <p class="foot-links">
     <a id="link-src" href="#" target="_blank" rel="noopener" data-i18n="foot.source"></a> ·
     <a id="link-lic" href="#" target="_blank" rel="noopener" data-i18n="foot.licence"></a> ·
-    <a id="link-iss" href="#" target="_blank" rel="noopener" data-i18n="foot.issue"></a>
+    <a id="link-iss" href="#" target="_blank" rel="noopener" data-i18n="foot.issue"></a> ·
+    <a id="version" href="#" target="_blank" rel="noopener" class="ver"></a>
   </p>
   <p class="foot-note" data-i18n="foot.vendor"></p>
 </footer>

@@ -12,6 +12,13 @@ clearing fault memories. English, German and Hungarian.
 `web/js/protocol.test.mjs` replays bytes captured off the wire through the decoders and asserts
 the text the vendor's own software printed for those same bytes.
 
+**Current version: 0.80.** The app prints the version it is *actually running* in its footer, and
+that is the one worth reading at the car: the page is cached by a service worker and launched from
+a home-screen icon, so what starts in a car park can be older than what is on this page. If the two
+disagree, the copy on the phone is stale — open it once with a signal and it updates itself. The
+version also goes into the shared log and the downloaded report, so a bug report says which build
+produced it without anyone having to ask.
+
 ---
 
 ## What it does
@@ -103,6 +110,7 @@ is its home; a service worker caches it on first load, so it starts with no sign
 ```sh
 cd web && python -m http.server 8000      # then http://localhost:8000
 node js/protocol.test.mjs                 # the decoders against the vendor's answers
+node js/report.test.mjs                   # the issue report, the link, VIN redaction, the version
 ```
 
 ## Tested on

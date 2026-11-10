@@ -5,13 +5,15 @@
  * which would mean needing a signal in a car park. Caching the handful of files on first load fixes
  * that: afterwards it starts with no network at all.
  */
-const CACHE = 'bmw-ds2-v19';
+// Kept in step with `js/version.js` by hand - a classic service worker cannot import a module -
+// and `js/report.test.mjs` fails if the two ever drift.
+const CACHE = 'bmw-ds2-0.80';
 // `demo.js` is deliberately not precached: it is only ever loaded by `?demo=1`, and the car park
 // case this cache exists for does not involve a replay.
 const FILES = [
   './', './index.html', './manifest.webmanifest',
   './js/app.js', './js/ftdi.js', './js/protocol.js', './js/session.js', './js/i18n.js',
-  './js/report.js',
+  './js/report.js', './js/version.js',
 ];
 
 self.addEventListener('install', (e) => {

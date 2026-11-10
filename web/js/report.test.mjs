@@ -10,6 +10,8 @@
  * Run:  node js/report.test.mjs
  */
 import * as R from './report.js';
+import { VERSION } from './version.js';
+import { readFileSync } from 'node:fs';
 
 let failures = 0;
 
@@ -115,6 +117,22 @@ const bytes = (s) => Uint8Array.from(s.trim().split(/\s+/), (b) => parseInt(b, 1
     R.redactVins('nothing here', R.vinsIn(results)), 'nothing here');
   check('redact: with no chassis numbers found, nothing is replaced',
     R.redactVins(log, R.vinsIn([{ vin: '0000000' }])), log);
+}
+
+/* -- the version -------------------------------------------------------------------------------- */
+/*
+ * `sw.js` cannot import `version.js`: a classic service worker has no ES modules. So the number
+ * lives in two files, and the failure mode of letting them drift is silent and nasty - the cache
+ * keeps its old name, never invalidates, and every phone that has already visited keeps running
+ * the old bundle. Nobody sees an error; the fix simply never arrives.
+ */
+{
+  const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+  const cached = (sw.match(/const CACHE = 'bmw-ds2-([^']+)'/) || [])[1];
+  check('version: the service worker cache name matches version.js', cached, VERSION);
+  check('version: it looks like a version number', /^\d+\.\d+$/.test(VERSION), true);
+  check('version: the worker precaches version.js, or the footer lies when offline',
+    sw.includes("'./js/version.js'"), true);
 }
 
 console.log(failures ? `\n${failures} failed` : '\nall passed');
