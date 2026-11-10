@@ -118,6 +118,9 @@
   button:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 
   .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  /* The export bar follows the grid directly and `.bar` only has a bottom margin, so without this
+     the buttons sit against the last row of tiles. 20px clears the grid's own 12px gap. */
+  #exports { margin-top: 20px; }
   .status { color: var(--dim); font-size: .84rem; }
 
   /* ---------------------------------------------------------------- tiles */

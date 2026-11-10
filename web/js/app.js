@@ -11,6 +11,7 @@ import * as P from './protocol.js';
 import { scan, idleLevel, clearFaults, unlockShadow, findUnknown, pollSteering }
   from './session.js';
 import { t, tn, lang, setLang, applyStatic, LANGUAGES } from './i18n.js';
+import * as R from './report.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { ftdi: null, stop: false, busy: false, results: new Map() };
@@ -778,7 +779,9 @@ async function hunt() {
     $('report-copy').onclick = async () => {
       const choice = await askConsent(found, true);
       if (!choice) return;
-      const body = choice.redactVin ? redactVins(issueBody(found, true)) : issueBody(found, true);
+      const body = choice.redactVin
+        ? R.redactVins(issueBody(found, true), vinsSeen(), t('consent.removed'))
+        : issueBody(found, true);
       try {
         await navigator.clipboard.writeText(body);
         $('reportmsg').textContent = t(choice.redactVin ? 'status.copied.redacted' : 'status.copied');
@@ -793,44 +796,8 @@ async function hunt() {
   }
 }
 
-/**
- * Every chassis number this reading produced, longest first.
- *
- * Three modules answer with one and they do not agree in length — the cluster gives the full
- * seventeen characters, the engine controller and ABS a seven-character short form. All of them
- * have to go when redacting, and the long one has to go first or its tail survives as a fragment.
- */
-function vinsSeen() {
-  const set = new Set();
-  for (const r of state.results.values()) {
-    // A module with no chassis number stored answers with filler rather than refusing - the
-    // Valvetronic on the test car returns `0000000`. Redacting that identifies nobody, and its
-    // hex form is a run of `30` bytes common enough to hit unrelated frames in the trace. A
-    // chassis number has letters in it; filler does not.
-    if (r.vin && /[A-Z]/.test(r.vin)) set.add(r.vin);
-  }
-  return [...set].sort((a, b) => b.length - a.length);
-}
-
-/**
- * Takes the chassis number out of a report, in both of the forms it appears in.
- *
- * The decoded line is the obvious one. The raw trace is not: the cluster's reply carries the VIN as
- * ASCII bytes, so `P.hex` prints it as `41 59 33 31 …` and a redaction that only scrubbed the
- * readable line would leave the number sitting in plain sight two screens further down, while
- * telling the user it had been removed. That is worse than not offering the option.
- *
- * The hex is replaced byte-for-byte with `..` so the trace keeps its length and column alignment —
- * a shortened frame would be a decoding puzzle for whoever reads the issue.
- */
-function redactVins(text) {
-  for (const vin of vinsSeen()) {
-    const hex = [...vin].map((c) => c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
-    text = text.split(vin).join(t('consent.removed'));
-    text = text.split(hex.join(' ')).join(hex.map(() => '..').join(' '));
-  }
-  return text;
-}
+/** The chassis numbers in this reading; the rule and the reasoning live in `report.js`. */
+const vinsSeen = () => R.vinsIn([...state.results.values()]);
 
 /**
  * Asks before anything about the car leaves it, and says exactly what "anything" is.
@@ -882,49 +849,9 @@ function askConsent(found, withTrace) {
   });
 }
 
-/**
- * The report text. `withTrace` decides whether the whole raw log comes along.
- *
- * It does for the clipboard and it does not for the URL, because a URL cannot carry it. The table
- * is the part that matters anyway: a module's address, protocol and identity bytes are the whole
- * of what is needed to add it.
- */
-function issueBody(found, withTrace) {
-  const lines = ['This app found a module it does not know about.', ''];
-  lines.push('| address | protocol | BMWTNR | HW | identity |');
-  lines.push('|---|---|---|---|---|');
-  for (const f of found) {
-    const a = `0x${f.addr.toString(16).toUpperCase().padStart(2, '0')}`;
-    lines.push(`| \`${a}\` | ${f.kwp ? 'KWP2000' : 'DS2'} | ${f.id ? f.id.part : '—'} `
-      + `| ${f.id ? f.id.hw : '—'} | \`${P.hex(f.ident)}\` |`);
-  }
-  lines.push('', '**Car:** (model, year, engine — if you would share it)', '');
-  if (withTrace) {
-    lines.push('<details><summary>Raw traffic</summary>', '', '```', buildLog(), '```', '</details>');
-  } else {
-    lines.push('<!-- The raw traffic did not fit in the link. Press the copy button in the app',
-               '     and paste it here - it carries every byte this reading was built from. -->');
-  }
-  return lines.join(String.fromCharCode(10));
-}
-
-/**
- * The prefilled issue link, without the trace and short enough to survive.
- *
- * The first version put the whole log in the URL under a 5000-character cap. Percent-encoding
- * roughly triples a hex dump, so the link blew past what a browser will open and the button did
- * nothing at all. The table alone is a few hundred characters; the copy button beside it carries
- * the rest.
- */
-function issueUrl(found) {
-  const title = `Unknown module: ${found.map(
-    (f) => '0x' + f.addr.toString(16).toUpperCase().padStart(2, '0')).join(', ')}`;
-  const url = `https://github.com/${REPO}/issues/new`
-    + `?title=${encodeURIComponent(title)}&body=${encodeURIComponent(issueBody(found, false))}`;
-  // Many modules at once could still overflow; then the title alone goes, and the body is pasted.
-  return url.length < 6000 ? url
-    : `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(title)}`;
-}
+/** The issue text; `withTrace` decides whether the whole raw log comes along. */
+const issueBody = (found, withTrace) => R.issueBody(found, withTrace ? buildLog() : null);
+const issueUrl = (found) => R.issueUrl(REPO, found);
 
 /* ------------------------------------------------------------------ start */
 

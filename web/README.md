@@ -134,6 +134,7 @@ is a replay — a diagnostic screen that cannot be told apart from a live one is
 | `js/protocol.js` | framing, scrambling, the command set, fault and identity decoding |
 | `js/session.js` | the measured order of the conversation, per module |
 | `js/app.js` | tiles and dialogs; knows nothing about USB |
+| `js/report.js` | the unknown-module issue text, the link, and redacting the chassis number |
 | `js/demo.js` | recorded replies for `?demo=1` |
 | `js/i18n.js` | every string, in English, German and Hungarian |
 | `js/protocol.test.mjs` | the decoders against the vendor software's own answers |
@@ -145,8 +146,20 @@ most of a fortnight.
 ## Tests
 
 ```sh
-node js/protocol.test.mjs
+node js/protocol.test.mjs      # decoders, against bytes the car sent
+node js/report.test.mjs        # the issue report, the link, and VIN redaction
 ```
+
+`report.test.mjs` covers the part that had never been run for real. The sweep needs an unfamiliar
+BMW carrying a module we have no tile for, so the issue button's first test was otherwise going to
+be somebody's first attempt in a car park — and its one previous bug was exactly of that kind: the
+whole log went into the query string, percent-encoding tripled it, the URL passed what a browser
+will open, and the button did nothing at all. No error, no tab. The tests now assert the link
+round-trips through a URL parser, stays under that limit, and drops the body rather than dying when
+200 modules would overflow it.
+
+The link was also opened against the real repository once, by hand, to confirm GitHub renders the
+prefilled form — title and table both arrive.
 
 Every case is a reply lifted verbatim out of a capture, paired with what the vendor's software
 printed for those same bytes on the same car. The pairing is the point: a decoder agreeing with its
