@@ -209,6 +209,21 @@ the same as a car that has none.
 Two things are excluded and `LICENSE` says so explicitly: the vendor's fault descriptions, above,
 and anything else of the vendor's — of which this repository contains none.
 
+## Credit where it is due
+
+**PA-Soft worked this protocol out first.** Everything in this repository was recovered by watching
+their software do something it already knew how to do, on a cable they designed. The command set,
+the framing, the fault tables — none of it was invented here, and a project that only exists
+because somebody else solved the hard part should say so plainly.
+
+**This is not a replacement for their product, and it is not trying to be.** It does a fraction of
+what the full version does — no coding, no module backup or restore, no EEPROM, no key programming,
+no service reset — and the table under *What it does not do* spells out the gap. Anyone who needs
+those functions needs their software, not this.
+
+What this adds is narrow: the same readings from a phone, with no Windows, no driver and no install.
+That is the whole of the contribution.
+
 ## Why not the original software
 
 The cable is fine; the software is not usable here.
