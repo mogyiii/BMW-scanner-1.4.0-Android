@@ -59,6 +59,15 @@ updates arrive by themselves.
 The cable permission survives this. The browser remembers the device once it has been granted, so a
 second visit goes straight to **Connect the cable** without the chooser.
 
+## Where the buttons are
+
+The export bar sits directly under the tile grid, not inside the **Raw traffic** fold where it
+started. The report is what most people came for, and a collapsed `<details>` is where a feature
+goes to be missed — the same mistake the **Missing?** sweep made before it became a tile.
+
+It stays hidden until a read has produced something. A button that cheerfully writes an empty file
+is worse than one that is not there yet.
+
 ## The report
 
 **Share the log** gives the whole thing: decoded results *and* every raw byte. That file is for us —

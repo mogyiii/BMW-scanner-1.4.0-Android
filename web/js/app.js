@@ -125,6 +125,9 @@ function draw() {
   }
   grid.appendChild(huntTile());
   drawVitals();
+  // Nothing to export before the first read, and an enabled button that produces an empty file is
+  // worse than an absent one.
+  $('exports').hidden = ![...state.results.values()].some((r) => r.present);
 }
 
 /** Redraws everything that carries words in it after the language changes. */
@@ -978,6 +981,9 @@ $('connect').addEventListener('click', connect);
 $('scan').addEventListener('click', run);
 $('stop').addEventListener('click', () => { state.stop = true; setStatus(t('status.stopping')); });
 $('d-close').addEventListener('click', () => $('detail').close());
+$('link-src').href = `https://github.com/${REPO}`;
+$('link-lic').href = `https://github.com/${REPO}/blob/main/LICENSE`;
+$('link-iss').href = `https://github.com/${REPO}/issues`;
 $('doc').addEventListener('click', saveReport);
 $('share').addEventListener('click', shareLog);
 $('copy').addEventListener('click', copyLog);

@@ -222,6 +222,16 @@
   .consent-opt { display: flex; gap: 10px; align-items: flex-start; padding: 12px;
                  border: 1px solid var(--rule); border-radius: 8px; cursor: pointer; }
   .consent-opt input { margin-top: 3px; flex: none; width: 18px; height: 18px; }
+
+  /* ---------------------------------------------------------------- footer */
+  .foot { margin: 34px 0 8px; padding-top: 16px; border-top: 1px solid var(--rule); }
+  .foot-warn { background: var(--tile-warm); border-left: 3px solid var(--amber-bright);
+               padding: 10px 12px; margin: 0 0 14px; border-radius: 0 6px 6px 0;
+               font-size: .88rem; color: var(--ink); }
+  .foot-links { margin: 0 0 8px; font-size: .88rem; color: var(--faint); }
+  .foot-links a { color: var(--blue-700); text-decoration: none; font-weight: 500; }
+  .foot-links a:hover { text-decoration: underline; }
+  .foot-note { margin: 0; font-size: .8rem; color: var(--faint); }
   .dlg-head {
     padding: 16px 18px; display: flex; gap: 13px; align-items: center;
     color: var(--blue-900); border-bottom: 1px solid var(--rule);
@@ -409,6 +419,13 @@
 
 <p class="note" id="ignhint" hidden></p>
 
+<div class="bar" id="exports" hidden>
+  <button id="doc" data-i18n="btn.doc"></button>
+  <button class="ghost" id="share" data-i18n="btn.share"></button>
+  <button class="ghost" id="copy" data-i18n="btn.copy"></button>
+  <span class="status" id="savedmsg"></span>
+</div>
+
 <section class="panel" id="live" hidden>
   <h2 data-i18n="live.title"></h2>
   <p class="note" style="margin-top:0" data-i18n="live.intro"></p>
@@ -424,16 +441,20 @@
 <details>
   <summary data-i18n="raw.summary"></summary>
   <pre id="trace"></pre>
-  <div class="bar" style="margin-top:11px">
-    <button class="ghost" id="doc" data-i18n="btn.doc"></button>
-    <button class="ghost" id="share" data-i18n="btn.share"></button>
-    <button class="ghost" id="copy" data-i18n="btn.copy"></button>
-    <span class="status" id="savedmsg"></span>
-  </div>
 </details>
 
 <p class="note" data-i18n="note.evidence" data-i18n-html></p>
 <p class="note" data-i18n="note.clear" data-i18n-html></p>
+
+<footer class="foot">
+  <p class="foot-warn" data-i18n="foot.warn"></p>
+  <p class="foot-links">
+    <a id="link-src" href="#" target="_blank" rel="noopener" data-i18n="foot.source"></a> ·
+    <a id="link-lic" href="#" target="_blank" rel="noopener" data-i18n="foot.licence"></a> ·
+    <a id="link-iss" href="#" target="_blank" rel="noopener" data-i18n="foot.issue"></a>
+  </p>
+  <p class="foot-note" data-i18n="foot.vendor"></p>
+</footer>
 
 <dialog id="consent">
   <div class="dlg-head">
