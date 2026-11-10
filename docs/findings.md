@@ -47,6 +47,14 @@
 > *"Multi-Function Unlock Version"*. On a marketplace, "unlock version" means the licence check is
 > defeated — so the bundle is most plausibly cloned hardware with a cracked copy of the software.
 >
+> **The binary corroborates the licensing model, more strongly than the listing does.** It carries
+> `http://www.bmw-scanner.com/?page=unlock` — the unlock page is the vendor's own mechanism, built
+> into the product, not something a marketplace seller invented. Its interface offers three
+> languages, `English / Deutsch / Русский`, and the one contact address in it is on `mail.ru`, so
+> PA-Soft is a Russian-speaking developer. (`Hungary package`, `OE-Package Ukraine` and
+> `Instrument lettering Russian` also appear, but those are BMW equipment codes from the FA/ZCS
+> list and say nothing about the vendor.)
+>
 > **Our own EEPROM dump cannot settle it, and it is worth being clear why.** The cable identifies
 > itself as `PASOFT` / `BMW Scanner V14x`, serial `PA5BG64Y`, USB `0333:0137`, 90 mA bus-powered.
 > That looks authoritative and proves nothing: an FT232R's EEPROM is freely rewritable — it is
