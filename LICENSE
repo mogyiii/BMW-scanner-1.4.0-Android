@@ -1,0 +1,62 @@
+MIT License
+
+Copyright (c) 2026 Szabó Máté
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+
+NOT COVERED BY THE LICENCE ABOVE
+
+The licence covers the code and documentation written for this project. Two
+things in this repository are not the author's to license, and are listed here
+rather than left to be discovered.
+
+1. The fault descriptions.
+
+   `FAULT_TEXT_EXTRACTED` in `web/js/protocol.js` holds 374 short fault
+   descriptions read out of the constant tables of PA-Soft's BMW Scanner 1.4.0
+   software. They are the vendor's wording, not ours, and the MIT grant above
+   does not extend to them. They are included because a fault code without its
+   description is of no use to the person reading it, and because inventing
+   replacements would mean shipping plausible-sounding guesses about faults on
+   somebody's car — which this project refuses to do everywhere else.
+
+   `tools/fault_text.py` is the extractor, and it is ours. Anyone who would
+   rather not rely on the included copy can run it against their own copy of the
+   vendor software.
+
+   If the rights holder objects, write an issue or mail the address in the
+   commit history and they will be removed.
+
+2. Nothing else from the vendor.
+
+   No vendor binary is in this repository. The protected executable, its memory
+   dump and the module EEPROM images are all `.gitignore`d, deliberately and
+   permanently. The protocol itself was recovered by observation, and a protocol
+   is not anyone's property.
+
+ON SAFETY
+
+The warranty disclaimer above is not boilerplate here. This software talks to
+the control modules of a motor vehicle and can erase their fault memories.
+Erasing a fault memory destroys evidence a mechanic may need, and a vehicle that
+reports no faults is not the same as a vehicle that has none. Use it on a car
+you are responsible for, and read `README.md` on what it deliberately does not
+do.

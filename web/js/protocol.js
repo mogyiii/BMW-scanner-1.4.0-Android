@@ -385,6 +385,12 @@ export const FAULT_TEXT = {
  * One consequence worth knowing: because the keys are bounds, a code in a gap resolves to the
  * text of the range it falls in rather than to nothing. That is the vendor's behaviour, not a
  * choice made here - and it is why every fault keeps its raw bytes on screen regardless.
+ *
+ * **The wording below is the vendor's, not ours, and the project's MIT licence does not cover it.**
+ * See the `NOT COVERED BY THE LICENCE ABOVE` section of `LICENSE`. They are here because a fault
+ * code without its description is useless to the person reading it, and because writing
+ * replacements would mean shipping plausible-sounding guesses about faults on somebody's car.
+ * `tools/fault_text.py` is ours and regenerates this block from a copy of the vendor software.
  */
 export const FAULT_TEXT_EXTRACTED = {
   0x12: [

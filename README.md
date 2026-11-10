@@ -182,6 +182,25 @@ the genuine driver.
 The application itself shares no code with the original. It is a new implementation of a protocol
 recovered by watching the wire, which is what the rest of this README is about.
 
+**One thing in here is the vendor's wording and is marked as such.** The 374 fault descriptions were
+read out of its constant tables, and the MIT licence below does not cover them — a protocol is
+nobody's property, but those sentences are somebody's. They are included because a fault code
+without its description is useless to the person reading it, and because writing replacements would
+mean shipping plausible-sounding guesses about faults on somebody's car, which is the one thing this
+project refuses to do anywhere. `tools/fault_text.py` is ours and regenerates them from a copy of
+the vendor software, for anyone who would rather not rely on the included set.
+
+## Licence
+
+**[MIT](LICENSE)** for everything written for this project — the app, the tools and the
+documentation. With the usual consequence that there is **no warranty**, which is worth reading as
+more than boilerplate here: this talks to the control modules of a car and can erase their fault
+memories. Erasing one destroys evidence a mechanic may want, and a car reporting no faults is not
+the same as a car that has none.
+
+Two things are excluded and `LICENSE` says so explicitly: the vendor's fault descriptions, above,
+and anything else of the vendor's — of which this repository contains none.
+
 ## Why not the original software
 
 The cable is fine; the software is not usable here.
