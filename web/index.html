@@ -211,6 +211,17 @@
     box-shadow: 0 24px 60px -14px rgba(10, 45, 94, .5);
   }
   dialog::backdrop { background: rgba(16, 48, 88, .34); backdrop-filter: blur(2px); }
+
+  /* The consent dialog. Deliberately plainer than the rest - this is a thing to read, not a
+     thing to admire, and an amber lead is the only colour in it. */
+  .warn-lead { background: var(--tile-warm); border-left: 3px solid var(--amber-bright);
+               padding: 10px 12px; margin: 0 0 14px; border-radius: 0 6px 6px 0; }
+  .consent-list { margin: 0 0 16px; padding-left: 20px; }
+  .consent-list li { padding: 3px 0; }
+  .consent-list li.sensitive { color: var(--amber); font-weight: 600; }
+  .consent-opt { display: flex; gap: 10px; align-items: flex-start; padding: 12px;
+                 border: 1px solid var(--rule); border-radius: 8px; cursor: pointer; }
+  .consent-opt input { margin-top: 3px; flex: none; width: 18px; height: 18px; }
   .dlg-head {
     padding: 16px 18px; display: flex; gap: 13px; align-items: center;
     color: var(--blue-900); border-bottom: 1px solid var(--rule);
@@ -423,6 +434,26 @@
 
 <p class="note" data-i18n="note.evidence" data-i18n-html></p>
 <p class="note" data-i18n="note.clear" data-i18n-html></p>
+
+<dialog id="consent">
+  <div class="dlg-head">
+    <svg class="ic"><use href="#ic-hunt"/></svg>
+    <div><b data-i18n="consent.title"></b><div class="sub" data-i18n="consent.sub"></div></div>
+  </div>
+  <div class="dlg-body">
+    <p class="warn-lead" data-i18n="consent.lead"></p>
+    <p class="store" data-i18n="consent.what"></p>
+    <ul id="consent-list" class="consent-list"></ul>
+    <label class="consent-opt" id="consent-vinrow">
+      <input type="checkbox" id="consent-novin" checked>
+      <span><b data-i18n="consent.novin"></b><br><span class="sub" data-i18n="consent.vinnote"></span></span>
+    </label>
+  </div>
+  <div class="dlg-foot">
+    <button class="ghost" id="consent-no" data-i18n="consent.cancel"></button>
+    <button class="ghost" id="consent-yes" data-i18n="consent.ok"></button>
+  </div>
+</dialog>
 
 <dialog id="detail">
   <div class="dlg-head">

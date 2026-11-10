@@ -86,6 +86,30 @@ detail view. The trace is not cleared, so repeated reads of one module accumulat
 That is deliberate: an experiment that varies one thing and reads it six times wants all six
 readings in one file, in order.
 
+## Before anything leaves the car
+
+The **Missing?** sweep ends with a button that files a GitHub issue, and a GitHub issue is public
+and permanent. So both routes out now go through a consent dialog that lists what is actually about
+to go — built from the reading in front of you, not from a fixed warning, because the two buttons
+carry very different amounts:
+
+- **the link** carries only the module table: address, protocol, part number, hardware version and
+  identity bytes. Nothing else fits in a URL anyway.
+- **the copy button** carries the whole log — chassis number, odometer, every fault code and all of
+  the raw traffic.
+
+The chassis number is left out by default, and that option does what it says. The VIN appears twice
+in a log: once as the decoded line, and once as ASCII bytes inside the cluster's reply, where
+`P.hex` prints it as `4B 50 30 34 32 32 30`. Scrubbing only the readable line would leave the number
+in plain sight two screens further down while reporting it removed, which is worse than not offering
+the option — so the hex goes too, replaced byte-for-byte with `..` so the frame keeps its length.
+
+Three forms exist on the test car: the cluster's full `AY31060KP04220`, the seven-character short
+form the engine controller and ABS give, and `0000000` from the Valvetronic, which has none stored.
+The first two are redacted longest-first so the short one cannot survive as a tail of the long one.
+The filler is left alone — it identifies nobody, and a run of `30` bytes is common enough in a trace
+to damage unrelated frames.
+
 ## Seeing it without a cable
 
 `?demo=1` fills the page with this car's readings from 2026-11-05 and runs them through the same

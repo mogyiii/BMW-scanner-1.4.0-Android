@@ -766,11 +766,19 @@ async function hunt() {
       + `<button class="ghost" id="report-copy">${t('btn.copy')}</button>`
       + '<span class="status" id="reportmsg"></span>';
     out.appendChild(bar);
-    $('report').onclick = () => window.open(issueUrl(found), '_blank', 'noopener');
+    // Both routes go through the same consent step. The link carries only the table, the copy
+    // button carries the whole log, and the dialog says which of those is happening.
+    $('report').onclick = async () => {
+      if (!await askConsent(found, false)) return;
+      window.open(issueUrl(found), '_blank', 'noopener');
+    };
     $('report-copy').onclick = async () => {
+      const choice = await askConsent(found, true);
+      if (!choice) return;
+      const body = choice.redactVin ? redactVins(issueBody(found, true)) : issueBody(found, true);
       try {
-        await navigator.clipboard.writeText(issueBody(found, true));
-        $('reportmsg').textContent = t('status.copied');
+        await navigator.clipboard.writeText(body);
+        $('reportmsg').textContent = t(choice.redactVin ? 'status.copied.redacted' : 'status.copied');
       } catch (e) { $('reportmsg').textContent = t('status.noclipboard'); }
     };
   } catch (e) {
@@ -780,6 +788,95 @@ async function hunt() {
     $('stop').hidden = true;
     draw();
   }
+}
+
+/**
+ * Every chassis number this reading produced, longest first.
+ *
+ * Three modules answer with one and they do not agree in length — the cluster gives the full
+ * seventeen characters, the engine controller and ABS a seven-character short form. All of them
+ * have to go when redacting, and the long one has to go first or its tail survives as a fragment.
+ */
+function vinsSeen() {
+  const set = new Set();
+  for (const r of state.results.values()) {
+    // A module with no chassis number stored answers with filler rather than refusing - the
+    // Valvetronic on the test car returns `0000000`. Redacting that identifies nobody, and its
+    // hex form is a run of `30` bytes common enough to hit unrelated frames in the trace. A
+    // chassis number has letters in it; filler does not.
+    if (r.vin && /[A-Z]/.test(r.vin)) set.add(r.vin);
+  }
+  return [...set].sort((a, b) => b.length - a.length);
+}
+
+/**
+ * Takes the chassis number out of a report, in both of the forms it appears in.
+ *
+ * The decoded line is the obvious one. The raw trace is not: the cluster's reply carries the VIN as
+ * ASCII bytes, so `P.hex` prints it as `41 59 33 31 …` and a redaction that only scrubbed the
+ * readable line would leave the number sitting in plain sight two screens further down, while
+ * telling the user it had been removed. That is worse than not offering the option.
+ *
+ * The hex is replaced byte-for-byte with `..` so the trace keeps its length and column alignment —
+ * a shortened frame would be a decoding puzzle for whoever reads the issue.
+ */
+function redactVins(text) {
+  for (const vin of vinsSeen()) {
+    const hex = [...vin].map((c) => c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+    text = text.split(vin).join(t('consent.removed'));
+    text = text.split(hex.join(' ')).join(hex.map(() => '..').join(' '));
+  }
+  return text;
+}
+
+/**
+ * Asks before anything about the car leaves it, and says exactly what "anything" is.
+ *
+ * A GitHub issue is public and permanent, and the person pressing this button is trying to be
+ * helpful about an unknown module — not to publish their odometer. The two buttons send very
+ * different amounts, so the list is built from what is actually about to go rather than from a
+ * fixed warning, and the chassis number is left out by default because nothing in a module report
+ * needs it.
+ *
+ * Resolves to `null` if the user declines.
+ */
+function askConsent(found, withTrace) {
+  const dlg = $('consent');
+  const list = $('consent-list');
+  list.textContent = '';
+  const add = (text, sensitive) => {
+    const li = document.createElement('li');
+    li.textContent = text;
+    if (sensitive) li.className = 'sensitive';
+    list.appendChild(li);
+  };
+
+  add(tn('consent.item.modules', found.length));
+  const km = [...state.results.values()].find((r) => r.mileage);
+  if (withTrace) {
+    const faults = [...state.results.values()]
+      .reduce((n, r) => n + (r.faults && !r.faults.locked ? r.faults.count : 0), 0);
+    if (km) add(t('consent.item.km', { km: fmt(km.mileage) }), true);
+    if (faults) add(tn('consent.item.faults', faults), true);
+    add(t('consent.item.trace'), true);
+  }
+  // Only offer the choice when there is a chassis number in what is about to go.
+  const hasVin = vinsSeen().length > 0 && withTrace;
+  $('consent-vinrow').hidden = !hasVin;
+  if (hasVin) add(t('consent.item.vin'), true);
+
+  dlg.showModal();
+  return new Promise((resolve) => {
+    const done = (value) => {
+      $('consent-yes').onclick = null;
+      $('consent-no').onclick = null;
+      dlg.close();
+      resolve(value);
+    };
+    $('consent-yes').onclick = () => done({ redactVin: hasVin && $('consent-novin').checked });
+    $('consent-no').onclick = () => done(null);
+    dlg.addEventListener('cancel', () => done(null), { once: true });
+  });
 }
 
 /**
