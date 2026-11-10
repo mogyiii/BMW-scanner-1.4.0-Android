@@ -1,5 +1,32 @@
 # Findings — BMW Scanner 1.4.0 cable and its Windows software
 
+> # ⚠ The cable is most likely a clone, and it changes one earlier conclusion — 2026-11-10
+>
+> The owner found the AliExpress listing it came from: **1 400 HUF**, about €3.50, described as a
+> *"Multi-Function Unlock Version"*. On a marketplace, "unlock version" means the licence check is
+> defeated — so the bundle is most plausibly cloned hardware with a cracked copy of the software.
+>
+> **Our own EEPROM dump cannot settle it, and it is worth being clear why.** The cable identifies
+> itself as `PASOFT` / `BMW Scanner V14x`, serial `PA5BG64Y`, USB `0333:0137`, 90 mA bus-powered.
+> That looks authoritative and proves nothing: an FT232R's EEPROM is freely rewritable — it is
+> exactly what produces the non-FTDI `0x0333` vendor id in the first place, and `FT_EE_Program` is
+> one of the 73 exports the shim implements. A cloner writes the same strings.
+>
+> **There is a test, and it needs a second cable.** If `PA5BG64Y` turns up on somebody else's unit,
+> a batch shares one serial and the question is answered. The app now logs the cable's manufacturer,
+> product, serial and USB ids so any owner can compare without knowing where to look.
+>
+> **What this revises.** The first session concluded the antivirus hits were *"most plausibly false
+> positives caused by the protector"*, with the explicit caveat that this was an explanation and
+> **not a clean bill of health**. That caveat earns its keep here: a cracked binary has been modified
+> by an unknown third party, which is a second and independent reason for the detections that has
+> nothing to do with the packer. The reasoning behind the isolated VM — no network, no clipboard,
+> no shared folders — holds up better than it needed to.
+>
+> **What it does not revise: anything measured.** The protocol came off the wire between this cable
+> and this car. Whoever built the cable, the bytes are the bytes, and `protocol.test.mjs` checks them
+> against the vendor software's own printed output rather than against anybody's provenance.
+
 > # 📖 The form resources name every field the vendor displays — 2026-11-09
 >
 > The executable carries **104 Delphi form resources**, and a form lists its own captions. That is a

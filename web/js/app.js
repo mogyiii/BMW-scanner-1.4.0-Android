@@ -391,6 +391,17 @@ function buildLog() {
   const lines = [];
   lines.push(`${t('log.title')} - ${new Date().toISOString()}`);
   lines.push(`app version: ${VERSION}`);
+  // The cable's own identity, which the page never shows but a bug report wants. It is also the
+  // only handle anyone has on whether two cables are the same cable: the FTDI EEPROM is freely
+  // rewritable, so the manufacturer and product strings prove nothing, but a serial that turns up
+  // on somebody else's cable would say something.
+  if (state.ftdi && state.ftdi.device) {
+    const d = state.ftdi.device;
+    lines.push(`cable: ${d.manufacturerName || '?'} / ${d.productName || '?'}`
+      + `  serial ${d.serialNumber || '?'}`
+      + `  usb ${d.vendorId.toString(16).padStart(4, '0')}:`
+      + `${d.productId.toString(16).padStart(4, '0')}`);
+  }
   lines.push(`user agent: ${navigator.userAgent}`);
   lines.push('');
   for (const mod of P.MODULES) {
